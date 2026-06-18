@@ -1,6 +1,5 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
-  let { children }: { children: Snippet } = $props();
+  import '../styles/global.css';
 </script>
 
 <nav style="padding: 1rem; background: #f5f5f5;">
