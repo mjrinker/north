@@ -1,20 +1,16 @@
-// src/routes/tags/+page.svelte
 <script lang="ts">
   import type { Habit } from '../../types';
   import { habitsStore } from '../../stores/habits';
 
-  let habits: Habit[] = [];
+  let habits = $state<Habit[]>([]);
   habitsStore.subscribe(v => (habits = v));
 
-  // Collect all unique tags
-  $: tags = Array.from(new Set(habits.flatMap(h => h.tags)));
-
-  let newTag = '';
+  let tags = $derived(Array.from(new Set(habits.flatMap(h => h.tags))));
+  let newTag = $state('');
 
   function addTag() {
     if (!newTag.trim()) return;
-    // Add tag to all habits that don't have it
-    habitsStore.update(list => 
+    habitsStore.update(list =>
       list.map(h => ({
         ...h,
         tags: [...new Set([...h.tags, newTag.trim()])]
@@ -34,6 +30,6 @@
 
   <div style="margin-top: 1rem;">
     <input type="text" bind:value={newTag} placeholder="New tag" />
-    <button on:click={addTag}>Add</button>
+    <button onclick={addTag}>Add</button>
   </div>
 </div>

@@ -46,13 +46,13 @@
   <h1>Create Habit</h1>
 
   <form onsubmit={handleSubmit}>
-    <div style="margin-bottom: 1rem;">
-      <label>Title</label><br />
+    <label style="display: block; margin-bottom: 1rem;">
+      Title
       <input type="text" bind:value={title} required />
-    </div>
+    </label>
 
-    <div style="margin-bottom: 1rem;">
-      <label>Type</label><br />
+    <label style="display: block; margin-bottom: 1rem;">
+      Type
       <select bind:value={type}>
         <option value="binary">Binary (Checkmark)</option>
         <option value="quantity">Quantity (Count)</option>
@@ -60,17 +60,17 @@
         <option value="partial">Partial (Percentage)</option>
         <option value="conditional">Conditional</option>
       </select>
-    </div>
+    </label>
 
-    <div style="margin-bottom: 1rem;">
-      <label>Standard</label><br />
+    <label style="display: block; margin-bottom: 1rem;">
+      Standard
       <input type="number" bind:value={standard} min="1" />
-    </div>
+    </label>
 
-    <div style="margin-bottom: 1rem;">
-      <label>Target (optional)</label><br />
+    <label style="display: block; margin-bottom: 1rem;">
+      Target (optional)
       <input type="number" bind:value={target} min="1" />
-    </div>
+    </label>
 
     <button type="submit">Save</button>
     <button type="button" onclick={() => goto('/habits')}>Cancel</button>

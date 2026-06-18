@@ -3,8 +3,8 @@
   import type { Identity } from '../../types';
   import { goto } from '$app/navigation';
 
-  let identities: Identity[] = [];
-  identitiesStore.subscribe(v => (identities = v));
+let identities = $state<Identity[]>([]);
+identitiesStore.subscribe(v => (identities = v));
 
   function handleDelete(id: string) {
     if (confirm('Delete this identity?')) removeIdentity(id);
@@ -17,7 +17,7 @@
     {#each identities as ident (ident.id)}
       <li>
         <a href="/identities/{ident.id}">{ident.name}</a>
-        <button on:click={() => handleDelete(ident.id)} style="margin-left: 0.5rem;">Delete</button>
+        <button onclick={() => handleDelete(ident.id)} style="margin-left: 0.5rem;">Delete</button>
       </li>
     {/each}
   </ul>
