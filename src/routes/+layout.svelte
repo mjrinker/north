@@ -1,5 +1,5 @@
 <script lang="ts">
-  import '../styles/global.css';
+  let { children }: { children: any } = $props();
 </script>
 
 <nav style="padding: 1rem; background: #f5f5f5;">
