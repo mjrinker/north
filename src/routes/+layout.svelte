@@ -1,4 +1,5 @@
 <script lang="ts">
+  import '../styles/global.css';
   let { children }: { children: any } = $props();
 </script>
 
