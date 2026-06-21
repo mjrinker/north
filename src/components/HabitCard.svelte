@@ -1,13 +1,11 @@
 <script lang="ts">
   import type { Habit } from '../types';
   import { HabitEngine } from '../services/habitEngine';
-  import { getEntry, saveEntry } from '../services/storage';
+  import { getEntry } from '../services/storage';
   let { habit } = $props();
 
   let streak = $state(0);
   let todayEntry = $state<{ value: number } | null>(null);
-  let isLogging = $state(false);
-  // Re‑run when habit updates
   $effect(() => {
     const engine = new HabitEngine(habit);
     if (!habit) return;
@@ -23,9 +21,8 @@
     if (!habit) return;
     const engine = new HabitEngine(habit);
     const today = new Date().toISOString().split('T')[0];
-    const value = todayEntry?.value === 1 ? 0 : 1; // toggle
+    const value = todayEntry?.value === 1 ? 0 : 1;
     await engine.logCompletion(today, value);
-    // Update todayEntry
     todayEntry = { value };
   }
 
@@ -43,40 +40,34 @@
     if (!habit) return;
     const engine = new HabitEngine(habit);
     const today = new Date().toISOString().split('T')[0];
-    const value = habit.target ?? habit.standard ?? 5; // default 5 minutes
+    const value = habit.target ?? habit.standard ?? 5;
     await engine.logCompletion(today, value);
     todayEntry = { value };
   }
 </script>
 
-<div class="habit-card" class:dark={false}>
+<div class="habit-card">
   <div class="card-content">
     <h3>{habit.title}</h3>
     <p class="streak">Streak: {streak} days</p>
     {#if habit.type === 'binary'}
       <div class="action-control">
         <label class="checkbox-label">
-          <input type="checkbox" checked={todayEntry?.value === 1} on:change={handleBinaryChange} />
+          <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} />
           <span class="checkbox-slider"></span>
         </label>
         <span class="action-label">Done</span>
       </div>
     {:else if habit.type === 'quantity'}
       <div class="action-control">
-        <button on:click={() => handleQuantityDelta(-1)} class="quantity-btn">−</button>
+        <button onclick={() => handleQuantityDelta(-1)} class="quantity-btn">−</button>
         <span class="quantity-value">{todayEntry?.value ?? 0}</span>
-        <button on:click={() => handleQuantityDelta(1)} class="quantity-btn">+</button>
+        <button onclick={() => handleQuantityDelta(1)} class="quantity-btn">+</button>
         <span class="action-label">Reps</span>
       </div>
     {:else if habit.type === 'duration'}
       <div class="action-control">
-        <button on:click={handleDurationStart} class="duration-btn">
-          {#if isLogging}
-            Logging...
-          {:else}
-            Start
-          {/if}
-        </button>
+        <button onclick={handleDurationStart} class="duration-btn">Start</button>
         <span class="action-label">Min</span>
       </div>
     {/if}
@@ -86,7 +77,7 @@
 <style>
   .habit-card {
     background: var(--card-bg);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--card-border, #e0e0e0);
     border-radius: 8px;
     padding: 1rem;
     margin: 0.5rem 0;
@@ -96,20 +87,17 @@
     gap: 1rem;
   }
   
-  .card-content {
-    flex: 1;
-    min-width: 0;
-  }
+  .card-content { flex: 1; min-width: 0; }
   
   .habit-card h3 {
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.25rem 0;
     font-size: 1.1rem;
-    color: var(--text-primary);
+    color: var(--text);
   }
   
   .streak {
-    margin: 0;
-    font-size: 0.9rem;
+    margin: 0 0 0.5rem 0;
+    font-size: 0.85rem;
     color: var(--text-secondary);
   }
   
@@ -131,18 +119,17 @@
     width: 1.2rem;
     height: 1.2rem;
     appearance: none;
-    border: 2px solid var(--border-color);
+    border: 2px solid var(--card-border, #ccc);
     border-radius: 3px;
     outline: none;
     cursor: pointer;
-    position: relative;
-    background: var(--checkbox-bg);
+    background: var(--input-bg);
     transition: background 0.2s;
   }
   
   .checkbox-label input:checked {
-    background: var(--accent-color);
-    border-color: var(--accent-color);
+    background: var(--accent);
+    border-color: var(--accent);
   }
   
   .checkbox-label input:checked::after {
@@ -157,94 +144,32 @@
     transform: rotate(45deg);
   }
   
-  .checkbox-slider {
-    width: 1.2rem;
-    height: 1.2rem;
-    background: var(--checkbox-bg);
-    border: 2px solid var(--border-color);
-    border-radius: 3px;
-    display: inline-block;
-  }
+  .checkbox-slider { display: none; }
   
   .action-label {
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
+    font-size: 0.7rem;
+    color: var(--text-secondary);
   }
   
-  .quantity-btn {
+  .quantity-btn, .duration-btn {
     width: 2.2rem;
     height: 2.2rem;
     border: none;
-    background: var(--accent-color);
+    background: var(--accent);
     color: white;
     border-radius: 4px;
     font-size: 1rem;
     cursor: pointer;
   }
   
-  .quantity-btn:hover {
-    opacity: 0.9;
-  }
+  .quantity-btn:hover, .duration-btn:hover { opacity: 0.9; }
   
   .quantity-value {
     min-width: 2.2rem;
     text-align: center;
     font-weight: bold;
-    color: var(--text-primary);
+    color: var(--text);
   }
   
-  .duration-btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    background: var(--accent-color);
-    color: white;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    cursor: pointer;
-  }
-  
-  .duration-btn:hover {
-    opacity: 0.9;
-  }
-  
-  :global(.dark) .habit-card {
-    --card-bg: #2d2d2d;
-    --border-color: #444;
-    --text-primary: #fff;
-    --text-secondary: #bbb;
-    --text-tertiary: #888;
-    --accent-color: #0066cc;
-    --checkbox-bg: #444;
-  }
-  
-  :global(.light) .habit-card {
-    --card-bg: #fff;
-    --border-color: #ddd;
-    --text-primary: #222;
-    --text-secondary: #555;
-    --text-tertiary: #777;
-    --accent-color: #0066cc;
-    --checkbox-bg: #f0f0f0;
-  }
-  
-  :global(.system) .habit-card {
-    @media (prefers-color-scheme: dark) {
-      --card-bg: #2d2d2d;
-      --border-color: #444;
-      --text-primary: #fff;
-      --text-secondary: #bbb;
-      --text-tertiary: #888;
-      --accent-color: #0066cc;
-      --checkbox-bg: #444;
-    }
-    @media (prefers-color-scheme: light) {
-      --card-bg: #fff;
-      --border-color: #ddd;
-      --text-primary: #222;
-      --text-secondary: #555;
-      --text-tertiary: #777;
-      --accent-color: #0066cc;
-      --checkbox-bg: #f0f0f0;
-    }
-  }
+  .duration-btn { width: auto; padding: 0.5rem 1rem; }
 </style>

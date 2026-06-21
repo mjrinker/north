@@ -55,7 +55,7 @@
 
 <!-- Modal for adding a new habit -->
 {#if $showModal}
-<div class="modal-overlay" onclick={() => showModal.set(false)}>
+<div class="modal-overlay" role="dialog" aria-modal="true" aria-label="Add new habit" tabindex="-1" onkeydown={(e) => { if (e.key === 'Escape') showModal.set(false); }} onclick={() => showModal.set(false)}>
   <div class="modal">
     <h2>Add New Habit</h2>
     <form onsubmit.prevent={handleAddHabit}>
@@ -202,10 +202,6 @@
   
   /* Responsive adjustments */
   @media (max-width: 600px) {
-    nav {
-      flex-direction: column;
-      align-items: flex-start;
-    }
     
     .habits-grid {
       grid-template-columns: 1fr;
