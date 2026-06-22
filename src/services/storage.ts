@@ -86,6 +86,24 @@ export async function getAllEntries(): Promise<HabitEntry[]> {
   return await idbGetAll<HabitEntry>('entries');
 }
 
+export async function getEntriesByHabitId(habitId: string): Promise<HabitEntry[]> {
+  if (!isBrowser) return [];
+  const db = await getDB();
+  const tx = db.transaction('entries', 'readonly');
+  const store = tx.objectStore('entries');
+  const all = await store.getAll();
+  return all.filter(e => e.habitId === habitId);
+}
+
+export async function getEntriesByDateRange(start: string, end: string): Promise<HabitEntry[]> {
+  if (!isBrowser) return [];
+  const db = await getDB();
+  const tx = db.transaction('entries', 'readonly');
+  const store = tx.objectStore('entries');
+  const all = await store.getAll();
+  return all.filter(e => e.date >= start && e.date <= end);
+}
+
 // --- Identity methods ---
 export async function saveIdentity(identity: Identity): Promise<void> {
   await idbPut('identities', identity);

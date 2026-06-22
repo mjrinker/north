@@ -9,6 +9,7 @@
 <nav>
   <a href="/">Home</a>
   <a href="/habits">Habits</a>
+  <a href="/stats">Stats</a>
   <div class="theme-slider">
     <button
       type="button"
