@@ -1,28 +1,28 @@
 <script lang="ts">
-  import { habitsStore } from '../stores/habits';
-  import type { Habit } from '../types';
+  import { habitsStore, addHabit } from '../stores/habits';
+  import type { Habit, DependsOn } from '../types';
   import HabitCard from '../components/HabitCard.svelte';
   import { showModal } from '../stores/theme';
-  
+
   let habits = $state<Habit[]>([]);
-  let otherHabits = $derived(habits);
+  let modalOpen = $state(false);
+  showModal.subscribe(v => modalOpen = v);
   habitsStore.subscribe(v => habits = v);
-  
-  let newHabitTitle = $state<string>('');
+
+  let newHabitTitle = $state('');
   let newHabitType = $state<Habit['type']>('binary');
-  let newHabitStandard = $state<string>('');
-  let newHabitTarget = $state<string>('');
-  let newHabitFrequency = $state<string>('daily');
-  let newHabitInterval = $state<string>('1');
+  let newHabitStandard = $state('');
+  let newHabitTarget = $state('');
+  let newHabitFrequency = $state('daily');
+  let newHabitInterval = $state('1');
   let newHabitDaysOfWeek = $state<number[]>([]);
-  let newHabitPartial = $state(false);
-  let newHabitDependsOn = $state<string>('');
-  
+  let newHabitDepIds = $state<string[]>([]);
+  let newHabitDepMode = $state<'and' | 'or'>('and');
+
   let showStandard = $derived(newHabitType !== 'binary');
-  let showTarget = $derived(newHabitType !== 'binary');
-  
+
   let weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  
+
   function toggleDay(d: number) {
     if (newHabitDaysOfWeek.includes(d)) {
       newHabitDaysOfWeek = newHabitDaysOfWeek.filter(i => i !== d);
@@ -30,11 +30,26 @@
       newHabitDaysOfWeek = [...newHabitDaysOfWeek, d];
     }
   }
-  
-  async function handleAddHabit() {
+
+  function toggleDep(id: string) {
+    if (newHabitDepIds.includes(id)) {
+      newHabitDepIds = newHabitDepIds.filter(i => i !== id);
+    } else {
+      newHabitDepIds = [...newHabitDepIds, id];
+    }
+  }
+
+  function handleAddHabit(e: SubmitEvent) {
+    e.preventDefault();
+    if (!newHabitTitle.trim()) return;
+
+    const dependsOn: DependsOn | undefined = newHabitDepIds.length > 0
+      ? { habitIds: newHabitDepIds, mode: newHabitDepMode }
+      : undefined;
+
     const newHabit: Habit = {
       id: crypto.randomUUID(),
-      title: newHabitTitle,
+      title: newHabitTitle.trim(),
       type: newHabitType,
       standard: newHabitStandard ? parseInt(newHabitStandard) : 1,
       target: (newHabitType !== 'binary' && newHabitTarget) ? parseInt(newHabitTarget) : undefined,
@@ -51,23 +66,21 @@
         streakFreezeDays: 0,
         allowBackdating: true
       },
-      partial: newHabitType !== 'binary' ? newHabitPartial : undefined,
-      dependsOn: newHabitDependsOn || undefined,
+      dependsOn,
       identityId: undefined,
       tags: [],
       status: 'active',
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    const { addHabit: add } = await import('../stores/habits');
-    add(newHabit);
+    addHabit(newHabit);
     newHabitTitle = '';
     newHabitStandard = '';
     newHabitTarget = '';
     newHabitInterval = '1';
     newHabitDaysOfWeek = [];
-    newHabitPartial = false;
-    newHabitDependsOn = '';
+    newHabitDepIds = [];
+    newHabitDepMode = 'and';
     showModal.set(false);
   }
 </script>
@@ -76,38 +89,29 @@
 
 <button class="add-habit-btn" onclick={() => showModal.set(true)}>+ Add Habit</button>
 
-{#if $showModal}
+{#if modalOpen}
 <div class="modal-overlay" role="dialog" aria-modal="true" aria-label="Add new habit" tabindex="-1" onkeydown={(e) => { if (e.key === 'Escape') showModal.set(false); }} onclick={() => showModal.set(false)}>
   <div class="modal" onclick={e => e.stopPropagation()}>
     <h2>Add New Habit</h2>
-    <form onsubmit.prevent={handleAddHabit}>
+    <form onsubmit={handleAddHabit}>
       <label for="title">Title</label>
       <input type="text" bind:value={newHabitTitle} placeholder="Enter habit title" required />
-      
+
       <label for="type">Type</label>
       <select bind:value={newHabitType} required>
         <option value="binary">Binary (Done / Not Done)</option>
         <option value="quantity">Quantity (Count)</option>
         <option value="duration">Duration (Time)</option>
       </select>
-      
+
       {#if showStandard}
         <label for="standard">Standard</label>
         <input type="number" bind:value={newHabitStandard} placeholder="Standard value" min="1" />
-      {/if}
-      
-      {#if showTarget}
+
         <label for="target">Goal</label>
         <input type="number" bind:value={newHabitTarget} placeholder="Goal (optional)" min="1" />
       {/if}
-      
-      {#if newHabitType !== 'binary'}
-        <label class="checkbox-line">
-          <input type="checkbox" bind:checked={newHabitPartial} />
-          Partial progress (show as "5 / 30" instead of just "5")
-        </label>
-      {/if}
-      
+
       <label for="frequency">Frequency</label>
       <select bind:value={newHabitFrequency}>
         <option value="daily">Daily</option>
@@ -116,10 +120,10 @@
         <option value="monthly">Monthly</option>
         <option value="custom">Every X Days</option>
       </select>
-      
-      <label for="interval">Interval</label>
-      <input type="number" bind:value={newHabitInterval} placeholder="Every..." min="1" />
-      
+
+      <label for="interval">Every</label>
+      <input type="number" bind:value={newHabitInterval} min="1" />
+
       {#if newHabitFrequency === 'weekly'}
         <label>Days of Week</label>
         <div class="day-picker">
@@ -128,17 +132,20 @@
           {/each}
         </div>
       {/if}
-      
-      {#if otherHabits.length > 0}
-        <label for="dependsOn">Depends on (conditional)</label>
-        <select bind:value={newHabitDependsOn}>
-          <option value="">None</option>
-          {#each otherHabits as h (h.id)}
-            <option value={h.id}>{h.title}</option>
+
+      {#if habits.length > 0}
+        <label>Depends on</label>
+        <div class="dep-mode">
+          <button type="button" class:active={newHabitDepMode === 'and'} onclick={() => newHabitDepMode = 'and'}>AND</button>
+          <button type="button" class:active={newHabitDepMode === 'or'} onclick={() => newHabitDepMode = 'or'}>OR</button>
+        </div>
+        <div class="dep-picker">
+          {#each habits as h (h.id)}
+            <button type="button" class:selected={newHabitDepIds.includes(h.id)} onclick={() => toggleDep(h.id)}>{h.title}</button>
           {/each}
-        </select>
+        </div>
       {/if}
-      
+
       <div class="modal-actions">
         <button type="submit">Create</button>
         <button type="button" onclick={() => showModal.set(false)}>Cancel</button>
@@ -158,11 +165,10 @@
   .page-title {
     font-size: 1.5rem;
     margin-bottom: 0.5rem;
-    color: #222;
+    color: var(--text-primary, #222);
   }
-  
-   .add-habit-btn {
-    background: #0066cc;
+  .add-habit-btn {
+    background: var(--accent, #0066cc);
     color: white;
     border: none;
     padding: 0.5rem 1rem;
@@ -171,18 +177,14 @@
     cursor: pointer;
     margin-bottom: 1rem;
   }
-  
-  .add-habit-btn:hover {
-    background: #0052a3;
-  }
-  
+  .add-habit-btn:hover { opacity: 0.9; }
   .habits-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1rem;
     margin-bottom: 2rem;
   }
-  
+
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -192,50 +194,78 @@
     justify-content: center;
     z-index: 1000;
   }
-  
   .modal {
-    background: white;
+    background: var(--card-bg, #fff);
     border-radius: 8px;
     padding: 1.5rem;
     width: 90%;
     max-width: 500px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.15);
   }
-  
   .modal h2 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #222;
+    margin: 0 0 1rem;
+    color: var(--text-primary, #222);
   }
-  
   .modal label {
     display: block;
     margin-bottom: 0.25rem;
     font-weight: 500;
+    color: var(--text-primary, #222);
   }
-  
   .modal input, .modal select {
     width: 100%;
     padding: 0.5rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--card-border, #ccc);
     border-radius: 4px;
     font-size: 1rem;
     box-sizing: border-box;
     margin-bottom: 0.75rem;
+    background: var(--input-bg, #fff);
+    color: var(--text-primary, #222);
   }
-  
-  .checkbox-line {
-    display: flex !important;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 400;
+
+  .dep-mode {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 0.5rem;
+  }
+  .dep-mode button {
+    flex: 1;
+    padding: 0.3rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 4px;
+    background: var(--card-bg, #f5f5f5);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--text-primary, #222);
+  }
+  .dep-mode button.active {
+    background: var(--accent, #0066cc);
+    color: white;
+    border-color: var(--accent, #0066cc);
+  }
+  .dep-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
     margin-bottom: 0.75rem;
   }
-  .checkbox-line input {
-    width: auto;
-    margin-bottom: 0;
+  .dep-picker button {
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 4px;
+    background: var(--card-bg, #f5f5f5);
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--text-primary, #222);
   }
-  
+  .dep-picker button.selected {
+    background: var(--accent, #0066cc);
+    color: white;
+    border-color: var(--accent, #0066cc);
+  }
+
   .day-picker {
     display: flex;
     gap: 4px;
@@ -244,45 +274,42 @@
   .day-picker button {
     width: 2.5rem;
     height: 2.2rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--card-border, #ccc);
     border-radius: 4px;
-    background: #f5f5f5;
+    background: var(--card-bg, #f5f5f5);
     cursor: pointer;
     font-size: 0.75rem;
+    color: var(--text-primary, #222);
   }
   .day-picker button.selected {
-    background: #0066cc;
+    background: var(--accent, #0066cc);
     color: white;
-    border-color: #0066cc;
+    border-color: var(--accent, #0066cc);
   }
-  
+
   .modal-actions {
     display: flex;
     gap: 0.5rem;
     margin-top: 1rem;
   }
-  
   .modal-actions button {
     flex: 1;
     padding: 0.5rem;
     border-radius: 4px;
     border: none;
     font-weight: 500;
+    cursor: pointer;
   }
-  
   .modal-actions button[type="submit"] {
-    background: #0066cc;
+    background: var(--accent, #0066cc);
     color: white;
   }
-  
   .modal-actions button[type="button"] {
-    background: #eee;
-    color: #222;
+    background: var(--btn-secondary-bg, #eee);
+    color: var(--text-primary, #222);
   }
-  
+
   @media (max-width: 600px) {
-    .habits-grid {
-      grid-template-columns: 1fr;
-    }
+    .habits-grid { grid-template-columns: 1fr; }
   }
 </style>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import '../styles/global.css';
   import { theme } from '../stores/theme';
+  import { isEnabled } from '../lib/featureFlags';
   let { children }: { children: any } = $props();
   let currentTheme = $state<'light' | 'dark' | 'system'>('system');
   theme.subscribe(v => currentTheme = v);
@@ -9,7 +10,7 @@
 <nav>
   <a href="/">Home</a>
   <a href="/habits">Habits</a>
-  <a href="/stats">Stats</a>
+  {#if isEnabled('stats')}<a href="/stats">Stats</a>{/if}
   <div class="theme-slider">
     <button
       type="button"
@@ -51,7 +52,7 @@
   }
   nav a {
     text-decoration: none;
-    color: #0066cc;
+    color: var(--accent, #0066cc);
     font-weight: 500;
     font-size: 0.95rem;
   }
@@ -73,7 +74,7 @@
     border-radius: 999px;
     background: transparent;
     cursor: pointer;
-    color: #555;
+    color: var(--text-secondary, #555);
     transition: background 0.2s, color 0.2s;
   }
   .theme-slider button svg {
@@ -82,7 +83,7 @@
   }
   .theme-slider button.active {
     background: var(--slide-thumb, #fff);
-    color: #0066cc;
+    color: var(--accent, #0066cc);
     box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   }
   .theme-slider button:hover:not(.active) {

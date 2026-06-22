@@ -3,6 +3,11 @@ import type { Schedule } from './schedule';
 export type HabitType = 'binary' | 'quantity' | 'duration';
 export type HabitStatus = 'active' | 'paused' | 'archived';
 
+export interface DependsOn {
+  habitIds: string[];
+  mode: 'and' | 'or';
+}
+
 export interface Habit {
 	id: string;
 	title: string;
@@ -18,10 +23,8 @@ export interface Habit {
 	schedule: Schedule;
 	metadata: HabitMetadata;
 	
-	// For partial progress habits (sub-type of quantity/duration)
-	partial?: boolean;
-	// For conditional habits: ID of the habit this one depends on
-	dependsOn?: string;
+	// Optional dependency: complete this habit only if dependencies are met
+	dependsOn?: DependsOn;
 	
 	identityId?: string;
 	tags: string[];

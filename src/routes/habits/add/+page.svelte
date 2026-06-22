@@ -1,20 +1,32 @@
 <script lang="ts">
   import { addHabit } from '../../../stores/habits';
-  import type { Habit } from '../../../types';
+  import type { Habit, DependsOn } from '../../../types';
   import { goto } from '$app/navigation';
 
   let title = $state('');
   let standard = $state(1);
-  let target = $state(2);
+  let target = $state<number | undefined>(2);
   let type: Habit['type'] = $state('binary');
-  let partial = $state(false);
-  let dependsOn = $state('');
+  let depIds = $state<string[]>([]);
+  let depMode = $state<'and' | 'or'>('and');
   let frequency = $state('daily');
   let interval = $state(1);
 
-  async function handleSubmit(event: SubmitEvent) {
+  function toggleDep(id: string) {
+    if (depIds.includes(id)) {
+      depIds = depIds.filter(i => i !== id);
+    } else {
+      depIds = [...depIds, id];
+    }
+  }
+
+  function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     if (!title) return alert('Title is required');
+
+    const dependsOn: DependsOn | undefined = depIds.length > 0
+      ? { habitIds: depIds, mode: depMode }
+      : undefined;
 
     const newHabit: Habit = {
       id: crypto.randomUUID(),
@@ -34,8 +46,7 @@
         streakFreezeDays: 0,
         allowBackdating: true
       },
-      partial: type !== 'binary' ? partial : undefined,
-      dependsOn: dependsOn || undefined,
+      dependsOn,
       identityId: undefined,
       tags: [],
       status: 'active',
@@ -48,16 +59,16 @@
   }
 </script>
 
-<div style="padding: 1rem; max-width: 500px; margin: 0 auto;">
+<div class="page">
   <h1>Create Habit</h1>
 
   <form onsubmit={handleSubmit}>
-    <label style="display: block; margin-bottom: 1rem;">
+    <label>
       Title
       <input type="text" bind:value={title} required />
     </label>
 
-    <label style="display: block; margin-bottom: 1rem;">
+    <label>
       Type
       <select bind:value={type}>
         <option value="binary">Binary (Done / Not Done)</option>
@@ -67,23 +78,18 @@
     </label>
 
     {#if type !== 'binary'}
-      <label style="display: block; margin-bottom: 1rem;">
+      <label>
         Standard
         <input type="number" bind:value={standard} min="1" />
       </label>
 
-      <label style="display: block; margin-bottom: 1rem;">
+      <label>
         Goal (optional)
         <input type="number" bind:value={target} min="1" />
       </label>
-
-      <label style="display: block; margin-bottom: 0.5rem;">
-        <input type="checkbox" bind:checked={partial} />
-        Partial progress (show as "5 / 30")
-      </label>
     {/if}
 
-    <label style="display: block; margin-bottom: 1rem;">
+    <label>
       Frequency
       <select bind:value={frequency}>
         <option value="daily">Daily</option>
@@ -94,7 +100,7 @@
       </select>
     </label>
 
-    <label style="display: block; margin-bottom: 1rem;">
+    <label>
       Every
       <input type="number" bind:value={interval} min="1" /> day(s)
     </label>
@@ -103,3 +109,45 @@
     <button type="button" onclick={() => goto('/habits')}>Cancel</button>
   </form>
 </div>
+
+<style>
+  .page {
+    padding: 1rem;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  h1 { color: var(--text-primary, #222); }
+  label {
+    display: block;
+    margin-bottom: 1rem;
+    font-weight: 500;
+    color: var(--text-primary, #222);
+  }
+  input, select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    margin-top: 0.25rem;
+    background: var(--input-bg, #fff);
+    color: var(--text-primary, #222);
+  }
+  button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  button[type="submit"] {
+    background: var(--accent, #0066cc);
+    color: white;
+  }
+  button[type="button"] {
+    background: var(--btn-secondary-bg, #eee);
+    color: var(--text-primary, #222);
+    margin-left: 0.5rem;
+  }
+</style>
