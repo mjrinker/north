@@ -24,6 +24,7 @@ body {
 body.light {
   --bg: #fafafa;
   --text: #333;
+  --text-primary: #333;
   --text-secondary: #555;
   --nav-bg: #f5f5f5;
   --nav-border: #e0e0e0;
@@ -43,6 +44,7 @@ body.light {
 body.dark {
   --bg: #1a1a2e;
   --text: #e0e0e0;
+  --text-primary: #e0e0e0;
   --text-secondary: #aaa;
   --nav-bg: #16213e;
   --nav-border: #2a3a5e;
@@ -63,6 +65,7 @@ body.dark {
   body.system {
     --bg: #1a1a2e;
     --text: #e0e0e0;
+    --text-primary: #e0e0e0;
     --text-secondary: #aaa;
     --nav-bg: #16213e;
     --nav-border: #2a3a5e;
@@ -83,6 +86,7 @@ body.dark {
   body.system {
     --bg: #fafafa;
     --text: #333;
+    --text-primary: #333;
     --text-secondary: #555;
     --nav-bg: #f5f5f5;
     --nav-border: #e0e0e0;
