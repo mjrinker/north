@@ -5,26 +5,44 @@
   import { showModal } from '../stores/theme';
   
   let habits = $state<Habit[]>([]);
+  let otherHabits = $derived(habits);
   habitsStore.subscribe(v => habits = v);
   
-  // Local state for new habit form
   let newHabitTitle = $state<string>('');
-  let newHabitType = $state<"binary" | "quantity" | "duration">('binary');
+  let newHabitType = $state<Habit['type']>('binary');
   let newHabitStandard = $state<string>('');
   let newHabitTarget = $state<string>('');
   let newHabitFrequency = $state<string>('daily');
   let newHabitInterval = $state<string>('1');
+  let newHabitDaysOfWeek = $state<number[]>([]);
+  let newHabitPartial = $state(false);
+  let newHabitDependsOn = $state<string>('');
+  
+  let showStandard = $derived(newHabitType !== 'binary');
+  let showTarget = $derived(newHabitType !== 'binary');
+  
+  let weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  
+  function toggleDay(d: number) {
+    if (newHabitDaysOfWeek.includes(d)) {
+      newHabitDaysOfWeek = newHabitDaysOfWeek.filter(i => i !== d);
+    } else {
+      newHabitDaysOfWeek = [...newHabitDaysOfWeek, d];
+    }
+  }
   
   async function handleAddHabit() {
-    const newHabit = {
+    const newHabit: Habit = {
       id: crypto.randomUUID(),
       title: newHabitTitle,
       type: newHabitType,
       standard: newHabitStandard ? parseInt(newHabitStandard) : 1,
-      target: newHabitTarget ? parseInt(newHabitTarget) : undefined,
+      target: (newHabitType !== 'binary' && newHabitTarget) ? parseInt(newHabitTarget) : undefined,
+      unit: newHabitType === 'duration' ? 'minutes' : 'times',
       schedule: {
-        frequency: newHabitFrequency,
-        interval: parseInt(newHabitInterval),
+        frequency: newHabitFrequency as 'daily' | 'weekly' | 'monthly' | 'custom',
+        interval: parseInt(newHabitInterval) || 1,
+        daysOfWeek: newHabitFrequency === 'weekly' && newHabitDaysOfWeek.length > 0 ? newHabitDaysOfWeek : undefined,
         startDate: new Date()
       },
       metadata: {
@@ -33,10 +51,11 @@
         streakFreezeDays: 0,
         allowBackdating: true
       },
+      partial: newHabitType !== 'binary' ? newHabitPartial : undefined,
+      dependsOn: newHabitDependsOn || undefined,
       identityId: undefined,
       tags: [],
       status: 'active',
-      unit: 'times',
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -45,20 +64,21 @@
     newHabitTitle = '';
     newHabitStandard = '';
     newHabitTarget = '';
-    newHabitInterval = '';
+    newHabitInterval = '1';
+    newHabitDaysOfWeek = [];
+    newHabitPartial = false;
+    newHabitDependsOn = '';
     showModal.set(false);
   }
 </script>
 
 <h1 class="page-title">My Habits</h1>
 
-<!-- Add habit button -->
 <button class="add-habit-btn" onclick={() => showModal.set(true)}>+ Add Habit</button>
 
-<!-- Modal for adding a new habit -->
 {#if $showModal}
 <div class="modal-overlay" role="dialog" aria-modal="true" aria-label="Add new habit" tabindex="-1" onkeydown={(e) => { if (e.key === 'Escape') showModal.set(false); }} onclick={() => showModal.set(false)}>
-  <div class="modal">
+  <div class="modal" onclick={e => e.stopPropagation()}>
     <h2>Add New Habit</h2>
     <form onsubmit.prevent={handleAddHabit}>
       <label for="title">Title</label>
@@ -66,26 +86,58 @@
       
       <label for="type">Type</label>
       <select bind:value={newHabitType} required>
-        <option value="binary">Binary</option>
-        <option value="quantity">Quantity</option>
-        <option value="duration">Duration</option>
+        <option value="binary">Binary (Done / Not Done)</option>
+        <option value="quantity">Quantity (Count)</option>
+        <option value="duration">Duration (Time)</option>
       </select>
       
-      <label for="standard">Standard</label>
-      <input type="number" bind:value={newHabitStandard} placeholder="Standard (e.g., 1)" min="1" />
+      {#if showStandard}
+        <label for="standard">Standard</label>
+        <input type="number" bind:value={newHabitStandard} placeholder="Standard value" min="1" />
+      {/if}
       
-      <label for="target">Target</label>
-      <input type="number" bind:value={newHabitTarget} placeholder="Target (optional)" min="1" />
+      {#if showTarget}
+        <label for="target">Goal</label>
+        <input type="number" bind:value={newHabitTarget} placeholder="Goal (optional)" min="1" />
+      {/if}
+      
+      {#if newHabitType !== 'binary'}
+        <label class="checkbox-line">
+          <input type="checkbox" bind:checked={newHabitPartial} />
+          Partial progress (show as "5 / 30" instead of just "5")
+        </label>
+      {/if}
       
       <label for="frequency">Frequency</label>
       <select bind:value={newHabitFrequency}>
         <option value="daily">Daily</option>
         <option value="weekly">Weekly</option>
+        <option value="biweekly">Biweekly</option>
         <option value="monthly">Monthly</option>
+        <option value="custom">Every X Days</option>
       </select>
       
       <label for="interval">Interval</label>
-      <input type="number" bind:value={newHabitInterval} placeholder="Interval (e.g., 1)" min="1" />
+      <input type="number" bind:value={newHabitInterval} placeholder="Every..." min="1" />
+      
+      {#if newHabitFrequency === 'weekly'}
+        <label>Days of Week</label>
+        <div class="day-picker">
+          {#each weekDays as day, i}
+            <button type="button" class:selected={newHabitDaysOfWeek.includes(i)} onclick={() => toggleDay(i)}>{day}</button>
+          {/each}
+        </div>
+      {/if}
+      
+      {#if otherHabits.length > 0}
+        <label for="dependsOn">Depends on (conditional)</label>
+        <select bind:value={newHabitDependsOn}>
+          <option value="">None</option>
+          {#each otherHabits as h (h.id)}
+            <option value={h.id}>{h.title}</option>
+          {/each}
+        </select>
+      {/if}
       
       <div class="modal-actions">
         <button type="submit">Create</button>
@@ -96,14 +148,11 @@
 </div>
 {/if}
 
-<!-- Habit grid -->
 <div class="habits-grid">
   {#each habits as habit (habit.id)}
     <HabitCard habit={habit} />
   {/each}
 </div>
-
-
 
 <style>
   .page-title {
@@ -171,6 +220,40 @@
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 1rem;
+    box-sizing: border-box;
+    margin-bottom: 0.75rem;
+  }
+  
+  .checkbox-line {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 400;
+    margin-bottom: 0.75rem;
+  }
+  .checkbox-line input {
+    width: auto;
+    margin-bottom: 0;
+  }
+  
+  .day-picker {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 0.75rem;
+  }
+  .day-picker button {
+    width: 2.5rem;
+    height: 2.2rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #f5f5f5;
+    cursor: pointer;
+    font-size: 0.75rem;
+  }
+  .day-picker button.selected {
+    background: #0066cc;
+    color: white;
+    border-color: #0066cc;
   }
   
   .modal-actions {
@@ -197,9 +280,7 @@
     color: #222;
   }
   
-  /* Responsive adjustments */
   @media (max-width: 600px) {
-    
     .habits-grid {
       grid-template-columns: 1fr;
     }

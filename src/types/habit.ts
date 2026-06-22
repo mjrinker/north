@@ -1,6 +1,6 @@
 import type { Schedule } from './schedule';
 
-export type HabitType = 'binary' | 'quantity' | 'duration' | 'partial' | 'conditional';
+export type HabitType = 'binary' | 'quantity' | 'duration';
 export type HabitStatus = 'active' | 'paused' | 'archived';
 
 export interface Habit {
@@ -18,7 +18,12 @@ export interface Habit {
 	schedule: Schedule;
 	metadata: HabitMetadata;
 	
-	identityId?: string; // Optional association with an Identity
+	// For partial progress habits (sub-type of quantity/duration)
+	partial?: boolean;
+	// For conditional habits: ID of the habit this one depends on
+	dependsOn?: string;
+	
+	identityId?: string;
 	tags: string[];
 	
 	status: HabitStatus;
@@ -33,5 +38,5 @@ export interface HabitMetadata {
 	reminderAdvanceMinutes: number;
 	streakFreezeDays: number;
 	allowBackdating: boolean;
-	externalIds?: Record<string, string>; // Mapping for imports (e.g., { loop: "123" })
+	externalIds?: Record<string, string>;
 }

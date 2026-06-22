@@ -14,6 +14,10 @@
   let standard = $state(1);
   let target = $state<number | undefined>(undefined);
   let type = $state<Habit['type']>('binary');
+  let partial = $state(false);
+  let dependsOn = $state('');
+  let frequency = $state('daily');
+  let interval = $state(1);
 
   $effect(() => {
     if (habit) {
@@ -21,12 +25,16 @@
       standard = habit.standard;
       target = habit.target;
       type = habit.type;
+      partial = habit.partial ?? false;
+      dependsOn = habit.dependsOn ?? '';
+      frequency = habit.schedule.frequency;
+      interval = habit.schedule.interval;
     }
   });
 
   function handleSave() {
     if (!habit) return;
-    const updated = { ...habit, title, standard, target, type };
+    const updated: Habit = { ...habit, title, standard, target: type !== 'binary' ? target : undefined, type, partial: type !== 'binary' ? partial : undefined, dependsOn: dependsOn || undefined, schedule: { ...habit.schedule, frequency: frequency as 'daily' | 'weekly' | 'monthly' | 'custom', interval } };
     updateHabit(updated);
     goto('/habits');
   }
@@ -49,17 +57,43 @@
 
       <label>Type
         <select bind:value={type}>
-          <option value="binary">Binary (Checkmark)</option>
+          <option value="binary">Binary (Done / Not Done)</option>
           <option value="quantity">Quantity (Count)</option>
           <option value="duration">Duration (Time)</option>
-          <option value="partial">Partial (Percentage)</option>
-          <option value="conditional">Conditional</option>
         </select>
       </label>
 
-      <label>Standard <input type="number" bind:value={standard} /></label>
+      {#if type !== 'binary'}
+        <label>Standard <input type="number" bind:value={standard} /></label>
+        <label>Goal <input type="number" bind:value={target} /></label>
+        <label style="display: flex; align-items: center; gap: 0.5rem;">
+          <input type="checkbox" bind:checked={partial} />
+          Partial progress
+        </label>
+      {/if}
 
-      <label>Target <input type="number" bind:value={target} /></label>
+      <label>Frequency
+        <select bind:value={frequency}>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="biweekly">Biweekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="custom">Every X Days</option>
+        </select>
+      </label>
+
+      <label>Interval <input type="number" bind:value={interval} min="1" /></label>
+
+      {#if habits.length > 1}
+        <label>Depends on
+          <select bind:value={dependsOn}>
+            <option value="">None</option>
+            {#each habits.filter(h => h.id !== habit.id) as h (h.id)}
+              <option value={h.id}>{h.title}</option>
+            {/each}
+          </select>
+        </label>
+      {/if}
 
       <button onclick={handleSave}>Save Changes</button>
       <button onclick={handleDelete}>Delete Habit</button>
