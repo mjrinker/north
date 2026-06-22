@@ -79,8 +79,8 @@ export function startBoxOAuth(userId: string) {
   generateCodeChallenge(verifier).then(challenge => {
     const params = new URLSearchParams({
       response_type: 'code',
-      client_id: env.PUBLIC_BOX_CLIENT_ID ?? '',
-      redirect_uri: `${env.PUBLIC_ORIGIN ?? window.location.origin}/settings/box-callback`,
+      client_id: env.PUBLIC_STORE_BOX_CLIENT_ID ?? '',
+      redirect_uri: `${env.PUBLIC_STORE_ORIGIN ?? window.location.origin}/settings/box-callback`,
       code_challenge: challenge,
       code_challenge_method: 'S256',
       state: userId,
@@ -96,8 +96,8 @@ export async function exchangeCodeForTokens(code: string): Promise<BoxTokens> {
   const body = new URLSearchParams({
     grant_type: 'authorization_code',
     code,
-    client_id: env.PUBLIC_BOX_CLIENT_ID ?? '',
-    redirect_uri: `${env.PUBLIC_ORIGIN ?? window.location.origin}/settings/box-callback`,
+    client_id: env.PUBLIC_STORE_BOX_CLIENT_ID ?? '',
+    redirect_uri: `${env.PUBLIC_STORE_ORIGIN ?? window.location.origin}/settings/box-callback`,
     code_verifier: verifier,
   })
 
@@ -124,7 +124,7 @@ export async function refreshBoxTokens(refreshToken: string): Promise<BoxTokens>
   const body = new URLSearchParams({
     grant_type: 'refresh_token',
     refresh_token: refreshToken,
-    client_id: env.PUBLIC_BOX_CLIENT_ID ?? '',
+    client_id: env.PUBLIC_STORE_BOX_CLIENT_ID ?? '',
   })
 
   const res = await fetch('https://api.box.com/oauth2/token', {

@@ -7,8 +7,8 @@ export const GET = async (event) => {
   const code = url.searchParams.get('code')
   if (code) {
     const supabase = createServerClient(
-      env.PUBLIC_SUPABASE_URL || '',
-      env.PUBLIC_SUPABASE_ANON_KEY || '',
+      env.PUBLIC_STORE_SUPABASE_URL || '',
+      env.PUBLIC_STORE_SUPABASE_ANON_KEY || '',
       {
         cookies: {
           getAll() { return cookies.getAll() },
