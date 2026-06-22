@@ -2,14 +2,10 @@
   import { habitsStore } from '../stores/habits';
   import type { Habit } from '../types';
   import HabitCard from '../components/HabitCard.svelte';
-  import { theme, showModal, type ThemeMode } from '../stores/theme';
+  import { showModal } from '../stores/theme';
   
-  const { subscribe } = habitsStore;
   let habits = $state<Habit[]>([]);
-  subscribe(v => habits = v);
-  
-  let currentTheme = $state<'light' | 'dark' | 'system'>('system');
-  theme.subscribe(v => currentTheme = v);
+  habitsStore.subscribe(v => habits = v);
   
   // Local state for new habit form
   let newHabitTitle = $state<string>('');
@@ -28,23 +24,29 @@
       target: newHabitTarget ? parseInt(newHabitTarget) : undefined,
       schedule: {
         frequency: newHabitFrequency,
-        interval: parseInt(newHabitInterval)
-      }
+        interval: parseInt(newHabitInterval),
+        startDate: new Date()
+      },
+      metadata: {
+        remindersEnabled: false,
+        reminderAdvanceMinutes: 0,
+        streakFreezeDays: 0,
+        allowBackdating: true
+      },
+      identityId: undefined,
+      tags: [],
+      status: 'active',
+      unit: 'times',
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
-    await import('../stores/habits').then(mod => {
-      const store = mod.habitsStore;
-      store.addHabit(newHabit);
-    });
+    const { addHabit: add } = await import('../stores/habits');
+    add(newHabit);
     newHabitTitle = '';
     newHabitStandard = '';
     newHabitTarget = '';
     newHabitInterval = '';
     showModal.set(false);
-  }
-  
-  async function refreshHabits() {
-    const store = await import('../stores/habits');
-    store.habitsStore.loadHabits();
   }
 </script>
 
@@ -97,12 +99,7 @@
 <!-- Habit grid -->
 <div class="habits-grid">
   {#each habits as habit (habit.id)}
-    <HabitCard 
-      habit={habit} 
-      theme={currentTheme} 
-      theme-toggle={toggleTheme} 
-      on:habitadded={refreshHabits}
-    />
+    <HabitCard habit={habit} />
   {/each}
 </div>
 

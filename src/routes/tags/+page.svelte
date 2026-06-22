@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Habit } from '../../types';
   import { habitsStore } from '../../stores/habits';
+  import { saveHabit } from '../../services/storage';
 
   let habits = $state<Habit[]>([]);
   habitsStore.subscribe(v => (habits = v));
@@ -8,14 +9,17 @@
   let tags = $derived(Array.from(new Set(habits.flatMap(h => h.tags))));
   let newTag = $state('');
 
-  function addTag() {
+  async function addTag() {
     if (!newTag.trim()) return;
-    habitsStore.update(list =>
-      list.map(h => ({
-        ...h,
-        tags: [...new Set([...h.tags, newTag.trim()])]
-      }))
-    );
+    const updated = habits.map(h => ({
+      ...h,
+      tags: [...new Set([...h.tags, newTag.trim()])]
+    }));
+    habitsStore.set(updated);
+    // Persist each updated habit
+    for (const h of updated) {
+      await saveHabit(h).catch(console.error);
+    }
     newTag = '';
   }
 </script>

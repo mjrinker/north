@@ -6,5 +6,5 @@
 - [x] Build SvelteKit UI skeleton (+page.svelte, basic layout)
 - [x] Add Identity & Tag Management UI
 - [x] Wire up persistence for identities & tags
-
-Next: Implement Statistics Dashboard
+- [x] Add theme selector with SVG icons and CSS variable dark/light/system
+- [ ] Implement Statistics Dashboard

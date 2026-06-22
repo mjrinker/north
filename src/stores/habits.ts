@@ -1,7 +1,7 @@
 // src/stores/habits.ts
 import type { Habit } from '../types';
 import { writable, type Writable } from 'svelte/store';
-import { getAllHabits, saveHabit } from '../services/storage';
+import { getAllHabits, saveHabit, deleteHabit as deleteHabitFromDB } from '../services/storage';
 
 export const habitsStore: Writable<Habit[]> = writable([]);
 
@@ -13,7 +13,15 @@ if (typeof window !== 'undefined') {
 export function addHabit(habit: Habit) {
   habitsStore.update(list => {
     const updated = [...list, habit];
-    // Also persist to IndexedDB
+    saveHabit(habit).catch(console.error);
+    return updated;
+  });
+}
+
+export function updateHabit(habit: Habit) {
+  habit.updatedAt = new Date();
+  habitsStore.update(list => {
+    const updated = list.map(h => h.id === habit.id ? habit : h);
     saveHabit(habit).catch(console.error);
     return updated;
   });
@@ -21,4 +29,5 @@ export function addHabit(habit: Habit) {
 
 export function removeHabit(id: string) {
   habitsStore.update(list => list.filter(h => h.id !== id));
+  deleteHabitFromDB(id).catch(console.error);
 }

@@ -9,8 +9,10 @@ import {
 
 export const identitiesStore: Writable<Identity[]> = writable([]);
 
-// Load initial data
-getAllIdentities().then(ids => identitiesStore.set(ids));
+// Load initial data only on the client
+if (typeof window !== 'undefined') {
+  getAllIdentities().then(ids => identitiesStore.set(ids));
+}
 
 export function addIdentity(id: Identity) {
   identitiesStore.update(list => {

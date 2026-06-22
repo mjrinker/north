@@ -1,16 +1,14 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
-  import { habitsStore, removeHabit } from '../../../stores/habits';
+  import { habitsStore, updateHabit, removeHabit } from '../../../stores/habits';
   import type { Habit } from '../../../types';
 
   const habitId = $page.params.id;
-  let habit = $state<Habit | undefined>(undefined);
+  let habits = $state<Habit[]>([]);
+  habitsStore.subscribe(v => (habits = v));
 
-  $effect(() => {
-    const found = habitsStore.find(h => h.id === habitId);
-    if (found) habit = found;
-  });
+  let habit = $derived(habits.find(h => h.id === habitId));
 
   let title = $state('');
   let standard = $state(1);
@@ -26,20 +24,19 @@
     }
   });
 
-  function updateHabit() {
+  function handleSave() {
     if (!habit) return;
-    habit.title = title;
-    habit.standard = standard;
-    habit.target = target;
-    habit.type = type;
-    habit.updatedAt = new Date();
-    habitsStore.update(list => list.map(h => h.id === habit!.id ? habit : h));
+    const updated = { ...habit, title, standard, target, type };
+    updateHabit(updated);
+    goto('/habits');
   }
 
-  function deleteHabit() {
+  function handleDelete() {
     if (!habit) return;
-    removeHabit(habit.id);
-    goto('/habits');
+    if (confirm('Delete this habit?')) {
+      removeHabit(habit.id);
+      goto('/habits');
+    }
   }
 </script>
 
@@ -64,8 +61,8 @@
 
       <label>Target <input type="number" bind:value={target} /></label>
 
-      <button onclick={updateHabit}>Save Changes</button>
-      <button onclick={deleteHabit}>Delete Habit</button>
+      <button onclick={handleSave}>Save Changes</button>
+      <button onclick={handleDelete}>Delete Habit</button>
     </div>
   {:else}
     <p>Habit not found.</p>
