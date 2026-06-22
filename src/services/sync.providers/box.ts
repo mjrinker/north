@@ -2,6 +2,8 @@
 
 import type { SyncProvider, SyncResult, SyncConflict } from '../../types'
 import { habitsStore } from '../../stores/habits'
+import { entriesStore } from '../../stores/entries'
+import { identitiesStore } from '../../stores/identities'
 import { get } from 'svelte/store'
 import { boxFetch } from '$lib/box'
 import { user } from '../../stores/auth'
@@ -67,11 +69,17 @@ class BoxSyncProvider implements SyncProvider {
       if (!uid) throw new Error('No user')
 
       const habits = get(habitsStore)
-      const entries: any[] = []
-      const identities: any[] = []
+      const entries = get(entriesStore)
+      const identities = get(identitiesStore)
 
       for (const h of habits) {
         await this.saveRecord('habits', h.id, h)
+      }
+      for (const e of entries) {
+        await this.saveRecord('entries', e.id, e)
+      }
+      for (const i of identities) {
+        await this.saveRecord('identities', i.id, i)
       }
 
       return { lastSynced: start, status: 'success', conflicts: [] }
