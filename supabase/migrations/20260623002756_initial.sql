@@ -1,7 +1,3 @@
--- North Supabase Schema
--- Run this in your Supabase project's SQL editor.
-
--- user_roles: maps users to role names
 CREATE TABLE IF NOT EXISTS user_roles (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   role_name TEXT NOT NULL,
@@ -11,12 +7,10 @@ CREATE TABLE IF NOT EXISTS user_roles (
 
 ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
 
--- Users can read their own roles
 CREATE POLICY "Users can read own roles"
   ON user_roles FOR SELECT
   USING (auth.uid() = user_id);
 
--- Admins can manage all roles
 CREATE POLICY "Admins can manage all roles"
   ON user_roles FOR ALL
   USING (
@@ -27,7 +21,6 @@ CREATE POLICY "Admins can manage all roles"
     )
   );
 
--- admins: hardcoded list of admin email addresses
 CREATE TABLE IF NOT EXISTS admins (
   email TEXT PRIMARY KEY
 );
@@ -48,11 +41,9 @@ CREATE POLICY "Admins can manage admins"
     )
   );
 
--- Seed initial admin (replace with your email)
 INSERT INTO admins (email) VALUES ('mjrinker@gmail.com')
 ON CONFLICT (email) DO NOTHING;
 
--- Function: get all users with their roles (admin only)
 CREATE OR REPLACE FUNCTION get_all_users_with_roles()
 RETURNS TABLE (id UUID, email TEXT, roles TEXT[])
 LANGUAGE plpgsql
