@@ -1,45 +1,28 @@
 <script lang="ts">
   import { user, signInWithGoogle, signOut } from '../../stores/auth'
-  import { startBoxOAuth, getBoxTokens, clearBoxTokens } from '$lib/box'
-  import { boxSyncProvider } from '../../services/sync.providers/box'
+  import { supabaseSyncProvider } from '../../services/sync.providers/supabase'
 
   let currentUser = $state<any>(null)
-  let boxConnected = $state(false)
-  let boxSyncing = $state(false)
-  let boxStatus = $state('')
+  let syncing = $state(false)
+  let syncStatus = $state('')
+  let lastSynced = $state<string | null>(null)
 
   user.subscribe(async (u) => {
     currentUser = u
-    if (u) {
-      const tokens = await getBoxTokens(u.id)
-      boxConnected = !!tokens
-    } else {
-      boxConnected = false
-    }
   })
-
-  async function connectBox() {
-    if (!currentUser) return
-    startBoxOAuth(currentUser.id)
-  }
-
-  async function disconnectBox() {
-    if (!currentUser) return
-    await clearBoxTokens(currentUser.id)
-    boxConnected = false
-  }
 
   async function syncNow() {
     if (!currentUser) return
-    boxSyncing = true
-    boxStatus = 'Syncing…'
+    syncing = true
+    syncStatus = 'Uploading…'
     try {
-      const result = await boxSyncProvider.uploadAll()
-      boxStatus = result.status === 'success' ? 'Synced successfully' : `Sync error: ${result.status}`
+      const result = await supabaseSyncProvider.uploadAll()
+      syncStatus = result.status === 'success' ? 'Synced successfully' : `Sync error: ${result.status}`
+      lastSynced = new Date().toLocaleTimeString()
     } catch (e: any) {
-      boxStatus = `Sync failed: ${e.message}`
+      syncStatus = `Sync failed: ${e.message}`
     }
-    boxSyncing = false
+    syncing = false
   }
 </script>
 
@@ -54,33 +37,28 @@
       </p>
       <button class="btn" onclick={signOut}>Sign Out</button>
     {:else}
-      <p>Sign in to enable Box cloud sync.</p>
+      <p>Sign in to enable cloud sync.</p>
       <button class="btn" onclick={signInWithGoogle}>Sign in with Google</button>
     {/if}
   </section>
 
   <section class="card">
-    <h2>Box Cloud Sync</h2>
+    <h2>Cloud Sync</h2>
     <p>
-      Sync your habits to your personal Box account.
+      Sync your habits, entries, and identities to Supabase for backup.
     </p>
     {#if currentUser}
-      {#if boxConnected}
-        <p class="connected">✓ Connected to Box</p>
-        <div class="btn-row">
-          <button class="btn" onclick={syncNow} disabled={boxSyncing}>
-            {boxSyncing ? 'Syncing…' : 'Sync Now'}
-          </button>
-          <button class="btn btn-danger" onclick={disconnectBox}>Disconnect</button>
-        </div>
-        {#if boxStatus}
-          <p class="status">{boxStatus}</p>
-        {/if}
-      {:else}
-        <button class="btn" onclick={connectBox}>Connect Box</button>
+      <button class="btn" onclick={syncNow} disabled={syncing}>
+        {syncing ? 'Syncing…' : 'Sync Now'}
+      </button>
+      {#if syncStatus}
+        <p class="status">{syncStatus}</p>
+      {/if}
+      {#if lastSynced}
+        <p class="muted">Last synced: {lastSynced}</p>
       {/if}
     {:else}
-      <p class="muted">Sign in above to connect Box.</p>
+      <p class="muted">Sign in above to enable cloud sync.</p>
     {/if}
   </section>
 </div>
@@ -105,7 +83,6 @@
   .connected { color: #2e7d32; font-weight: 500; }
   .muted { color: var(--text-secondary, #888); }
   .status { font-size: 0.85rem; margin-top: 0.5rem; color: var(--text-secondary, #555); }
-  .btn-row { display: flex; gap: 0.5rem; }
   .btn {
     padding: 0.5rem 1rem;
     border: 1px solid var(--card-border, #ccc);
@@ -117,5 +94,4 @@
     font-weight: 500;
   }
   .btn:disabled { opacity: 0.5; cursor: default; }
-  .btn-danger { background: #d32f2f; border-color: #d32f2f; }
 </style>

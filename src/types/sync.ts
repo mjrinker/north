@@ -12,7 +12,7 @@ export interface SyncConflict {
 }
 
 export interface SyncProvider {
-	providerId: string; // e.g., 'box', 'googledrive'
+	providerId: string; // e.g., 'supabase'
 	
 	// Atomic operations for individual records
 	saveRecord(collection: string, id: string, data: any): Promise<void>;
