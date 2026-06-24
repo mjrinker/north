@@ -13,10 +13,21 @@ supabase.auth.onAuthStateChange((event, sessionData) => {
   isLoading.set(false)
 })
 
+// Handle PKCE callback from any page — exchange ?code= and clean the URL
+if (typeof window !== 'undefined') {
+  const params = new URLSearchParams(window.location.search)
+  const code = params.get('code')
+  if (code) {
+    supabase.auth.exchangeCodeForSession(code).finally(() => {
+      window.history.replaceState({}, '', window.location.pathname)
+    })
+  }
+}
+
 export async function signInWithGoogle() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin + '/auth/callback' }
+    options: { redirectTo: window.location.origin }
   })
   if (error) console.error('Sign in error:', error.message)
 }
