@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store'
+import { writable, get } from 'svelte/store'
 import { supabase } from '../lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
@@ -12,10 +12,21 @@ supabase.auth.onAuthStateChange((event, sessionData) => {
   if (event !== 'INITIAL_SESSION') isLoading.set(false)
 
   if (event === 'SIGNED_IN') {
-    setTimeout(() => {
-      import('../services/sync.providers/supabase').then(({ supabaseSyncProvider }) =>
+    setTimeout(async () => {
+      const { habitsStore } = await import('./habits')
+      const { entriesStore } = await import('./entries')
+      const { identitiesStore } = await import('./identities')
+      const { supabaseSyncProvider } = await import('../services/sync.providers/supabase')
+
+      const hasLocal = get(habitsStore).length > 0
+        || get(entriesStore).length > 0
+        || get(identitiesStore).length > 0
+
+      if (hasLocal) {
         supabaseSyncProvider.uploadAll()
-      )
+      } else {
+        supabaseSyncProvider.downloadAll()
+      }
     }, 1500)
   }
 })

@@ -1,9 +1,9 @@
 // src/services/sync.providers/supabase.ts
 
 import type { SyncProvider, SyncResult } from '../../types'
-import { habitsStore } from '../../stores/habits'
-import { entriesStore } from '../../stores/entries'
-import { identitiesStore } from '../../stores/identities'
+import { habitsStore, addHabit } from '../../stores/habits'
+import { entriesStore, addEntry } from '../../stores/entries'
+import { identitiesStore, addIdentity } from '../../stores/identities'
 import { get } from 'svelte/store'
 import { supabase } from '../../lib/supabase'
 import { user } from '../../stores/auth'
@@ -96,6 +96,20 @@ class SupabaseSyncProvider implements SyncProvider {
         .eq('user_id', uid)
 
       if (error) throw new Error(error.message)
+
+      if (!data || data.length === 0) {
+        return { lastSynced: start, status: 'success', conflicts: [] }
+      }
+
+      for (const row of data) {
+        if (row.collection === 'habits') {
+          addHabit(row.data)
+        } else if (row.collection === 'entries') {
+          addEntry(row.data)
+        } else if (row.collection === 'identities') {
+          addIdentity(row.data)
+        }
+      }
 
       return { lastSynced: start, status: 'success', conflicts: [] }
     } catch (e: any) {
