@@ -3,6 +3,7 @@
   import { HabitEngine } from '../services/habitEngine';
   import { getEntry } from '../services/storage';
   import { habitsStore } from '../stores/habits';
+  import { getLocalDateString } from '../lib/dates';
   let { habit }: { habit: Habit } = $props();
 
   let allHabits = $state<Habit[]>([]);
@@ -18,7 +19,7 @@
     const engine = new HabitEngine(habit);
     (async () => {
       streak = await engine.getStreak();
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateString();
       const entry = await getEntry(habit.id, today);
       todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
       if (habit.dependsOn) {
@@ -87,7 +88,7 @@
     timerRunning = false;
     timerPaused = false;
     const engine = new HabitEngine(habit);
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const minutes = Math.max(0.1, total / 60);
     await engine.logCompletion(today, minutes);
     const entry = await getEntry(habit.id, today);
@@ -112,7 +113,7 @@
     const val = parseInt(manualMinutes);
     if (isNaN(val) || val < 1) return;
     const engine = new HabitEngine(habit);
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     await engine.logCompletion(today, val);
     const entry = await getEntry(habit.id, today);
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
@@ -121,7 +122,7 @@
 
   async function handleReset() {
     const engine = new HabitEngine(habit);
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     await engine.logCompletion(today, 0);
     todayEntry = null;
   }
@@ -142,7 +143,7 @@
   async function handleBinaryChange() {
     if (!habit) return;
     const engine = new HabitEngine(habit);
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const value = todayEntry?.value === 1 ? 0 : 1;
     await engine.logCompletion(today, value);
     const entry = await getEntry(habit.id, today);
@@ -152,7 +153,7 @@
   async function handleQuantityDelta(delta: number) {
     if (!habit) return;
     const engine = new HabitEngine(habit);
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const current = todayEntry?.value ?? 0;
     const newValue = Math.max(0, current + delta);
     await engine.logCompletion(today, newValue);

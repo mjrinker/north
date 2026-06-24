@@ -3,7 +3,9 @@
   import { habitsStore } from '../../stores/habits';
   import { getAllEntries } from '../../services/storage';
   import { HabitEngine } from '../../services/habitEngine';
-  import { goto } from '$app/navigation';
+  import { getLocalDateString } from '../../lib/dates';
+  import HabitCreateModal from '../../components/HabitCreateModal.svelte';
+  import HabitEditModal from '../../components/HabitEditModal.svelte';
 
   let habits = $state<Habit[]>([]);
   habitsStore.subscribe(v => (habits = v));
@@ -13,30 +15,25 @@
     getAllEntries().then(e => allEntries = e);
   });
 
+  let showCreate = $state(false);
+  let editingHabit = $state<Habit | null>(null);
+
   const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-  function getWeekStart(): Date {
-    const now = new Date();
-    const day = now.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + diff);
-    monday.setHours(0, 0, 0, 0);
-    return monday;
-  }
+  const TOTAL_DAYS = 28;
 
-  function getWeekDates(): string[] {
-    const start = getWeekStart();
+  function getDates(): string[] {
+    const today = new Date();
     const dates: string[] = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
-      dates.push(d.toISOString().slice(0, 10));
+    for (let i = TOTAL_DAYS - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      dates.push(getLocalDateString(d));
     }
     return dates;
   }
 
-  let weekDates = $derived(getWeekDates());
+  let dateColumns = $derived(getDates());
 
   let entryMap = $derived(() => {
     const map = new Map<string, HabitEntry>();
@@ -77,7 +74,7 @@
   }
 
   function isToday(date: string): boolean {
-    return date === new Date().toISOString().slice(0, 10);
+    return date === getLocalDateString();
   }
 
   function cellClass(entry: HabitEntry | undefined): string {
@@ -88,93 +85,127 @@
   }
 </script>
 
-<div class="week-view">
-  <div class="header-row">
-    <div class="corner-cell"></div>
-    {#each DAY_NAMES as name, i}
-      <div class="day-header" class:today={isToday(weekDates[i])}>{name}<span class="day-num">{weekDates[i].slice(8)}</span></div>
-    {/each}
-  </div>
+<h1>Habit History</h1>
 
-  {#each habits as habit (habit.id)}
-    <div class="habit-row" onclick={() => goto(`/habits/${habit.id}`)}>
-      <div class="habit-label">{habit.title}</div>
-      {#each weekDates as date}
-        {@const entry = getDayEntry(habit.id, date)}
-        <div class="day-cell {cellClass(entry)}" class:today={isToday(date)} onclick={e => e.stopPropagation()}>
-          {#if habit.type === 'binary'}
-            <input type="checkbox" checked={entry?.value === 1} onchange={() => handleBinary(habit, date)} />
-          {:else if habit.type === 'quantity'}
-            <button class="cell-btn" onclick={() => handleQuantityClick(habit, date)}>{entry?.value ?? 0}</button>
-          {:else if habit.type === 'duration'}
-            <button class="cell-btn" onclick={() => handleDuration(habit, date)}>{entry?.value ? entry.value + 'm' : '-'}</button>
-          {/if}
-        </div>
+<button class="add-btn" onclick={() => showCreate = true}>+ Add New Habit</button>
+
+{#if showCreate}
+  <HabitCreateModal {habits} onClose={() => showCreate = false} />
+{/if}
+
+{#if editingHabit}
+  <HabitEditModal habit={editingHabit} {habits} onClose={() => editingHabit = null} />
+{/if}
+
+<div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        {#each dateColumns as date, i}
+          <th class:today={isToday(date)}>
+            <span class="day-name">{DAY_NAMES[new Date(date).getDay() === 0 ? 6 : new Date(date).getDay() - 1]}</span>
+            <span class="day-num">{date.slice(8)}</span>
+          </th>
+        {/each}
+        <th class="name-col">Habit</th>
+      </tr>
+    </thead>
+    <tbody>
+      {#each habits as habit (habit.id)}
+        <tr onclick={() => editingHabit = habit}>
+          {#each dateColumns as date}
+            {@const entry = getDayEntry(habit.id, date)}
+            <td class="day-cell {cellClass(entry)}" class:today={isToday(date)}>
+              {#if habit.type === 'binary'}
+                <input type="checkbox" checked={entry?.value === 1} onchange={() => handleBinary(habit, date)} />
+              {:else if habit.type === 'quantity'}
+                <button class="cell-btn" onclick={() => handleQuantityClick(habit, date)}>{entry?.value ?? 0}</button>
+              {:else if habit.type === 'duration'}
+                <button class="cell-btn" onclick={() => handleDuration(habit, date)}>{entry?.value ? entry.value + 'm' : '-'}</button>
+              {/if}
+            </td>
+          {/each}
+          <td class="name-col habit-name">{habit.title}</td>
+        </tr>
       {/each}
-    </div>
-  {/each}
-</div>
-
-<div class="add-wrap">
-  <a href="/habits/add" class="add-link">+ Add New Habit</a>
+    </tbody>
+  </table>
 </div>
 
 <style>
-  .week-view {
-    padding: 1rem;
-    max-width: 800px;
-    margin: 0 auto;
+  h1 {
+    font-size: 1.5rem;
+    color: var(--text-primary, #222);
+    margin-bottom: 0.5rem;
   }
-  .header-row {
-    display: grid;
-    grid-template-columns: 120px repeat(7, 1fr);
-    gap: 4px;
-    margin-bottom: 6px;
+  .add-btn {
+    background: var(--accent, #0066cc);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-bottom: 1rem;
   }
-  .corner-cell { grid-column: 1; }
-  .day-header {
+  .add-btn:hover { opacity: 0.9; }
+
+  .table-scroll {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: max-content;
+  }
+  th {
     text-align: center;
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-secondary, #666);
-    padding: 4px 0;
-    border-radius: 4px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    padding: 4px 6px;
+    border-bottom: 2px solid var(--card-border, #eee);
     line-height: 1.2;
+    white-space: nowrap;
   }
-  .day-header.today { color: var(--accent, #0066cc); }
+  th.today { color: var(--accent, #0066cc); }
+  .day-name { display: block; }
   .day-num { font-size: 0.6rem; font-weight: 400; }
-  .habit-row {
-    display: grid;
-    grid-template-columns: 120px repeat(7, 1fr);
-    gap: 4px;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--card-border, #eee);
-    cursor: pointer;
-    border-radius: 6px;
-    transition: background 0.15s;
+  th.name-col, td.name-col {
+    position: sticky;
+    right: 0;
+    background: var(--card-bg, #fff);
+    z-index: 2;
   }
-  .habit-row:hover { background: var(--hover-bg, rgba(0,0,0,0.03)); }
-  .habit-label {
+  th.name-col {
+    text-align: left;
+    padding-left: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary, #222);
+    min-width: 120px;
+  }
+  td.name-col.habit-name {
     font-size: 0.85rem;
     font-weight: 500;
     color: var(--text-primary, #222);
+    padding: 8px;
+    border-bottom: 1px solid var(--card-border, #eee);
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    padding-right: 4px;
-    display: flex;
-    align-items: center;
   }
+  tr {
+    cursor: pointer;
+  }
+  tr:hover td:not(.name-col) { background: var(--hover-bg, rgba(0,0,0,0.02)); }
+  tr:hover td.name-col { filter: brightness(0.97); }
   .day-cell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 36px;
-    border-radius: 4px;
-    transition: background 0.15s;
+    text-align: center;
+    padding: 4px;
+    border-bottom: 1px solid var(--card-border, #eee);
+    min-width: 36px;
   }
   .day-cell.today { background: var(--today-bg, rgba(0,102,204,0.06)); }
   .day-cell.standard-met { background: rgba(46,125,50,0.08); }
@@ -199,12 +230,5 @@
     background: var(--accent, #0066cc);
     color: white;
     border-color: var(--accent, #0066cc);
-  }
-  .add-wrap { text-align: center; padding: 1.5rem; }
-  .add-link {
-    text-decoration: none;
-    color: var(--accent, #0066cc);
-    font-weight: 500;
-    font-size: 1rem;
   }
 </style>
