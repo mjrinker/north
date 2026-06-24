@@ -1,4 +1,3 @@
-// src/stores/auth.ts
 import { writable } from 'svelte/store'
 import { supabase } from '../lib/supabase'
 import type { User } from '@supabase/supabase-js'
@@ -22,7 +21,7 @@ supabase.auth.getSession().then(({ data: { session: s } }) => {
 export async function signInWithGoogle() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin + '/auth/callback' }
+    options: { redirectTo: window.location.origin }
   })
   if (error) console.error('Sign in error:', error.message)
 }
