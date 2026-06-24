@@ -10,6 +10,14 @@ supabase.auth.onAuthStateChange((event, sessionData) => {
   user.set(sessionData?.user ?? null)
   session.set(sessionData)
   if (event !== 'INITIAL_SESSION') isLoading.set(false)
+
+  if (event === 'SIGNED_IN') {
+    setTimeout(() => {
+      import('../services/sync.providers/supabase').then(({ supabaseSyncProvider }) =>
+        supabaseSyncProvider.uploadAll()
+      )
+    }, 1500)
+  }
 })
 
 supabase.auth.getSession().then(({ data: { session: s } }) => {
