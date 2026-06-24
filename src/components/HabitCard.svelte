@@ -47,52 +47,54 @@
   // Timer state
   let timerRunning = $state(false);
   let timerPaused = $state(false);
-  let timerAccumulated = $state(0);
-  let timerSessionStart = $state(0);
+  let timerElapsed = $state(0);
+  let timerPausedElapsed = $state(0);
+  let timerStartedAt = $state(0);
   let timerInterval: ReturnType<typeof setInterval> | null = null;
   let manualMinutes = $state('');
 
-  function updateTimer() {
-    timerAccumulated = timerAccumulated + Math.floor((Date.now() - timerSessionStart) / 1000);
+  function tick() {
+    timerElapsed = timerPausedElapsed + Math.floor((Date.now() - timerStartedAt) / 1000);
   }
 
   function startTimer() {
     timerRunning = true;
     timerPaused = false;
-    timerSessionStart = Date.now();
-    timerInterval = setInterval(() => {
-      timerAccumulated = timerAccumulated + Math.floor((Date.now() - timerSessionStart) / 1000);
-    }, 200);
+    timerElapsed = 0;
+    timerPausedElapsed = 0;
+    timerStartedAt = Date.now();
+    timerInterval = setInterval(tick, 200);
   }
 
   function pauseTimer() {
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = null;
-    updateTimer();
+    timerPausedElapsed = timerElapsed;
+    timerStartedAt = 0;
     timerPaused = true;
   }
 
   function resumeTimer() {
     timerPaused = false;
-    timerSessionStart = Date.now();
-    timerInterval = setInterval(() => {
-      timerAccumulated = timerAccumulated + Math.floor((Date.now() - timerSessionStart) / 1000);
-    }, 200);
+    timerStartedAt = Date.now();
+    timerInterval = setInterval(tick, 200);
   }
 
   async function doneTimer() {
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = null;
-    updateTimer();
+    const total = timerElapsed;
     timerRunning = false;
     timerPaused = false;
     const engine = new HabitEngine(habit);
     const today = new Date().toISOString().split('T')[0];
-    const minutes = Math.max(0.1, timerAccumulated / 60);
+    const minutes = Math.max(0.1, total / 60);
     await engine.logCompletion(today, minutes);
     const entry = await getEntry(habit.id, today);
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
-    timerAccumulated = 0;
+    timerElapsed = 0;
+    timerPausedElapsed = 0;
+    timerStartedAt = 0;
   }
 
   function cancelTimer() {
@@ -100,7 +102,9 @@
     timerInterval = null;
     timerRunning = false;
     timerPaused = false;
-    timerAccumulated = 0;
+    timerElapsed = 0;
+    timerPausedElapsed = 0;
+    timerStartedAt = 0;
   }
 
   async function handleManualDuration() {
@@ -192,7 +196,7 @@
     {:else if habit.type === 'duration'}
       <div class="action-control">
         {#if timerRunning}
-          <span class="timer-display">{formatDuration(timerAccumulated)}</span>
+          <span class="timer-display">{formatDuration(timerElapsed)}</span>
           {#if timerPaused}
             <button onclick={resumeTimer} class="btn start">Resume</button>
             <button onclick={doneTimer} class="btn stop">Done</button>
