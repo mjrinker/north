@@ -8,7 +8,7 @@
   import HabitEditModal from '../../components/HabitEditModal.svelte';
 
   let habits = $state<Habit[]>([]);
-  habitsStore.subscribe(v => (habits = v));
+  habitsStore.subscribe(v => (habits = v.filter(h => h.status === 'active')));
 
   let allEntries = $state<HabitEntry[]>([]);
   $effect(() => {

@@ -6,7 +6,7 @@
   import HabitEditModal from '../components/HabitEditModal.svelte';
 
   let habits = $state<Habit[]>([]);
-  habitsStore.subscribe(v => habits = v);
+  habitsStore.subscribe(v => habits = v.filter(h => h.status === 'active'));
 
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
@@ -49,18 +49,21 @@
 
   function handleCardClick(habit: Habit) {
     if (justSwiped) return;
-    if (swipedHabitId) {
+    if (swipedHabitId === habit.id) {
       swipedHabitId = null;
       return;
     }
     editingHabit = habit;
   }
 
-  function handleSwipeAction(habit: Habit, action: 'delete' | 'archive' | 'reset') {
+  function archiveHabit(habit: Habit) {
     swipedHabitId = null;
-    if (action === 'delete') {
-      removeHabit(habit.id);
-    }
+    habitsStore.update(list => list.map(h => h.id === habit.id ? { ...h, status: 'archived' as const } : h));
+  }
+
+  function deleteHabit(habit: Habit) {
+    swipedHabitId = null;
+    removeHabit(habit.id);
   }
 
   function swipeStyle(habitId: string): string {
@@ -103,7 +106,12 @@
       </div>
       {#if swipedHabitId === habit.id}
         <div class="swipe-actions">
-          <button class="swipe-btn delete" onclick={() => handleSwipeAction(habit, 'delete')}>Delete</button>
+          <button class="swipe-btn archive" onclick={() => archiveHabit(habit)} aria-label="Archive">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+          </button>
+          <button class="swipe-btn delete" onclick={() => deleteHabit(habit)} aria-label="Delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/></svg>
+          </button>
         </div>
       {/if}
     </div>
@@ -145,6 +153,7 @@
     background: var(--card-bg);
     border: 1px solid var(--card-border, #e0e0e0);
     border-radius: 8px;
+    touch-action: pan-y;
   }
   .habit-slider:hover { opacity: 0.92; }
   .habit-slider:focus-visible {
@@ -157,19 +166,26 @@
     top: 0;
     bottom: 0;
     display: flex;
-    align-items: center;
-    padding: 0 8px;
+    align-items: stretch;
     z-index: 0;
+    gap: 2px;
   }
   .swipe-btn {
     border: none;
-    border-radius: 4px;
-    padding: 0.6rem 1rem;
-    font-weight: 600;
-    font-size: 0.85rem;
+    padding: 0 16px;
     cursor: pointer;
     color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    border-radius: 0;
   }
+  .swipe-btn svg {
+    width: 22px;
+    height: 22px;
+  }
+  .swipe-btn.archive { background: #f59e0b; }
   .swipe-btn.delete { background: #d32f2f; }
 
   @media (max-width: 600px) {
