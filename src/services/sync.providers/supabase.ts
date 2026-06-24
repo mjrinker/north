@@ -101,12 +101,16 @@ class SupabaseSyncProvider implements SyncProvider {
         return { lastSynced: start, status: 'success', conflicts: [] }
       }
 
+      const existingHabits = new Set(get(habitsStore).map(h => h.id))
+      const existingEntries = new Set(get(entriesStore).map(e => e.id))
+      const existingIdentities = new Set(get(identitiesStore).map(i => i.id))
+
       for (const row of data) {
-        if (row.collection === 'habits') {
+        if (row.collection === 'habits' && !existingHabits.has(row.record_id)) {
           addHabit(row.data)
-        } else if (row.collection === 'entries') {
+        } else if (row.collection === 'entries' && !existingEntries.has(row.record_id)) {
           addEntry(row.data)
-        } else if (row.collection === 'identities') {
+        } else if (row.collection === 'identities' && !existingIdentities.has(row.record_id)) {
           addIdentity(row.data)
         }
       }
