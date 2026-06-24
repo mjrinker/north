@@ -17,6 +17,15 @@
 
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
+  let scrollContainer = $state<HTMLDivElement | null>(null);
+
+  $effect(() => {
+    if (allEntries.length > 0 && scrollContainer) {
+      requestAnimationFrame(() => {
+        scrollContainer!.scrollLeft = scrollContainer!.scrollWidth;
+      });
+    }
+  });
 
   const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -97,7 +106,7 @@
   <HabitEditModal habit={editingHabit} {habits} onClose={() => editingHabit = null} />
 {/if}
 
-<div class="table-scroll">
+<div class="table-scroll" bind:this={scrollContainer}>
   <table>
     <thead>
       <tr>
@@ -117,11 +126,11 @@
             {@const entry = getDayEntry(habit.id, date)}
             <td class="day-cell {cellClass(entry)}" class:today={isToday(date)}>
               {#if habit.type === 'binary'}
-                <input type="checkbox" checked={entry?.value === 1} onchange={() => handleBinary(habit, date)} />
+                <input type="checkbox" checked={entry?.value === 1} onclick={(e) => e.stopPropagation()} onchange={() => handleBinary(habit, date)} />
               {:else if habit.type === 'quantity'}
-                <button class="cell-btn" onclick={() => handleQuantityClick(habit, date)}>{entry?.value ?? 0}</button>
+                <button class="cell-btn" onclick={(e) => { e.stopPropagation(); handleQuantityClick(habit, date); }}>{entry?.value ?? 0}</button>
               {:else if habit.type === 'duration'}
-                <button class="cell-btn" onclick={() => handleDuration(habit, date)}>{entry?.value ? entry.value + 'm' : '-'}</button>
+                <button class="cell-btn" onclick={(e) => { e.stopPropagation(); handleDuration(habit, date); }}>{entry?.value ? entry.value + 'm' : '-'}</button>
               {/if}
             </td>
           {/each}
