@@ -11,20 +11,20 @@
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
 
+  const SWIPE_THRESHOLD = 80;
   let touchStartX = $state(0);
   let touchStartY = $state(0);
   let touchDx = $state(0);
   let swipedHabitId = $state<string | null>(null);
   let swipingHabitId = $state<string | null>(null);
-  let justSwiped = $state(false);
 
   function handleTouchStart(e: TouchEvent, habitId: string) {
+    if (swipedHabitId && swipedHabitId !== habitId) {
+      swipedHabitId = null;
+    }
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
     touchDx = 0;
-    if (swipedHabitId !== habitId) {
-      swipedHabitId = null;
-    }
     swipingHabitId = habitId;
   }
 
@@ -37,22 +37,16 @@
     if (swipingHabitId !== habitId) return;
     swipingHabitId = null;
     const dy = e.changedTouches[0].clientY - touchStartY;
-    if (touchDx < -60 && Math.abs(touchDx) > Math.abs(dy) * 1.5) {
+    if (touchDx < -SWIPE_THRESHOLD / 2 && Math.abs(touchDx) > Math.abs(dy) * 1.5) {
       swipedHabitId = habitId;
-      justSwiped = true;
-      setTimeout(() => justSwiped = false, 300);
     } else {
       swipedHabitId = null;
     }
     touchDx = 0;
   }
 
-  function handleCardClick(habit: Habit) {
-    if (justSwiped) return;
-    if (swipedHabitId === habit.id) {
-      swipedHabitId = null;
-      return;
-    }
+  function openEdit(habit: Habit) {
+    swipedHabitId = null;
     editingHabit = habit;
   }
 
@@ -66,13 +60,18 @@
     removeHabit(habit.id);
   }
 
-  function swipeStyle(habitId: string): string {
-    if (swipingHabitId === habitId) {
-      if (touchDx < 0) return `transform: translateX(${Math.max(touchDx, -80)}px)`;
-      return 'transform: translateX(0)';
+  function sliderTransform(habitId: string): string {
+    const offset = swipedHabitId === habitId ? -SWIPE_THRESHOLD : (swipingHabitId === habitId && touchDx < 0 ? Math.max(touchDx, -SWIPE_THRESHOLD) : 0);
+    return `translateX(${offset}px)`;
+  }
+
+  function actionsTransform(habitId: string): string {
+    if (swipedHabitId === habitId) return 'translateX(0)';
+    if (swipingHabitId === habitId && touchDx < 0) {
+      const reveal = Math.min(Math.abs(touchDx) / SWIPE_THRESHOLD, 1);
+      return `translateX(${(1 - reveal) * 100}%)`;
     }
-    if (swipedHabitId === habitId) return 'transform: translateX(-80px)';
-    return '';
+    return 'translateX(100%)';
   }
 </script>
 
@@ -93,27 +92,24 @@
     <div class="habit-wrapper">
       <div
         class="habit-slider"
-        style={swipeStyle(habit.id)}
-        role="button"
-        tabindex="0"
-        onclick={() => handleCardClick(habit)}
-        onkeydown={(e) => { if (e.key === 'Enter') handleCardClick(habit); }}
+        style="transform: {sliderTransform(habit.id)}"
         ontouchstart={(e) => handleTouchStart(e, habit.id)}
         ontouchmove={(e) => handleTouchMove(e, habit.id)}
         ontouchend={(e) => handleTouchEnd(e, habit.id)}
       >
-        <HabitCard {habit} />
+        <HabitCard {habit} onEdit={() => openEdit(habit)} />
       </div>
-      {#if swipedHabitId === habit.id}
-        <div class="swipe-actions">
-          <button class="swipe-btn archive" onclick={() => archiveHabit(habit)} aria-label="Archive">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
-          </button>
-          <button class="swipe-btn delete" onclick={() => deleteHabit(habit)} aria-label="Delete">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/></svg>
-          </button>
-        </div>
-      {/if}
+      <div
+        class="swipe-actions"
+        style="transform: {actionsTransform(habit.id)}"
+      >
+        <button class="swipe-btn archive" onclick={() => archiveHabit(habit)} aria-label="Archive">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+        </button>
+        <button class="swipe-btn delete" onclick={() => deleteHabit(habit)} aria-label="Delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/></svg>
+        </button>
+      </div>
     </div>
   {/each}
 </div>
@@ -148,17 +144,8 @@
   .habit-slider {
     position: relative;
     z-index: 1;
-    cursor: pointer;
     transition: transform 0.2s ease;
-    background: var(--card-bg);
-    border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 8px;
     touch-action: pan-y;
-  }
-  .habit-slider:hover { opacity: 0.92; }
-  .habit-slider:focus-visible {
-    outline: 2px solid var(--accent, #0066cc);
-    outline-offset: 2px;
   }
   .swipe-actions {
     position: absolute;
@@ -169,6 +156,7 @@
     align-items: stretch;
     z-index: 0;
     gap: 2px;
+    transition: transform 0.2s ease;
   }
   .swipe-btn {
     border: none;
@@ -179,7 +167,6 @@
     align-items: center;
     justify-content: center;
     min-width: 52px;
-    border-radius: 0;
   }
   .swipe-btn svg {
     width: 22px;

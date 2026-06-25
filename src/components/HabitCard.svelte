@@ -4,7 +4,7 @@
   import { getEntry } from '../services/storage';
   import { habitsStore } from '../stores/habits';
   import { getLocalDateString } from '../lib/dates';
-  let { habit }: { habit: Habit } = $props();
+  let { habit, onEdit }: { habit: Habit; onEdit?: () => void } = $props();
 
   let allHabits = $state<Habit[]>([]);
   habitsStore.subscribe(v => allHabits = v);
@@ -162,7 +162,7 @@
   }
 </script>
 
-<div class="habit-card">
+<div class="habit-card" role="button" tabindex="0" onclick={() => onEdit?.()} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit?.(); } }}>
   <div class="card-left">
     <div class="title-row">
       <h3>{habit.title}</h3>
@@ -179,38 +179,38 @@
   <div class="card-right">
     {#if habit.type === 'binary'}
       <div class="action-control">
-        <label class="checkbox-label">
+        <label class="checkbox-label" onclick={(e) => e.stopPropagation()}>
           <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} />
         </label>
         <span class="action-label">Done</span>
       </div>
     {:else if habit.type === 'quantity'}
       <div class="action-control">
-        <button onclick={() => handleQuantityDelta(-1)} class="btn small">−</button>
+        <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(-1); }} class="btn small">−</button>
         <span
           class="quantity-value"
           class:standard-met={isStandardMet}
           class:target-met={isTargetMet}
         >{todayEntry?.value ?? 0}</span>
-        <button onclick={() => handleQuantityDelta(1)} class="btn small">+</button>
+        <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(1); }} class="btn small">+</button>
       </div>
     {:else if habit.type === 'duration'}
       <div class="action-control">
         {#if timerRunning}
           <span class="timer-display">{formatDuration(timerElapsed)}</span>
           {#if timerPaused}
-            <button onclick={resumeTimer} class="btn start">Resume</button>
-            <button onclick={doneTimer} class="btn stop">Done</button>
-            <button onclick={cancelTimer} class="btn cancel">X</button>
+            <button onclick={(e) => { e.stopPropagation(); resumeTimer(); }} class="btn start">Resume</button>
+            <button onclick={(e) => { e.stopPropagation(); doneTimer(); }} class="btn stop">Done</button>
+            <button onclick={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn cancel">X</button>
           {:else}
-            <button onclick={pauseTimer} class="btn stop">Pause</button>
-            <button onclick={cancelTimer} class="btn cancel">X</button>
+            <button onclick={(e) => { e.stopPropagation(); pauseTimer(); }} class="btn stop">Pause</button>
+            <button onclick={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn cancel">X</button>
           {/if}
         {:else}
-          <button onclick={startTimer} class="btn start">Start</button>
-          <div class="manual-entry">
+          <button onclick={(e) => { e.stopPropagation(); startTimer(); }} class="btn start">Start</button>
+          <div class="manual-entry" onclick={(e) => e.stopPropagation()}>
             <input type="number" bind:value={manualMinutes} placeholder="min" min="1" class="min-input" />
-            <button onclick={handleManualDuration} class="btn small">+</button>
+            <button onclick={(e) => { e.stopPropagation(); handleManualDuration(); }} class="btn small">+</button>
           </div>
           {#if todayEntry && todayEntry.value > 0}
             <span
@@ -218,7 +218,7 @@
               class:standard-met={isStandardMet}
               class:target-met={isTargetMet}
             >{formatLoggedMinutes(todayEntry.value)}</span>
-            <button onclick={handleReset} class="btn reset">Reset</button>
+            <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn reset">Reset</button>
           {/if}
         {/if}
       </div>
