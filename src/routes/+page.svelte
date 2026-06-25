@@ -5,8 +5,9 @@
   import HabitCreateModal from '../components/HabitCreateModal.svelte';
   import HabitEditModal from '../components/HabitEditModal.svelte';
 
-  let habits = $state<Habit[]>([]);
-  habitsStore.subscribe(v => habits = v.filter(h => h.status === 'active'));
+  let allHabits = $state<Habit[]>([]);
+  habitsStore.subscribe(v => allHabits = v);
+  let habits = $derived(allHabits.filter(h => h.status === 'active'));
 
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
