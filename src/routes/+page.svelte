@@ -51,9 +51,12 @@
     editingHabit = habit;
   }
 
-  function archiveHabit(habit: Habit) {
+  async function archiveHabit(habit: Habit) {
     swipedHabitId = null;
-    updateHabit({ ...habit, status: 'archived' });
+    const { saveHabit } = await import('../services/storage');
+    const updated = { ...habit, status: 'archived' as const, updatedAt: new Date() };
+    habitsStore.update(list => list.map(h => h.id === habit.id ? updated : h));
+    await saveHabit(updated);
   }
 
   function deleteHabit(habit: Habit) {
