@@ -57,6 +57,8 @@
     const updated = { ...habit, status: 'archived' as const, updatedAt: new Date() };
     habitsStore.update(list => list.map(h => h.id === habit.id ? updated : h));
     await saveHabit(updated);
+    const { supabaseSyncProvider } = await import('../services/sync.providers/supabase');
+    supabaseSyncProvider.saveRecord('habits', updated.id, updated).catch(() => {});
   }
 
   function deleteHabit(habit: Habit) {
