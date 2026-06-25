@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { habitsStore, removeHabit } from '../stores/habits';
+  import { habitsStore, updateHabit, removeHabit } from '../stores/habits';
   import type { Habit } from '../types';
   import HabitCard from '../components/HabitCard.svelte';
   import HabitCreateModal from '../components/HabitCreateModal.svelte';
@@ -52,7 +52,7 @@
 
   function archiveHabit(habit: Habit) {
     swipedHabitId = null;
-    habitsStore.update(list => list.map(h => h.id === habit.id ? { ...h, status: 'archived' as const } : h));
+    updateHabit({ ...habit, status: 'archived' });
   }
 
   function deleteHabit(habit: Habit) {
