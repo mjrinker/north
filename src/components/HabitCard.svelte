@@ -11,10 +11,6 @@
 
   let streak = $state(0);
   let todayEntry = $state<{ value: number; standardMet: boolean; targetMet: boolean } | null>(null);
-  let autoCompleted = $state(new Set<string>());
-
-  let depEntries = $state<{ habitId: string; value: number; standard: number }[]>([]);
-
   $effect(() => {
     if (!habit) return;
     const engine = new HabitEngine(habit);
@@ -23,25 +19,7 @@
       const today = getLocalDateString();
       const entry = await getEntry(habit.id, today);
       todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
-      if (habit.dependsOn) {
-        const results = await Promise.all(
-          habit.dependsOn.habitIds.map(async (hid) => {
-            const h = allHabits.find(x => x.id === hid);
-            if (!h) return null;
-            const e = await getEntry(hid, today);
-            return { habitId: hid, value: e?.value ?? 0, standard: h.standard };
-          })
-        );
-        depEntries = results.filter(Boolean) as { habitId: string; value: number; standard: number }[];
-      }
     })();
-  });
-
-  let depMet = $derived(() => {
-    if (!habit.dependsOn) return true;
-    if (depEntries.length === 0) return false;
-    if (habit.dependsOn.mode === 'and') return depEntries.every(e => e.value >= e.standard);
-    return depEntries.some(e => e.value >= e.standard);
   });
 
   let isStandardMet = $derived(todayEntry ? todayEntry.value >= habit.standard : false);
@@ -142,22 +120,6 @@
     return formatDuration(totalSec);
   }
 
-  $effect(() => {
-    if (habit.type !== 'binary' || !habit.dependsOn || depEntries.length === 0) return;
-    const today = getLocalDateString();
-    const key = habit.id + '|' + today;
-    if (autoCompleted.has(key)) return;
-    if (depMet() && !todayEntry?.value) {
-      autoCompleted.add(key);
-      const engine = new HabitEngine(habit);
-      engine.logCompletion(today, 1).then(() => {
-        getEntry(habit.id, today).then(entry => {
-          todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
-        });
-      });
-    }
-  });
-
   async function cascadeUncheck(habitId: string, today: string) {
     const dependents = allHabits.filter(h => h.type === 'binary' && h.dependsOn?.habitIds.includes(habitId));
     for (const dep of dependents) {
@@ -180,14 +142,26 @@
     }
   }
 
+  async function autoCompleteDeps(habit: Habit, today: string) {
+    for (const hid of habit.dependsOn!.habitIds) {
+      const entry = await getEntry(hid, today);
+      if (entry?.value && entry.value > 0) continue;
+      const dep = allHabits.find(h => h.id === hid);
+      if (!dep) continue;
+      await new HabitEngine(dep).logCompletion(today, dep.standard);
+    }
+  }
+
   async function handleBinaryChange() {
     if (!habit) return;
-    if (habit.dependsOn && !depMet()) return;
-    const engine = new HabitEngine(habit);
     const today = getLocalDateString();
     const wasChecked = todayEntry?.value === 1;
     const value = wasChecked ? 0 : 1;
+    const engine = new HabitEngine(habit);
     await engine.logCompletion(today, value);
+    if (value === 1 && habit.dependsOn) {
+      await autoCompleteDeps(habit, today);
+    }
     if (wasChecked) {
       await cascadeUncheck(habit.id, today);
     }
@@ -212,7 +186,7 @@
     <div class="title-row">
       <h3>{habit.title}</h3>
       {#if habit.dependsOn && habit.dependsOn.habitIds.length > 0}
-        <span class="dep-badge" class:dep-met={depMet()} class:dep-unmet={!depMet()}>
+        <span class="dep-badge">
           {#each habit.dependsOn.habitIds as hid, i}
             {#if i > 0} {habit.dependsOn!.mode} {/if}{allHabits.find(h => h.id === hid)?.title ?? hid}
           {/each}
@@ -225,7 +199,7 @@
     {#if habit.type === 'binary'}
       <div class="action-control">
         <label class="checkbox-label" onclick={(e) => e.stopPropagation()}>
-          <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} disabled={habit.dependsOn && !depMet()} />
+          <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} />
         </label>
         <span class="action-label">Done</span>
       </div>
@@ -300,9 +274,9 @@
     padding: 1px 6px;
     border-radius: 4px;
     white-space: nowrap;
+    background: var(--card-bg, #f5f5f5);
+    color: var(--text-secondary, #666);
   }
-  .dep-badge.dep-met { background: #e8f5e9; color: #2e7d32; }
-  .dep-badge.dep-unmet { background: #fce4ec; color: #c62828; }
   .streak {
     margin: 2px 0 0 0;
     font-size: 0.75rem;
