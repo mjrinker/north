@@ -18,11 +18,24 @@ export function addHabit(habit: Habit) {
   });
 }
 
+function cloneHabit(h: Habit): Habit {
+  return {
+    ...h,
+    tags: [...h.tags],
+    schedule: { ...h.schedule, startDate: new Date(h.schedule.startDate) },
+    metadata: { ...h.metadata },
+    dependsOn: h.dependsOn ? { habitIds: [...h.dependsOn.habitIds], mode: h.dependsOn.mode } : undefined,
+    createdAt: new Date(h.createdAt),
+    updatedAt: new Date(h.updatedAt),
+  };
+}
+
 export function updateHabit(habit: Habit) {
-  habit.updatedAt = new Date();
+  const cloned = cloneHabit(habit);
+  cloned.updatedAt = new Date();
   habitsStore.update(list => {
-    const updated = list.map(h => h.id === habit.id ? habit : h);
-    saveHabit(habit).catch(console.error);
+    const updated = list.map(h => h.id === cloned.id ? cloned : h);
+    saveHabit(cloned).catch(console.error);
     return updated;
   });
 }

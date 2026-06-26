@@ -1,7 +1,6 @@
 <script lang="ts">
   import { get } from 'svelte/store';
   import { habitsStore, updateHabit, removeHabit } from '../stores/habits';
-  import { saveHabit } from '../services/storage';
   import { supabaseSyncProvider } from '../services/sync.providers/supabase';
   import { user } from '../stores/auth';
   import type { Habit } from '../types';
@@ -58,8 +57,7 @@
   async function archiveHabit(habit: Habit) {
     swipedHabitId = null;
     const updated = { ...habit, status: 'archived' as const, updatedAt: new Date() };
-    habitsStore.update(list => list.map(h => h.id === habit.id ? updated : h));
-    await saveHabit(updated);
+    updateHabit(updated);
     if (get(user)) {
       supabaseSyncProvider.saveRecord('habits', updated.id, updated).catch(console.error);
     }
