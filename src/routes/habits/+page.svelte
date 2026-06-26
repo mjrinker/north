@@ -255,7 +255,7 @@
     white-space: nowrap;
   }
   th.today { color: var(--accent, #0066cc); }
-  .month-label { font-size: 0.7rem; font-weight: 700; padding: 2px 6px; color: var(--text-primary, #222); }
+  .month-label { font-size: 0.7rem; font-weight: 700; padding: 2px 6px; color: var(--text-primary, #222); text-align: left; }
   .day-name { display: block; }
   .day-num { font-size: 0.6rem; font-weight: 400; }
   th.name-col, td.name-col {

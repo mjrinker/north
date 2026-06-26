@@ -41,10 +41,13 @@
   function startTimer() {
     timerRunning = true;
     timerPaused = false;
-    timerElapsed = 0;
-    timerPausedElapsed = 0;
+    const mins = manualMinutes ? parseInt(manualMinutes) : todayEntry?.value;
+    const initial = (isNaN(mins) ? 0 : mins) * 60;
+    timerElapsed = initial;
+    timerPausedElapsed = initial;
     timerStartedAt = Date.now();
     timerInterval = setInterval(tick, 200);
+    manualMinutes = '';
   }
 
   function pauseTimer() {
