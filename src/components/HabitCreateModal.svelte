@@ -103,7 +103,7 @@
       <label for="interval">Every</label>
       <input type="number" bind:value={interval} min="1" />
 
-      {#if habits.length > 0}
+      {#if type === 'binary' && habits.length > 0}
         <span class="field-label">Depends on mode</span>
         <div class="dep-mode">
           <button type="button" class:active={depMode === 'and'} onclick={() => depMode = 'and'}>AND</button>

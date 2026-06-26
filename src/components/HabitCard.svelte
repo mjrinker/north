@@ -37,7 +37,8 @@
   });
 
   let depMet = $derived(() => {
-    if (!habit.dependsOn || depEntries.length === 0) return true;
+    if (!habit.dependsOn) return true;
+    if (depEntries.length === 0) return false;
     if (habit.dependsOn.mode === 'and') return depEntries.every(e => e.value >= e.standard);
     return depEntries.some(e => e.value >= e.standard);
   });
@@ -140,8 +141,22 @@
     return formatDuration(totalSec);
   }
 
+  $effect(() => {
+    if (habit.type !== 'binary' || !habit.dependsOn || depEntries.length === 0) return;
+    if (depMet() && !todayEntry?.value) {
+      const engine = new HabitEngine(habit);
+      const today = getLocalDateString();
+      engine.logCompletion(today, 1).then(() => {
+        getEntry(habit.id, today).then(entry => {
+          todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+        });
+      });
+    }
+  });
+
   async function handleBinaryChange() {
     if (!habit) return;
+    if (habit.dependsOn && !depMet()) return;
     const engine = new HabitEngine(habit);
     const today = getLocalDateString();
     const value = todayEntry?.value === 1 ? 0 : 1;
@@ -180,7 +195,7 @@
     {#if habit.type === 'binary'}
       <div class="action-control">
         <label class="checkbox-label" onclick={(e) => e.stopPropagation()}>
-          <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} />
+          <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} disabled={habit.dependsOn && !depMet()} />
         </label>
         <span class="action-label">Done</span>
       </div>
