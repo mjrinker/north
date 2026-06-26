@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Habit, DependsOn } from '../types';
+  import type { Habit } from '../types';
   import { HabitEngine } from '../services/habitEngine';
   import { getEntry } from '../services/storage';
   import { habitsStore } from '../stores/habits';
@@ -11,6 +11,7 @@
 
   let streak = $state(0);
   let todayEntry = $state<{ value: number; standardMet: boolean; targetMet: boolean } | null>(null);
+  let autoCompleted = $state(new Set<string>());
 
   let depEntries = $state<{ habitId: string; value: number; standard: number }[]>([]);
 
@@ -143,9 +144,12 @@
 
   $effect(() => {
     if (habit.type !== 'binary' || !habit.dependsOn || depEntries.length === 0) return;
+    const today = getLocalDateString();
+    const key = habit.id + '|' + today;
+    if (autoCompleted.has(key)) return;
     if (depMet() && !todayEntry?.value) {
+      autoCompleted.add(key);
       const engine = new HabitEngine(habit);
-      const today = getLocalDateString();
       engine.logCompletion(today, 1).then(() => {
         getEntry(habit.id, today).then(entry => {
           todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
