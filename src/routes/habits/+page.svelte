@@ -18,11 +18,13 @@
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
   let scrollContainer = $state<HTMLDivElement | null>(null);
+  let hasScrolled = $state(false);
 
   $effect(() => {
-    if (allEntries.length > 0 && scrollContainer) {
+    if (allEntries.length > 0 && scrollContainer && !hasScrolled) {
       requestAnimationFrame(() => {
         scrollContainer!.scrollLeft = scrollContainer!.scrollWidth;
+        hasScrolled = true;
       });
     }
   });
@@ -135,6 +137,25 @@
     return DAY_NAMES[d.getDay() === 0 ? 6 : d.getDay() - 1];
   }
 
+  let monthSpans = $derived.by(() => {
+    const spans: { label: string; count: number }[] = [];
+    let currentMonth = '';
+    let span: { label: string; count: number } | null = null;
+    for (const date of dateColumns) {
+      const month = date.slice(0, 7);
+      if (month !== currentMonth) {
+        if (span) spans.push(span);
+        const d = parseLocalDate(date);
+        span = { label: d.toLocaleDateString('en-US', { month: 'short' }), count: 1 };
+        currentMonth = month;
+      } else if (span) {
+        span.count++;
+      }
+    }
+    if (span) spans.push(span);
+    return spans;
+  });
+
   function cellClass(entry: HabitEntry | undefined): string {
     if (!entry || entry.value === 0) return '';
     if (entry.targetMet) return 'target-met';
@@ -158,6 +179,12 @@
 <div class="table-scroll" bind:this={scrollContainer}>
   <table>
     <thead>
+      <tr class="month-row">
+        {#each monthSpans as span}
+          <th colspan={span.count} class="month-label">{span.label}</th>
+        {/each}
+        <th class="name-col"></th>
+      </tr>
       <tr>
         {#each dateColumns as date, i}
           <th class:today={isToday(date)}>
@@ -228,6 +255,7 @@
     white-space: nowrap;
   }
   th.today { color: var(--accent, #0066cc); }
+  .month-label { font-size: 0.7rem; font-weight: 700; padding: 2px 6px; color: var(--text-primary, #222); }
   .day-name { display: block; }
   .day-num { font-size: 0.6rem; font-weight: 400; }
   th.name-col, td.name-col {
