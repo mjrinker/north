@@ -11,9 +11,10 @@ if (typeof window !== 'undefined') {
 }
 
 export function addHabit(habit: Habit) {
+  const cloned = cloneHabit(habit);
   habitsStore.update(list => {
-    const updated = [...list, habit];
-    saveHabit(habit).catch(console.error);
+    const updated = [...list, cloned];
+    saveHabit(cloned).catch(console.error);
     return updated;
   });
 }

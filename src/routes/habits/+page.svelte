@@ -15,9 +15,27 @@
     getAllEntries().then(e => allEntries = e);
   });
 
+  $effect(() => {
+    for (const habit of habits) {
+      if (habit.type !== 'binary' || !habit.dependsOn) continue;
+      for (const date of dateColumns) {
+        const key = habit.id + '|' + date;
+        if (autoCompleted.has(key)) continue;
+        const entry = getDayEntry(habit.id, date);
+        if (entry?.value) continue;
+        if (depsMetForDate(habit, date)) {
+          autoCompleted.add(key);
+          const engine = new HabitEngine(habit);
+          engine.logCompletion(date, 1).then(() => refreshEntries());
+        }
+      }
+    }
+  });
+
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
   let scrollContainer = $state<HTMLDivElement | null>(null);
+  let autoCompleted = $state(new Set<string>());
 
   $effect(() => {
     if (allEntries.length > 0 && scrollContainer) {
@@ -86,6 +104,27 @@
     return date === getLocalDateString();
   }
 
+  function parseLocalDate(dateStr: string): Date {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function getDayName(dateStr: string): string {
+    const d = parseLocalDate(dateStr);
+    return DAY_NAMES[d.getDay() === 0 ? 6 : d.getDay() - 1];
+  }
+
+  function depsMetForDate(habit: Habit, date: string): boolean {
+    if (!habit.dependsOn || habit.dependsOn.habitIds.length === 0) return true;
+    const depEntries = habit.dependsOn.habitIds.map(hid => {
+      const e = getDayEntry(hid, date);
+      const dep = habits.find(h => h.id === hid);
+      return { value: e?.value ?? 0, standard: dep?.standard ?? 1 };
+    });
+    if (habit.dependsOn.mode === 'and') return depEntries.every(e => e.value >= e.standard);
+    return depEntries.some(e => e.value >= e.standard);
+  }
+
   function cellClass(entry: HabitEntry | undefined): string {
     if (!entry || entry.value === 0) return '';
     if (entry.targetMet) return 'target-met';
@@ -112,7 +151,7 @@
       <tr>
         {#each dateColumns as date, i}
           <th class:today={isToday(date)}>
-            <span class="day-name">{DAY_NAMES[new Date(date).getDay() === 0 ? 6 : new Date(date).getDay() - 1]}</span>
+            <span class="day-name">{getDayName(date)}</span>
             <span class="day-num">{date.slice(8)}</span>
           </th>
         {/each}
@@ -126,7 +165,7 @@
             {@const entry = getDayEntry(habit.id, date)}
             <td class="day-cell {cellClass(entry)}" class:today={isToday(date)}>
               {#if habit.type === 'binary'}
-                <input type="checkbox" checked={entry?.value === 1} onclick={(e) => e.stopPropagation()} onchange={() => handleBinary(habit, date)} />
+                <input type="checkbox" checked={entry?.value === 1} onclick={(e) => e.stopPropagation()} onchange={() => handleBinary(habit, date)} disabled={habit.type === 'binary' && habit.dependsOn && !depsMetForDate(habit, date)} />
               {:else if habit.type === 'quantity'}
                 <button class="cell-btn" onclick={(e) => { e.stopPropagation(); handleQuantityClick(habit, date); }}>{entry?.value ?? 0}</button>
               {:else if habit.type === 'duration'}
