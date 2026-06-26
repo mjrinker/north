@@ -154,13 +154,39 @@
     }
   });
 
+  async function cascadeUncheck(habitId: string, today: string) {
+    const dependents = allHabits.filter(h => h.type === 'binary' && h.dependsOn?.habitIds.includes(habitId));
+    for (const dep of dependents) {
+      const depEntry = await getEntry(dep.id, today);
+      if (!depEntry || depEntry.value === 0) continue;
+      const otherDeps = dep.dependsOn!.habitIds.filter(id => id !== habitId);
+      if (otherDeps.length === 0) {
+        await new HabitEngine(dep).logCompletion(today, 0);
+        continue;
+      }
+      const results = await Promise.all(otherDeps.map(async id => {
+        const e = await getEntry(id, today);
+        const h = allHabits.find(x => x.id === id);
+        return (e?.value ?? 0) >= (h?.standard ?? 1);
+      }));
+      const otherMet = dep.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
+      if (!otherMet) {
+        await new HabitEngine(dep).logCompletion(today, 0);
+      }
+    }
+  }
+
   async function handleBinaryChange() {
     if (!habit) return;
     if (habit.dependsOn && !depMet()) return;
     const engine = new HabitEngine(habit);
     const today = getLocalDateString();
-    const value = todayEntry?.value === 1 ? 0 : 1;
+    const wasChecked = todayEntry?.value === 1;
+    const value = wasChecked ? 0 : 1;
     await engine.logCompletion(today, value);
+    if (wasChecked) {
+      await cascadeUncheck(habit.id, today);
+    }
     const entry = await getEntry(habit.id, today);
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
   }

@@ -81,9 +81,35 @@
   async function handleBinary(habit: Habit, date: string) {
     const entry = getDayEntry(habit.id, date);
     const engine = new HabitEngine(habit);
-    const value = entry?.value === 1 ? 0 : 1;
+    const wasChecked = entry?.value === 1;
+    const value = wasChecked ? 0 : 1;
     await engine.logCompletion(date, value);
+    if (wasChecked) {
+      await cascadeUncheck(habit, date);
+    }
     await refreshEntries();
+  }
+
+  async function cascadeUncheck(habit: Habit, date: string) {
+    const dependents = habits.filter(h => h.type === 'binary' && h.dependsOn?.habitIds.includes(habit.id));
+    for (const dep of dependents) {
+      const depEntry = getDayEntry(dep.id, date);
+      if (!depEntry || depEntry.value === 0) continue;
+      const otherDeps = dep.dependsOn!.habitIds.filter(id => id !== habit.id);
+      if (otherDeps.length === 0) {
+        await new HabitEngine(dep).logCompletion(date, 0);
+        continue;
+      }
+      const results = otherDeps.map(id => {
+        const e = getDayEntry(id, date);
+        const h = habits.find(x => x.id === id);
+        return (e?.value ?? 0) >= (h?.standard ?? 1);
+      });
+      const otherMet = dep.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
+      if (!otherMet) {
+        await new HabitEngine(dep).logCompletion(date, 0);
+      }
+    }
   }
 
   async function handleQuantityClick(habit: Habit, date: string) {
@@ -169,7 +195,7 @@
               {:else if habit.type === 'quantity'}
                 <button class="cell-btn" onclick={(e) => { e.stopPropagation(); handleQuantityClick(habit, date); }}>{entry?.value ?? 0}</button>
               {:else if habit.type === 'duration'}
-                <button class="cell-btn" onclick={(e) => { e.stopPropagation(); handleDuration(habit, date); }}>{entry?.value ? entry.value + 'm' : '-'}</button>
+                <button class="cell-btn" onclick={(e) => { e.stopPropagation(); handleDuration(habit, date); }}>{entry?.value ? Math.floor(entry.value) + 'm' : '-'}</button>
               {/if}
             </td>
           {/each}
