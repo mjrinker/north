@@ -20,13 +20,13 @@
   let editingHabit = $state<Habit | null>(null);
   let scrollContainer = $state<HTMLDivElement | null>(null);
   let hasScrolled = $state(false);
-  let offset = $state(90);
-  let loading = $state(false);
-  let atStart = $state(false);
+  let windowStart = $state(89);
+  let shifting = $state(false);
 
-  const START_DATE_STR = '2021-01-01';
-  const PAGE_SIZE = 90;
+  const WINDOW_SIZE = 90;
+  const SHIFT_SIZE = 45;
   const COL_WIDTH = 44;
+  const START_DATE_STR = '2021-01-01';
 
   $effect(() => {
     if (allEntries.length > 0 && scrollContainer && !hasScrolled) {
@@ -43,8 +43,8 @@
     const today = new Date();
     const dates: string[] = [];
     const d = new Date(today);
-    d.setDate(d.getDate() - offset + 1);
-    while (d <= today) {
+    d.setDate(d.getDate() - windowStart);
+    for (let i = 0; i < WINDOW_SIZE; i++) {
       dates.push(getLocalDateString(d));
       d.setDate(d.getDate() + 1);
     }
@@ -53,26 +53,42 @@
 
   let dateColumns = $derived(getDates());
 
+  function canShiftLeft(): boolean {
+    return dateColumns[0] > START_DATE_STR;
+  }
+
+  function canShiftRight(): boolean {
+    return dateColumns[WINDOW_SIZE - 1] < getLocalDateString();
+  }
+
   function onScroll() {
-    if (!scrollContainer || loading || atStart) return;
-    if (scrollContainer.scrollLeft < COL_WIDTH * 3) {
-      loadMore();
+    if (!scrollContainer || shifting) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
+    if (scrollLeft < COL_WIDTH * 3 && canShiftLeft()) {
+      shiftLeft();
+    } else if (scrollLeft + clientWidth > scrollWidth - COL_WIDTH * 3 && canShiftRight()) {
+      shiftRight();
     }
   }
 
-  async function loadMore() {
-    if (loading || atStart) return;
-    loading = true;
-    const prevScrollLeft = scrollContainer!.scrollLeft;
-    const prevFirstDate = dateColumns[0];
-    offset += PAGE_SIZE;
+  async function shiftLeft() {
+    shifting = true;
+    windowStart += SHIFT_SIZE;
     await tick();
-    if (dateColumns[0] <= START_DATE_STR) atStart = true;
-    const el = scrollContainer!.querySelector(`[data-date="${prevFirstDate}"]`);
-    if (el) {
-      scrollContainer!.scrollLeft = (el as HTMLElement).offsetLeft;
+    if (scrollContainer) {
+      scrollContainer.scrollLeft += SHIFT_SIZE * COL_WIDTH;
     }
-    loading = false;
+    shifting = false;
+  }
+
+  async function shiftRight() {
+    shifting = true;
+    windowStart -= SHIFT_SIZE;
+    await tick();
+    if (scrollContainer) {
+      scrollContainer.scrollLeft -= SHIFT_SIZE * COL_WIDTH;
+    }
+    shifting = false;
   }
 
   let entryMap = $derived(() => {
@@ -169,14 +185,21 @@
   let monthSpans = $derived.by(() => {
     const spans: { label: string; count: number }[] = [];
     let currentMonth = '';
+    let currentYear = '';
     let span: { label: string; count: number } | null = null;
     for (const date of dateColumns) {
       const month = date.slice(0, 7);
       if (month !== currentMonth) {
         if (span) spans.push(span);
         const d = parseLocalDate(date);
-        span = { label: d.toLocaleDateString('en-US', { month: 'short' }), count: 1 };
+        const y = date.slice(0, 4);
+        const showYear = y !== currentYear;
+        span = {
+          label: d.toLocaleDateString('en-US', showYear ? { month: 'short', year: 'numeric' } : { month: 'short' }),
+          count: 1
+        };
         currentMonth = month;
+        currentYear = y;
       } else if (span) {
         span.count++;
       }
