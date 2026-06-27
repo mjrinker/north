@@ -31,15 +31,14 @@
 
   const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-  const TOTAL_DAYS = 28;
-
   function getDates(): string[] {
     const today = new Date();
+    const start = new Date(2021, 0, 1);
     const dates: string[] = [];
-    for (let i = TOTAL_DAYS - 1; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
+    const d = new Date(start);
+    while (d <= today) {
       dates.push(getLocalDateString(d));
+      d.setDate(d.getDate() + 1);
     }
     return dates;
   }
