@@ -26,7 +26,6 @@
   const WINDOW_SIZE = 90;
   const SHIFT_SIZE = 45;
   const COL_WIDTH = 44;
-  const START_DATE_STR = '2021-01-01';
 
   $effect(() => {
     if (allEntries.length > 0 && scrollContainer && !hasScrolled) {
@@ -54,7 +53,7 @@
   let dateColumns = $derived(getDates());
 
   function canShiftLeft(): boolean {
-    return dateColumns[0] > START_DATE_STR;
+    return true;
   }
 
   function canShiftRight(): boolean {
