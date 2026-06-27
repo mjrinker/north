@@ -6,6 +6,7 @@
   import { getLocalDateString } from '../../lib/dates';
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
+  import { tick } from 'svelte';
 
   let habits = $state<Habit[]>([]);
   habitsStore.subscribe(v => (habits = v.filter(h => h.status === 'active')));
@@ -19,6 +20,13 @@
   let editingHabit = $state<Habit | null>(null);
   let scrollContainer = $state<HTMLDivElement | null>(null);
   let hasScrolled = $state(false);
+  let offset = $state(90);
+  let loading = $state(false);
+  let atStart = $state(false);
+
+  const START_DATE_STR = '2021-01-01';
+  const PAGE_SIZE = 90;
+  const COL_WIDTH = 44;
 
   $effect(() => {
     if (allEntries.length > 0 && scrollContainer && !hasScrolled) {
@@ -33,9 +41,9 @@
 
   function getDates(): string[] {
     const today = new Date();
-    const start = new Date(2021, 0, 1);
     const dates: string[] = [];
-    const d = new Date(start);
+    const d = new Date(today);
+    d.setDate(d.getDate() - offset + 1);
     while (d <= today) {
       dates.push(getLocalDateString(d));
       d.setDate(d.getDate() + 1);
@@ -44,6 +52,28 @@
   }
 
   let dateColumns = $derived(getDates());
+
+  function onScroll() {
+    if (!scrollContainer || loading || atStart) return;
+    if (scrollContainer.scrollLeft < COL_WIDTH * 3) {
+      loadMore();
+    }
+  }
+
+  async function loadMore() {
+    if (loading || atStart) return;
+    loading = true;
+    const prevScrollLeft = scrollContainer!.scrollLeft;
+    const prevFirstDate = dateColumns[0];
+    offset += PAGE_SIZE;
+    await tick();
+    if (dateColumns[0] <= START_DATE_STR) atStart = true;
+    const el = scrollContainer!.querySelector(`[data-date="${prevFirstDate}"]`);
+    if (el) {
+      scrollContainer!.scrollLeft = (el as HTMLElement).offsetLeft;
+    }
+    loading = false;
+  }
 
   let entryMap = $derived(() => {
     const map = new Map<string, HabitEntry>();
@@ -175,7 +205,7 @@
   <HabitEditModal habit={editingHabit} {habits} onClose={() => editingHabit = null} />
 {/if}
 
-<div class="table-scroll" bind:this={scrollContainer}>
+<div class="table-scroll" bind:this={scrollContainer} onscroll={onScroll}>
   <table>
     <thead>
       <tr class="month-row">
@@ -186,7 +216,7 @@
       </tr>
       <tr>
         {#each dateColumns as date, i}
-          <th class:today={isToday(date)}>
+          <th class:today={isToday(date)} data-date={date}>
             <span class="day-name">{getDayName(date)}</span>
             <span class="day-num">{date.slice(8)}</span>
           </th>
