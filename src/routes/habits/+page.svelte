@@ -162,8 +162,12 @@
   }
 
   async function handleDuration(habit: Habit, date: string) {
+    const val = prompt('Duration (minutes):', '');
+    if (val === null) return;
+    const mins = parseInt(val);
+    if (isNaN(mins) || mins < 1) return;
     const engine = new HabitEngine(habit);
-    await engine.logCompletion(date, habit.standard);
+    await engine.logCompletion(date, mins);
     await refreshEntries();
   }
 

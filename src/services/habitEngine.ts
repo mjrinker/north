@@ -2,6 +2,16 @@
 
 import type { Habit, HabitEntry, CompletionResult } from '../types';
 import { getAllEntries, saveEntry, getEntry } from './storage';
+import { getLocalDateString } from '../lib/dates';
+
+function getWeekStart(d: Date): Date {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  date.setDate(diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
 
 /**
  * Simple Habit Engine handling completion logic and streak tracking.
@@ -43,25 +53,63 @@ export class HabitEngine {
     await saveEntry(entry);
   }
 
-  /** Get the current streak (consecutive days where standardMet is true). */
+  /** Get the current streak. For daily habits, counts consecutive days.
+   *  For weekly habits (daysPerWeek set), counts consecutive weeks. */
   async getStreak(): Promise<number> {
     const all = await getAllEntries();
-    // Filter entries for this habit and sort by date descending
-    const habitEntries = all
-      .filter(e => e.habitId === this.habit.id && e.standardMet)
-      .sort((a, b) => (a.date < b.date ? 1 : -1)); // newest first
+    const habitEntries = all.filter(e => e.habitId === this.habit.id && e.standardMet);
 
+    if (this.habit.schedule.daysPerWeek) {
+      return this.getWeeklyStreak(habitEntries);
+    }
+    return this.getDailyStreak(habitEntries);
+  }
+
+  private async getDailyStreak(entries: HabitEntry[]): Promise<number> {
+    const completedDates = new Set(entries.map(e => e.date));
     let streak = 0;
-    let today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    for (const entry of habitEntries) {
-      const entryDate = new Date(entry.date);
-      entryDate.setHours(0, 0, 0, 0);
-      const diff = (today.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24);
-      if (diff === streak) {
+    let date = new Date();
+    date.setHours(0, 0, 0, 0);
+    const todayStr = getLocalDateString(date);
+    if (!completedDates.has(todayStr)) {
+      date.setDate(date.getDate() - 1);
+    }
+    while (true) {
+      const dateStr = getLocalDateString(date);
+      if (completedDates.has(dateStr)) {
         streak++;
-        today = entryDate;
+        date.setDate(date.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }
+
+  private async getWeeklyStreak(entries: HabitEntry[]): Promise<number> {
+    const weekCounts = new Map<string, number>();
+    for (const e of entries) {
+      const d = new Date(e.date);
+      const weekStart = getWeekStart(d);
+      const key = getLocalDateString(weekStart);
+      weekCounts.set(key, (weekCounts.get(key) || 0) + 1);
+    }
+
+    const daysPerWeek = this.habit.schedule.daysPerWeek!;
+    let streak = 0;
+    let date = new Date();
+    date.setHours(0, 0, 0, 0);
+    const currentWeekStart = getWeekStart(date);
+    const currentKey = getLocalDateString(currentWeekStart);
+    if ((weekCounts.get(currentKey) || 0) < daysPerWeek) {
+      date.setDate(date.getDate() - 7);
+    }
+    while (true) {
+      const ws = getWeekStart(date);
+      const key = getLocalDateString(ws);
+      if ((weekCounts.get(key) || 0) >= daysPerWeek) {
+        streak++;
+        date.setDate(date.getDate() - 7);
       } else {
         break;
       }

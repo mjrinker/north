@@ -20,6 +20,7 @@
   let depMode = $state<'and' | 'or'>(habit.dependsOn?.mode ?? 'and');
   let frequency = $state(habit.schedule.frequency);
   let interval = $state(habit.schedule.interval);
+  let daysPerWeek = $state<number | undefined>(habit.schedule.daysPerWeek);
 
   function toggleDep(id: string) {
     if (depIds.includes(id)) {
@@ -38,7 +39,7 @@
       target: type !== 'binary' ? target : undefined,
       type,
       dependsOn,
-      schedule: { ...habit.schedule, frequency: frequency as 'daily' | 'weekly' | 'monthly' | 'custom', interval }
+      schedule: { ...habit.schedule, frequency: frequency as 'daily' | 'weekly' | 'monthly' | 'custom', interval, daysPerWeek: frequency === 'weekly' && daysPerWeek ? daysPerWeek : undefined }
     };
     updateHabit(updated);
     onClose();
@@ -81,6 +82,10 @@
       </label>
 
       <label>Interval <input type="number" bind:value={interval} min="1" /></label>
+
+      {#if frequency === 'weekly'}
+        <label>Days per week <input type="number" bind:value={daysPerWeek} min="1" max="7" placeholder="e.g. 3" /></label>
+      {/if}
 
       {#if type === 'binary' && allHabits.filter(h => h.id !== habit.id).length > 0}
         <span class="field-label">Depends on mode</span>

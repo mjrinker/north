@@ -5,6 +5,7 @@ export interface Schedule {
 	// Frequency-specific configuration
 	daysOfWeek?: number[]; // 0-6 for weekly/monthly patterns
 	dayOfMonth?: number;    // 1-31 for monthly patterns
+	daysPerWeek?: number;   // target completions per week (e.g., 3 days a week)
 	
 	startDate: Date;
 	endDate?: Date;

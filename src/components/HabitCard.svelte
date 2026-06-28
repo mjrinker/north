@@ -196,7 +196,7 @@
         </span>
       {/if}
     </div>
-    <p class="streak">Streak: {streak} days</p>
+    <p class="streak">Streak: {streak} {habit.schedule.daysPerWeek ? 'weeks' : 'days'}</p>
   </div>
   <div class="card-right">
     {#if habit.type === 'binary'}
