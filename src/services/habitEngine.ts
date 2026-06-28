@@ -124,6 +124,7 @@ export class HabitEngine {
     switch (schedule.frequency) {
       case 'daily':
         return new Date(now.setDate(now.getDate() + schedule.interval));
+      case 'days_per_week':
       case 'weekly':
         return new Date(now.setDate(now.getDate() + 7 * schedule.interval));
       case 'monthly': {

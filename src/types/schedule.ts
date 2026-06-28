@@ -1,5 +1,5 @@
 export interface Schedule {
-	frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
+	frequency: 'daily' | 'weekly' | 'monthly' | 'custom' | 'days_per_week';
 	interval: number; // e.g., every 2 days, every 3 weeks
 	
 	// Frequency-specific configuration

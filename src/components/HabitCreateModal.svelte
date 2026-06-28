@@ -18,7 +18,6 @@
   let depMode = $state<'and' | 'or'>('and');
   let frequency = $state('daily');
   let interval = $state(1);
-  let daysPerWeek = $state<number | undefined>(undefined);
 
   let showStandard = $derived(type !== 'binary');
 
@@ -46,9 +45,9 @@
       type,
       unit: type === 'duration' ? 'minutes' : 'times',
       schedule: {
-        frequency: frequency as 'daily' | 'weekly' | 'monthly' | 'custom',
+        frequency: frequency as 'daily' | 'weekly' | 'monthly' | 'custom' | 'days_per_week',
         interval,
-        daysPerWeek: frequency === 'weekly' && daysPerWeek ? daysPerWeek : undefined,
+        daysPerWeek: frequency === 'days_per_week' ? interval : undefined,
         startDate: new Date()
       },
       metadata: {
@@ -96,18 +95,19 @@
       <label for="frequency">Frequency</label>
       <select bind:value={frequency}>
         <option value="daily">Daily</option>
+        <option value="days_per_week">X Days/Week</option>
         <option value="weekly">Weekly</option>
         <option value="biweekly">Biweekly</option>
         <option value="monthly">Monthly</option>
         <option value="custom">Every X Days</option>
       </select>
 
-      <label for="interval">Every</label>
-      <input type="number" bind:value={interval} min="1" />
-
-      {#if frequency === 'weekly'}
-        <label for="daysPerWeek">Days per week</label>
-        <input type="number" bind:value={daysPerWeek} min="1" max="7" placeholder="e.g. 3" />
+      {#if frequency === 'days_per_week'}
+        <label for="interval">Days per week</label>
+        <input type="number" bind:value={interval} min="1" max="7" />
+      {:else}
+        <label for="interval">Every</label>
+        <input type="number" bind:value={interval} min="1" />
       {/if}
 
       {#if type === 'binary' && habits.length > 0}
