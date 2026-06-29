@@ -43,7 +43,19 @@
     return groups;
   });
 
-  let sortMode = $state<'tag' | 'name' | 'type' | 'custom'>('tag');
+  function loadSortMode(): 'tag' | 'name' | 'type' | 'custom' {
+    try {
+      const saved = localStorage.getItem('sortMode');
+      if (saved === 'tag' || saved === 'name' || saved === 'type' || saved === 'custom') return saved;
+    } catch {}
+    return 'tag';
+  }
+
+  let sortMode = $state(loadSortMode());
+
+  $effect(() => {
+    try { localStorage.setItem('sortMode', sortMode); } catch {}
+  });
 
   let collapsedGroups = $state<Set<string>>(new Set());
 

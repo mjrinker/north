@@ -4,8 +4,8 @@
   import { getEntry } from '../services/storage';
   import { habitsStore } from '../stores/habits';
   import { getLocalDateString } from '../lib/dates';
-  import { getTimerState, setTimerState, clearTimerState as clearTimer } from '../lib/timerStore';
-  import { onMount, onDestroy } from 'svelte';
+  import { timerStates, setTimerState, clearTimerState, defaultTimer, type TimerState, type AllTimers } from '../lib/timerStore';
+  import { onDestroy } from 'svelte';
   let { habit, onEdit }: { habit: Habit; onEdit?: () => void } = $props();
 
   let allHabits = $state<Habit[]>([]);
@@ -53,107 +53,79 @@
     })();
   });
 
-  // Timer state — backed by external module-level store + localStorage
-  let timerRunning = $state(false);
-  let timerPaused = $state(false);
-  let timerElapsed = $state(0);
-  let timerPausedElapsed = $state(0);
-  let timerStartedAt = $state(0);
+  // Timer state — store-backed
+  let allTimerStates = $state<AllTimers>({});
+  let unsubTimer = timerStates.subscribe(v => allTimerStates = v);
+  let timerState = $derived(allTimerStates[habit.id] ?? defaultTimer);
   let timerInterval: ReturnType<typeof setInterval> | null = null;
   let manualMinutes = $state('');
 
-  function syncTimerState() {
-    setTimerState(habit.id, { running: timerRunning, paused: timerPaused, elapsed: timerElapsed, pausedElapsed: timerPausedElapsed, startedAt: timerStartedAt });
-  }
-
-  function clearTimerState() {
-    clearTimer(habit.id);
-  }
-
-  onMount(() => {
-    const saved = getTimerState(habit.id);
-    if (!saved) return;
-    timerPausedElapsed = saved.pausedElapsed || 0;
-    timerStartedAt = saved.startedAt || 0;
-    timerElapsed = saved.elapsed || 0;
-    timerPaused = saved.paused || false;
-    timerRunning = saved.running || false;
-    if (saved.running && !saved.paused && saved.startedAt > 0) {
-      timerElapsed = timerPausedElapsed + Math.floor((Date.now() - saved.startedAt) / 1000);
-      timerStartedAt = Date.now();
-      timerInterval = setInterval(tick, 200);
+  // Resume interval if timer was running when component mounts
+  $effect(() => {
+    if (timerState.running && !timerState.paused && timerState.startedAt > 0) {
+      if (!timerInterval) {
+        timerInterval = setInterval(tick, 200);
+      }
     }
   });
 
   onDestroy(() => {
+    unsubTimer();
     if (timerInterval) {
       clearInterval(timerInterval);
       timerInterval = null;
     }
-    syncTimerState();
   });
 
   function tick() {
-    timerElapsed = timerPausedElapsed + Math.floor((Date.now() - timerStartedAt) / 1000);
-    syncTimerState();
+    const s = allTimerStates[habit.id];
+    if (!s) return;
+    const newElapsed = s.pausedElapsed + Math.floor((Date.now() - s.startedAt) / 1000);
+    setTimerState(habit.id, { ...s, elapsed: newElapsed });
   }
 
   function startTimer() {
-    timerRunning = true;
-    timerPaused = false;
     const mins = manualMinutes ? parseInt(manualMinutes) : (todayEntry?.value ?? 0);
     const initial = (isNaN(mins) ? 0 : mins) * 60;
-    timerElapsed = initial;
-    timerPausedElapsed = initial;
-    timerStartedAt = Date.now();
+    setTimerState(habit.id, { running: true, paused: false, elapsed: initial, pausedElapsed: initial, startedAt: Date.now() });
     timerInterval = setInterval(tick, 200);
     manualMinutes = '';
-    syncTimerState();
   }
 
   function pauseTimer() {
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = null;
-    timerPausedElapsed = timerElapsed;
-    timerStartedAt = 0;
-    timerPaused = true;
-    syncTimerState();
+    const s = allTimerStates[habit.id];
+    if (!s) return;
+    setTimerState(habit.id, { ...s, paused: true, pausedElapsed: s.elapsed, startedAt: 0 });
   }
 
   function resumeTimer() {
-    timerPaused = false;
-    timerStartedAt = Date.now();
+    const s = allTimerStates[habit.id];
+    if (!s) return;
+    setTimerState(habit.id, { ...s, paused: false, startedAt: Date.now() });
     timerInterval = setInterval(tick, 200);
-    syncTimerState();
   }
 
   async function doneTimer() {
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = null;
-    const total = timerElapsed;
-    timerRunning = false;
-    timerPaused = false;
+    const s = allTimerStates[habit.id];
+    if (!s) return;
+    const total = s.elapsed;
     const engine = new HabitEngine(habit);
     const today = getLocalDateString();
     const minutes = Math.max(0.1, total / 60);
     await engine.logCompletion(today, minutes);
     const entry = await getEntry(habit.id, today);
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
-    timerElapsed = 0;
-    timerPausedElapsed = 0;
-    timerStartedAt = 0;
-    clearTimerState();
+    clearTimerState(habit.id);
   }
 
   function cancelTimer() {
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = null;
-    timerRunning = false;
-    timerPaused = false;
-    timerElapsed = 0;
-    timerPausedElapsed = 0;
-    timerStartedAt = 0;
-    clearTimerState();
+    clearTimerState(habit.id);
   }
 
   async function handleManualDuration() {
@@ -293,9 +265,9 @@
       </div>
     {:else if habit.type === 'duration'}
       <div class="action-control">
-        {#if timerRunning}
-          <span class="timer-display">{formatDuration(timerElapsed)}</span>
-          {#if timerPaused}
+        {#if timerState.running}
+          <span class="timer-display">{formatDuration(timerState.elapsed)}</span>
+          {#if timerState.paused}
             <button onclick={(e) => { e.stopPropagation(); resumeTimer(); }} class="btn start">Resume</button>
             <button onclick={(e) => { e.stopPropagation(); doneTimer(); }} class="btn stop">Done</button>
             <button onclick={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn cancel">X</button>
