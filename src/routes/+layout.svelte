@@ -14,8 +14,8 @@
 </script>
 
 <nav>
-  <a href="/">Home</a>
-  <a href="/habits">Habits</a>
+  <a href="/">Today</a>
+  <a href="/habits">History</a>
   {#if userHasFeature(roles, 'stats')}<a href="/stats">Stats</a>{/if}
   {#if userHasPermission(roles, 'access_admin')}<a href="/admin">Admin</a>{/if}
   <div class="spacer"></div>

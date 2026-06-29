@@ -219,7 +219,7 @@
   }
 </script>
 
-<h1>Habit History</h1>
+<h1>History</h1>
 
 <button class="add-btn" onclick={() => showCreate = true}>+ Add New Habit</button>
 

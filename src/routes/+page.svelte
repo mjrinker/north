@@ -174,7 +174,7 @@
   }
 </script>
 
-<h1 class="page-title">My Habits</h1>
+<h1 class="page-title">Today</h1>
 
 <div class="toolbar">
   <button class="add-habit-btn" onclick={() => showCreate = true}>+ Add Habit</button>

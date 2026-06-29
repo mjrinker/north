@@ -4,6 +4,7 @@
   import { getEntry } from '../services/storage';
   import { habitsStore } from '../stores/habits';
   import { getLocalDateString } from '../lib/dates';
+  import { getTimerState, setTimerState, clearTimerState as clearTimer } from '../lib/timerStore';
   import { onMount, onDestroy } from 'svelte';
   let { habit, onEdit }: { habit: Habit; onEdit?: () => void } = $props();
 
@@ -52,52 +53,7 @@
     })();
   });
 
-  // Timer state — backed by module-level cache + localStorage
-  interface TimerState { running: boolean; paused: boolean; elapsed: number; pausedElapsed: number; startedAt: number; }
-  const timerCache = new Map<string, TimerState>();
-
-  function loadTimerStateFromCache(id: string): TimerState | null {
-    return timerCache.get(id) ?? null;
-  }
-
-  function saveTimerStateToCache(id: string, state: TimerState) {
-    timerCache.set(id, state);
-  }
-
-  function removeTimerStateFromCache(id: string) {
-    timerCache.delete(id);
-  }
-
-  function loadTimerStateFromStorage(id: string): TimerState | null {
-    try {
-      const saved = localStorage.getItem(`timer_${id}`);
-      return saved ? JSON.parse(saved) : null;
-    } catch { return null; }
-  }
-
-  function saveTimerStateToStorage(id: string, state: TimerState) {
-    try { localStorage.setItem(`timer_${id}`, JSON.stringify(state)); } catch {}
-  }
-
-  function removeTimerStateFromStorage(id: string) {
-    try { localStorage.removeItem(`timer_${id}`); } catch {}
-  }
-
-  function getTimerState(id: string): TimerState | null {
-    return loadTimerStateFromCache(id) ?? loadTimerStateFromStorage(id);
-  }
-
-  function persistTimerState(id: string) {
-    const state: TimerState = { running: timerRunning, paused: timerPaused, elapsed: timerElapsed, pausedElapsed: timerPausedElapsed, startedAt: timerStartedAt };
-    saveTimerStateToCache(id, state);
-    saveTimerStateToStorage(id, state);
-  }
-
-  function clearTimerState(id: string) {
-    removeTimerStateFromCache(id);
-    removeTimerStateFromStorage(id);
-  }
-
+  // Timer state — backed by external module-level store + localStorage
   let timerRunning = $state(false);
   let timerPaused = $state(false);
   let timerElapsed = $state(0);
@@ -106,16 +62,24 @@
   let timerInterval: ReturnType<typeof setInterval> | null = null;
   let manualMinutes = $state('');
 
+  function syncTimerState() {
+    setTimerState(habit.id, { running: timerRunning, paused: timerPaused, elapsed: timerElapsed, pausedElapsed: timerPausedElapsed, startedAt: timerStartedAt });
+  }
+
+  function clearTimerState() {
+    clearTimer(habit.id);
+  }
+
   onMount(() => {
-    const state = getTimerState(habit.id);
-    if (!state) return;
-    timerPausedElapsed = state.pausedElapsed || 0;
-    timerStartedAt = state.startedAt || 0;
-    timerElapsed = state.elapsed || 0;
-    timerPaused = state.paused || false;
-    timerRunning = state.running || false;
-    if (state.running && !state.paused && state.startedAt > 0) {
-      timerElapsed = timerPausedElapsed + Math.floor((Date.now() - state.startedAt) / 1000);
+    const saved = getTimerState(habit.id);
+    if (!saved) return;
+    timerPausedElapsed = saved.pausedElapsed || 0;
+    timerStartedAt = saved.startedAt || 0;
+    timerElapsed = saved.elapsed || 0;
+    timerPaused = saved.paused || false;
+    timerRunning = saved.running || false;
+    if (saved.running && !saved.paused && saved.startedAt > 0) {
+      timerElapsed = timerPausedElapsed + Math.floor((Date.now() - saved.startedAt) / 1000);
       timerStartedAt = Date.now();
       timerInterval = setInterval(tick, 200);
     }
@@ -126,12 +90,12 @@
       clearInterval(timerInterval);
       timerInterval = null;
     }
-    persistTimerState(habit.id);
+    syncTimerState();
   });
 
   function tick() {
     timerElapsed = timerPausedElapsed + Math.floor((Date.now() - timerStartedAt) / 1000);
-    persistTimerState(habit.id);
+    syncTimerState();
   }
 
   function startTimer() {
@@ -144,7 +108,7 @@
     timerStartedAt = Date.now();
     timerInterval = setInterval(tick, 200);
     manualMinutes = '';
-    persistTimerState(habit.id);
+    syncTimerState();
   }
 
   function pauseTimer() {
@@ -153,14 +117,14 @@
     timerPausedElapsed = timerElapsed;
     timerStartedAt = 0;
     timerPaused = true;
-    persistTimerState(habit.id);
+    syncTimerState();
   }
 
   function resumeTimer() {
     timerPaused = false;
     timerStartedAt = Date.now();
     timerInterval = setInterval(tick, 200);
-    persistTimerState(habit.id);
+    syncTimerState();
   }
 
   async function doneTimer() {
@@ -178,7 +142,7 @@
     timerElapsed = 0;
     timerPausedElapsed = 0;
     timerStartedAt = 0;
-    clearTimerState(habit.id);
+    clearTimerState();
   }
 
   function cancelTimer() {
@@ -189,7 +153,7 @@
     timerElapsed = 0;
     timerPausedElapsed = 0;
     timerStartedAt = 0;
-    clearTimerState(habit.id);
+    clearTimerState();
   }
 
   async function handleManualDuration() {
