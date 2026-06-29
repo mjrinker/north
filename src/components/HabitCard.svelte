@@ -214,6 +214,7 @@
     }
     if (wasChecked) {
       await cascadeUncheck(habit.id, today);
+      if (habit.dependsOn) await uncheckDeps(habit, today);
     }
     const entry = await getEntry(habit.id, today);
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;

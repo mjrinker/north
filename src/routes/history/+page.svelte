@@ -117,6 +117,7 @@
     }
     if (wasChecked) {
       await cascadeUncheck(habit, date);
+      if (habit.dependsOn) await uncheckDeps(habit, date);
     }
     await refreshEntries();
   }
@@ -128,6 +129,16 @@
       const dep = habits.find(h => h.id === hid);
       if (!dep) continue;
       await new HabitEngine(dep).logCompletion(date, dep.standard);
+    }
+  }
+
+  async function uncheckDeps(habit: Habit, date: string) {
+    for (const hid of habit.dependsOn!.habitIds) {
+      const entry = getDayEntry(hid, date);
+      if (!entry || entry.value === 0) continue;
+      const dep = habits.find(h => h.id === hid);
+      if (!dep) continue;
+      await new HabitEngine(dep).logCompletion(date, 0);
     }
   }
 
