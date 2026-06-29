@@ -83,7 +83,7 @@
       </div>
     {/each}
     {#if habits.length === 0}
-      <p class="empty">No habits yet. <a href="/habits">Create one</a> to see stats.</p>
+      <p class="empty">No habits yet. <a href="/history">Create one</a> to see stats.</p>
     {/if}
   </div>
 </div>

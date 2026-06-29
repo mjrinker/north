@@ -6,7 +6,15 @@ export interface TimerState {
   startedAt: number;
 }
 
-const cache = new Map<string, TimerState>();
+const WIN_KEY = '__timerCache';
+
+function getCache(): Map<string, TimerState> {
+  if (typeof window === 'undefined') return new Map();
+  if (!(window as any)[WIN_KEY]) {
+    (window as any)[WIN_KEY] = new Map();
+  }
+  return (window as any)[WIN_KEY];
+}
 
 function storageKey(id: string): string {
   return `timer_${id}`;
@@ -34,15 +42,22 @@ function removeFromStorage(id: string): void {
 }
 
 export function getTimerState(id: string): TimerState | null {
-  return cache.get(id) ?? loadFromStorage(id);
+  const cached = getCache().get(id);
+  if (cached) return cached;
+  const stored = loadFromStorage(id);
+  if (stored) {
+    getCache().set(id, stored);
+    return stored;
+  }
+  return null;
 }
 
 export function setTimerState(id: string, state: TimerState): void {
-  cache.set(id, state);
+  getCache().set(id, state);
   saveToStorage(id, state);
 }
 
 export function clearTimerState(id: string): void {
-  cache.delete(id);
+  getCache().delete(id);
   removeFromStorage(id);
 }
