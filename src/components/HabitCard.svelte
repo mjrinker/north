@@ -15,20 +15,14 @@
 
   let streak = $state(0);
   let todayEntry = $state<{ value: number; standardMet: boolean; targetMet: boolean } | null>(null);
-  let entryVersion = $state(0);
-  entriesStore.subscribe(() => entryVersion++);
   $effect(() => {
     if (!habit) return;
-    const _ = entryVersion;
     const engine = new HabitEngine(habit);
     (async () => {
       streak = await engine.getStreak();
       const today = getLocalDateString();
       const entry = await getEntry(habit.id, today);
       todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
-      if (!entry || entry.value === 0) {
-        autoCompleted.delete(habit.id + '|' + today);
-      }
     })();
   });
 
@@ -37,12 +31,14 @@
 
   let autoCompleted = $state(new Set<string>());
   let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + getLocalDateString()) : false);
+  let trigger = $state(0);
+  entriesStore.subscribe(() => trigger++);
   $effect(() => {
-    if (habit.type !== 'binary' || !habit.dependsOn || !todayEntry) return;
+    if (habit.type !== 'binary' || !habit.dependsOn) return;
+    const _ = trigger;
     const today = getLocalDateString();
     const key = habit.id + '|' + today;
-    if (autoCompleted.has(key)) return;
-    if (todayEntry.value > 0) return;
+    if (autoCompleted.has(key) && todayEntry?.value === 1) return;
     (async () => {
       const results = await Promise.all(
         habit.dependsOn!.habitIds.map(async hid => {
@@ -51,16 +47,22 @@
           return entry && dep ? entry.value >= dep.standard : false;
         })
       );
-      const allMet = habit.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
-      if (allMet) {
+      const satisfied = habit.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
+      const value = todayEntry?.value ?? 0;
+      if (satisfied && value === 0) {
         autoCompleted.add(key);
         for (const hid of habit.dependsOn!.habitIds) {
           recordAutoCompletedDep(habit.id, today, hid);
         }
-        const engine = new HabitEngine(habit);
-        await engine.logCompletion(today, 1);
-        const entry = await getEntry(habit.id, today);
-        todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+        await new HabitEngine(habit).logCompletion(today, 1);
+      } else if (!satisfied && value === 1 && autoCompleted.has(key)) {
+        await new HabitEngine(habit).logCompletion(today, 0);
+        autoCompleted.delete(key);
+      }
+      const entry = await getEntry(habit.id, today);
+      todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+      if (!entry || entry.value === 0) {
+        autoCompleted.delete(key);
       }
     })();
   });
@@ -172,23 +174,6 @@
     return formatDuration(totalSec);
   }
 
-  async function cascadeUncheck(habitId: string, today: string) {
-    const dependents = allHabits.filter(h => h.type === 'binary' && h.dependsOn?.habitIds.includes(habitId));
-    for (const dep of dependents) {
-      const depEntry = await getEntry(dep.id, today);
-      if (!depEntry || depEntry.value === 0) continue;
-      const results = await Promise.all(dep.dependsOn!.habitIds.map(async hid => {
-        const e = await getEntry(hid, today);
-        const h = allHabits.find(x => x.id === hid);
-        return (e?.value ?? 0) >= (h?.standard ?? 1);
-      }));
-      const satisfied = dep.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
-      if (!satisfied) {
-        await new HabitEngine(dep).logCompletion(today, 0);
-      }
-    }
-  }
-
   async function autoCompleteDeps(habit: Habit, today: string) {
     for (const hid of habit.dependsOn!.habitIds) {
       const entry = await getEntry(hid, today);
@@ -223,9 +208,8 @@
     if (value === 1 && habit.dependsOn) {
       await autoCompleteDeps(habit, today);
     }
-    if (wasChecked) {
-      await cascadeUncheck(habit.id, today);
-      if (habit.dependsOn) await uncheckDeps(habit, today);
+    if (wasChecked && habit.dependsOn) {
+      await uncheckDeps(habit, today);
     }
     const entry = await getEntry(habit.id, today);
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
