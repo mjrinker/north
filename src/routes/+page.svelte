@@ -12,6 +12,19 @@
   habitsStore.subscribe(v => allHabits = v);
   let habits = $derived(allHabits.filter(h => h.status === 'active'));
 
+  let tagGroups = $derived.by(() => {
+    const groups: { tag: string; habits: Habit[] }[] = [];
+    const tags = Array.from(new Set(habits.flatMap(h => h.tags))).sort();
+    for (const tag of tags) {
+      groups.push({ tag, habits: habits.filter(h => h.tags.includes(tag)) });
+    }
+    const untagged = habits.filter(h => h.tags.length === 0);
+    if (untagged.length > 0) {
+      groups.push({ tag: 'Untagged', habits: untagged });
+    }
+    return groups;
+  });
+
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
 
@@ -95,32 +108,35 @@
   <HabitEditModal habit={editingHabit} {habits} onClose={() => editingHabit = null} />
 {/if}
 
-<div class="habits-grid">
-  {#each habits as habit (habit.id)}
-    <div class="habit-wrapper">
-      <div
-        class="habit-slider"
-        style="transform: {sliderTransform(habit.id)}"
-        ontouchstart={(e) => handleTouchStart(e, habit.id)}
-        ontouchmove={(e) => handleTouchMove(e, habit.id)}
-        ontouchend={(e) => handleTouchEnd(e, habit.id)}
-      >
-        <HabitCard {habit} onEdit={() => openEdit(habit)} />
+{#each tagGroups as group}
+  <h2 class="tag-header">{group.tag}</h2>
+  <div class="habits-grid">
+    {#each group.habits as habit (habit.id)}
+      <div class="habit-wrapper">
+        <div
+          class="habit-slider"
+          style="transform: {sliderTransform(habit.id)}"
+          ontouchstart={(e) => handleTouchStart(e, habit.id)}
+          ontouchmove={(e) => handleTouchMove(e, habit.id)}
+          ontouchend={(e) => handleTouchEnd(e, habit.id)}
+        >
+          <HabitCard {habit} onEdit={() => openEdit(habit)} />
+        </div>
+        <div
+          class="swipe-actions"
+          style="transform: {actionsTransform(habit.id)}"
+        >
+          <button class="swipe-btn archive" onclick={() => archiveHabit(habit)} aria-label="Archive">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+          </button>
+          <button class="swipe-btn delete" onclick={() => deleteHabit(habit)} aria-label="Delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/></svg>
+          </button>
+        </div>
       </div>
-      <div
-        class="swipe-actions"
-        style="transform: {actionsTransform(habit.id)}"
-      >
-        <button class="swipe-btn archive" onclick={() => archiveHabit(habit)} aria-label="Archive">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
-        </button>
-        <button class="swipe-btn delete" onclick={() => deleteHabit(habit)} aria-label="Delete">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/></svg>
-        </button>
-      </div>
-    </div>
-  {/each}
-</div>
+    {/each}
+  </div>
+{/each}
 
 <style>
   .page-title {
@@ -139,6 +155,15 @@
     margin-bottom: 1rem;
   }
   .add-habit-btn:hover { opacity: 0.9; }
+  .tag-header {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-secondary, #666);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 1rem 0 0.5rem;
+  }
+  .tag-header:first-of-type { margin-top: 0; }
   .habits-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));

@@ -20,12 +20,37 @@
   let depMode = $state<'and' | 'or'>(habit.dependsOn?.mode ?? 'and');
   let frequency = $state(habit.schedule.frequency);
   let interval = $state(habit.schedule.interval);
+  let tagInput = $state('');
+  let habitTags = $state<string[]>(habit.tags ?? []);
+  let existingTags = $derived(Array.from(new Set(allHabits.flatMap(h => h.tags))));
+  let filteredSuggestions = $derived(
+    tagInput ? existingTags.filter(t => t.toLowerCase().includes(tagInput.toLowerCase()) && !habitTags.includes(t)) : []
+  );
 
   function toggleDep(id: string) {
     if (depIds.includes(id)) {
       depIds = depIds.filter(i => i !== id);
     } else {
       depIds = [...depIds, id];
+    }
+  }
+
+  function addTag(tag: string) {
+    const t = tag.trim().toLowerCase();
+    if (t && !habitTags.includes(t)) {
+      habitTags = [...habitTags, t];
+    }
+    tagInput = '';
+  }
+
+  function removeTag(tag: string) {
+    habitTags = habitTags.filter(t => t !== tag);
+  }
+
+  function handleTagKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(tagInput);
     }
   }
 
@@ -38,6 +63,7 @@
       target: type !== 'binary' ? target : undefined,
       type,
       dependsOn,
+      tags: habitTags,
       schedule: { ...habit.schedule, frequency: frequency as 'daily' | 'weekly' | 'monthly' | 'custom' | 'days_per_week', interval, daysPerWeek: frequency === 'days_per_week' ? interval : undefined }
     };
     updateHabit(updated);
@@ -99,6 +125,21 @@
               <button type="button" class:selected={depIds.includes(h.id)} onclick={() => toggleDep(h.id)}>{h.title}</button>
             {/each}
           </div>
+      {/if}
+
+      <span class="field-label">Tags</span>
+      <div class="tags-input" onclick={(e) => e.stopPropagation()}>
+        {#each habitTags as tag}
+          <span class="tag-chip">{tag}<button type="button" class="tag-remove" onclick={() => removeTag(tag)}>×</button></span>
+        {/each}
+        <input type="text" bind:value={tagInput} onkeydown={handleTagKeydown} placeholder="Type tag, press Enter" />
+      </div>
+      {#if filteredSuggestions.length > 0}
+        <div class="tag-suggestions">
+          {#each filteredSuggestions as s}
+            <button type="button" onclick={() => addTag(s)}>{s}</button>
+          {/each}
+        </div>
       {/if}
 
       <div class="actions">
@@ -189,4 +230,62 @@
   .actions button:first-child { background: var(--accent, #0066cc); color: white; }
   .actions button.danger { background: #d32f2f; color: white; }
   .actions button.cancel-btn { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
+
+  .tags-input {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 4px;
+    padding: 0.25rem;
+    background: var(--input-bg, #fff);
+  }
+  .tags-input input {
+    border: none;
+    outline: none;
+    flex: 1;
+    min-width: 80px;
+    padding: 0.25rem;
+    font-size: 0.85rem;
+    background: transparent;
+    color: var(--text-primary, #222);
+  }
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--accent, #0066cc);
+    color: white;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .tag-remove {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0 2px;
+    line-height: 1;
+  }
+  .tag-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .tag-suggestions button {
+    padding: 2px 8px;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 4px;
+    background: var(--btn-secondary-bg, #f5f5f5);
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: var(--text-primary, #222);
+  }
+  .tag-suggestions button:hover {
+    background: var(--accent, #0066cc);
+    color: white;
+  }
 </style>
