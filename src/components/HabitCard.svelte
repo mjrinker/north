@@ -15,8 +15,11 @@
 
   let streak = $state(0);
   let todayEntry = $state<{ value: number; standardMet: boolean; targetMet: boolean } | null>(null);
+  let trigger = $state(0);
+  entriesStore.subscribe(() => trigger++);
   $effect(() => {
     if (!habit) return;
+    const _ = trigger;
     const engine = new HabitEngine(habit);
     (async () => {
       streak = await engine.getStreak();
@@ -31,8 +34,6 @@
 
   let autoCompleted = $state(new Set<string>());
   let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + getLocalDateString()) : false);
-  let trigger = $state(0);
-  entriesStore.subscribe(() => trigger++);
   $effect(() => {
     if (habit.type !== 'binary' || !habit.dependsOn) return;
     const _ = trigger;
@@ -40,22 +41,27 @@
     const key = habit.id + '|' + today;
     if (autoCompleted.has(key) && todayEntry?.value === 1) return;
     (async () => {
-      const results = await Promise.all(
+      const depResults = await Promise.all(
         habit.dependsOn!.habitIds.map(async hid => {
           const entry = await getEntry(hid, today);
           const dep = allHabits.find(h => h.id === hid);
-          return entry && dep ? entry.value >= dep.standard : false;
+          return { hid, met: entry && dep ? entry.value >= dep.standard : false };
         })
       );
-      const satisfied = habit.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
+      const satisfied = habit.dependsOn!.mode === 'and'
+        ? depResults.every(r => r.met)
+        : depResults.some(r => r.met);
       const value = todayEntry?.value ?? 0;
       if (satisfied && value === 0) {
-        autoCompleted.add(key);
-        for (const hid of habit.dependsOn!.habitIds) {
-          recordAutoCompletedDep(habit.id, today, hid);
+        for (const r of depResults) {
+          if (!r.met) continue;
+          const e = await getEntry(r.hid, today);
+          if (e && e.value > 0) continue;
+          recordAutoCompletedDep(habit.id, today, r.hid);
         }
+        autoCompleted.add(key);
         await new HabitEngine(habit).logCompletion(today, 1);
-      } else if (!satisfied && value === 1 && autoCompleted.has(key)) {
+      } else if (!satisfied && value === 1) {
         await new HabitEngine(habit).logCompletion(today, 0);
         autoCompleted.delete(key);
       }
