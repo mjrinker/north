@@ -25,6 +25,32 @@
   let isStandardMet = $derived(todayEntry ? todayEntry.value >= habit.standard : false);
   let isTargetMet = $derived(todayEntry && habit.target != null ? todayEntry.value >= habit.target : false);
 
+  let autoCompleted = $state(new Set<string>());
+  $effect(() => {
+    if (habit.type !== 'binary' || !habit.dependsOn || !todayEntry) return;
+    const today = getLocalDateString();
+    const key = habit.id + '|' + today;
+    if (autoCompleted.has(key)) return;
+    if (todayEntry.value > 0) return;
+    (async () => {
+      const results = await Promise.all(
+        habit.dependsOn!.habitIds.map(async hid => {
+          const entry = await getEntry(hid, today);
+          const dep = allHabits.find(h => h.id === hid);
+          return entry && dep ? entry.value >= dep.standard : false;
+        })
+      );
+      const allMet = habit.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
+      if (allMet) {
+        autoCompleted.add(key);
+        const engine = new HabitEngine(habit);
+        await engine.logCompletion(today, 1);
+        const entry = await getEntry(habit.id, today);
+        todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+      }
+    })();
+  });
+
   // Timer state
   let timerRunning = $state(false);
   let timerPaused = $state(false);

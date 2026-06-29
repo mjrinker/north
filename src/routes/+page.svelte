@@ -13,17 +13,68 @@
   let habits = $derived(allHabits.filter(h => h.status === 'active'));
 
   let tagGroups = $derived.by(() => {
+    if (sortMode === 'custom') {
+      const order = getCustomOrder();
+      const ordered = order.map(id => habits.find(h => h.id === id)).filter(Boolean) as Habit[];
+      const remaining = habits.filter(h => !order.includes(h.id));
+      return [{ tag: 'All', habits: [...ordered, ...remaining] }];
+    }
     const groups: { tag: string; habits: Habit[] }[] = [];
     const tags = Array.from(new Set(habits.flatMap(h => h.tags))).sort();
     for (const tag of tags) {
-      groups.push({ tag, habits: habits.filter(h => h.tags.includes(tag)) });
+      let tagged = habits.filter(h => h.tags.includes(tag));
+      if (sortMode === 'name') tagged = tagged.sort((a, b) => a.title.localeCompare(b.title));
+      else if (sortMode === 'type') tagged = tagged.sort((a, b) => a.type.localeCompare(b.type));
+      groups.push({ tag, habits: tagged });
     }
-    const untagged = habits.filter(h => h.tags.length === 0);
+    let untagged = habits.filter(h => h.tags.length === 0);
     if (untagged.length > 0) {
+      if (sortMode === 'name') untagged = untagged.sort((a, b) => a.title.localeCompare(b.title));
+      else if (sortMode === 'type') untagged = untagged.sort((a, b) => a.type.localeCompare(b.type));
       groups.push({ tag: 'Untagged', habits: untagged });
     }
     return groups;
   });
+
+  let sortMode = $state<'tag' | 'name' | 'type' | 'custom'>('tag');
+
+  let dragHabitId = $state<string | null>(null);
+
+  function getCustomOrder(): string[] {
+    try {
+      const stored = localStorage.getItem('habitOrder');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  }
+
+  function saveCustomOrder(order: string[]) {
+    localStorage.setItem('habitOrder', JSON.stringify(order));
+  }
+
+  function handleDragStart(e: DragEvent, habitId: string) {
+    dragHabitId = habitId;
+    e.dataTransfer?.setData('text/plain', habitId);
+  }
+
+  function handleDragOver(e: DragEvent) {
+    e.preventDefault();
+  }
+
+  function handleDrop(e: DragEvent, targetId: string) {
+    e.preventDefault();
+    const fromId = e.dataTransfer?.getData('text/plain') || dragHabitId;
+    if (!fromId || fromId === targetId) return;
+    const order = getCustomOrder();
+    const allIds = habits.map(h => h.id);
+    const baseOrder = order.length > 0 ? order.filter(id => allIds.includes(id)) : allIds;
+    const fromIdx = baseOrder.indexOf(fromId);
+    const toIdx = baseOrder.indexOf(targetId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    baseOrder.splice(fromIdx, 1);
+    baseOrder.splice(toIdx, 0, fromId);
+    saveCustomOrder(baseOrder);
+    dragHabitId = null;
+  }
 
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
@@ -98,7 +149,18 @@
 
 <h1 class="page-title">My Habits</h1>
 
-<button class="add-habit-btn" onclick={() => showCreate = true}>+ Add Habit</button>
+<div class="toolbar">
+  <button class="add-habit-btn" onclick={() => showCreate = true}>+ Add Habit</button>
+  <label class="sort-label">
+    Sort:
+    <select bind:value={sortMode}>
+      <option value="tag">Tag</option>
+      <option value="name">Name</option>
+      <option value="type">Type</option>
+      <option value="custom">Custom</option>
+    </select>
+  </label>
+</div>
 
 {#if showCreate}
   <HabitCreateModal {habits} onClose={() => showCreate = false} />
@@ -112,7 +174,13 @@
   <h2 class="tag-header">{group.tag}</h2>
   <div class="habits-grid">
     {#each group.habits as habit (habit.id)}
-      <div class="habit-wrapper">
+      <div class="habit-wrapper"
+        draggable={sortMode === 'custom'}
+        ondragstart={(e) => handleDragStart(e, habit.id)}
+        ondragover={handleDragOver}
+        ondrop={(e) => handleDrop(e, habit.id)}
+        class:dragging={dragHabitId === habit.id}
+      >
         <div
           class="habit-slider"
           style="transform: {sliderTransform(habit.id)}"
@@ -120,6 +188,11 @@
           ontouchmove={(e) => handleTouchMove(e, habit.id)}
           ontouchend={(e) => handleTouchEnd(e, habit.id)}
         >
+          {#if sortMode === 'custom'}
+            <div class="drag-handle" ondragstart={(e) => e.stopPropagation()}>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 6h2v2H8V6zm6 0h2v2h-2V6zM8 11h2v2H8v-2zm6 0h2v2h-2v-2zm-6 5h2v2H8v-2zm6 0h2v2h-2v-2z"/></svg>
+            </div>
+          {/if}
           <HabitCard {habit} onEdit={() => openEdit(habit)} />
         </div>
         <div
@@ -155,6 +228,29 @@
     margin-bottom: 1rem;
   }
   .add-habit-btn:hover { opacity: 0.9; }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  .sort-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #666);
+    font-weight: 500;
+  }
+  .sort-label select {
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    background: var(--input-bg, #fff);
+    color: var(--text-primary, #222);
+  }
   .tag-header {
     font-size: 1rem;
     font-weight: 700;
@@ -179,7 +275,21 @@
     z-index: 1;
     transition: transform 0.2s ease;
     touch-action: pan-y;
+    display: flex;
+    align-items: stretch;
   }
+  .drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    cursor: grab;
+    color: var(--text-secondary, #999);
+    flex-shrink: 0;
+    touch-action: none;
+  }
+  .drag-handle:active { cursor: grabbing; }
+  .habit-wrapper.dragging { opacity: 0.4; }
   .swipe-actions {
     position: absolute;
     right: 0;
