@@ -4,6 +4,7 @@
   import { getEntry } from '../services/storage';
   import { habitsStore } from '../stores/habits';
   import { getLocalDateString } from '../lib/dates';
+  import { onDestroy } from 'svelte';
   let { habit, onEdit }: { habit: Habit; onEdit?: () => void } = $props();
 
   let allHabits = $state<Habit[]>([]);
@@ -88,15 +89,22 @@
       timerStartedAt = state.startedAt || 0;
       timerElapsed = state.elapsed || 0;
       timerPaused = state.paused || false;
+      timerRunning = state.running || false;
       if (state.running && !state.paused && state.startedAt > 0) {
-        timerRunning = true;
-        timerPaused = false;
         timerElapsed = timerPausedElapsed + Math.floor((Date.now() - state.startedAt) / 1000);
         timerStartedAt = Date.now();
         timerInterval = setInterval(tick, 200);
       }
     } catch {}
   }
+
+  onDestroy(() => {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    saveTimerState();
+  });
 
   function tick() {
     timerElapsed = timerPausedElapsed + Math.floor((Date.now() - timerStartedAt) / 1000);
