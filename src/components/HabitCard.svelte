@@ -26,6 +26,9 @@
       const today = getLocalDateString();
       const entry = await getEntry(habit.id, today);
       todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+      if (!entry || entry.value === 0) {
+        autoCompleted.delete(habit.id + '|' + today);
+      }
     })();
   });
 
@@ -33,6 +36,7 @@
   let isTargetMet = $derived(todayEntry && habit.target != null ? todayEntry.value >= habit.target : false);
 
   let autoCompleted = $state(new Set<string>());
+  let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + getLocalDateString()) : false);
   $effect(() => {
     if (habit.type !== 'binary' || !habit.dependsOn || !todayEntry) return;
     const today = getLocalDateString();
@@ -50,6 +54,9 @@
       const allMet = habit.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
       if (allMet) {
         autoCompleted.add(key);
+        for (const hid of habit.dependsOn!.habitIds) {
+          recordAutoCompletedDep(habit.id, today, hid);
+        }
         const engine = new HabitEngine(habit);
         await engine.logCompletion(today, 1);
         const entry = await getEntry(habit.id, today);
@@ -170,18 +177,13 @@
     for (const dep of dependents) {
       const depEntry = await getEntry(dep.id, today);
       if (!depEntry || depEntry.value === 0) continue;
-      const otherDeps = dep.dependsOn!.habitIds.filter(id => id !== habitId);
-      if (otherDeps.length === 0) {
-        await new HabitEngine(dep).logCompletion(today, 0);
-        continue;
-      }
-      const results = await Promise.all(otherDeps.map(async id => {
-        const e = await getEntry(id, today);
-        const h = allHabits.find(x => x.id === id);
+      const results = await Promise.all(dep.dependsOn!.habitIds.map(async hid => {
+        const e = await getEntry(hid, today);
+        const h = allHabits.find(x => x.id === hid);
         return (e?.value ?? 0) >= (h?.standard ?? 1);
       }));
-      const otherMet = dep.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
-      if (!otherMet) {
+      const satisfied = dep.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
+      if (!satisfied) {
         await new HabitEngine(dep).logCompletion(today, 0);
       }
     }
@@ -259,7 +261,7 @@
     {#if habit.type === 'binary'}
       <div class="action-control">
         <label class="checkbox-label" onclick={(e) => e.stopPropagation()}>
-          <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} />
+          <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} disabled={isAutoCompleted} />
         </label>
         <span class="action-label">Done</span>
       </div>

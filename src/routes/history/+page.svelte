@@ -152,18 +152,13 @@
     for (const dep of dependents) {
       const depEntry = getDayEntry(dep.id, date);
       if (!depEntry || depEntry.value === 0) continue;
-      const otherDeps = dep.dependsOn!.habitIds.filter(id => id !== habit.id);
-      if (otherDeps.length === 0) {
-        await new HabitEngine(dep).logCompletion(date, 0);
-        continue;
-      }
-      const results = otherDeps.map(id => {
-        const e = getDayEntry(id, date);
-        const h = habits.find(x => x.id === id);
+      const results = dep.dependsOn!.habitIds.map(hid => {
+        const e = getDayEntry(hid, date);
+        const h = habits.find(x => x.id === hid);
         return (e?.value ?? 0) >= (h?.standard ?? 1);
       });
-      const otherMet = dep.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
-      if (!otherMet) {
+      const satisfied = dep.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
+      if (!satisfied) {
         await new HabitEngine(dep).logCompletion(date, 0);
       }
     }
