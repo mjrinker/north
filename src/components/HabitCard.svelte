@@ -5,6 +5,8 @@
   import { habitsStore } from '../stores/habits';
   import { getLocalDateString } from '../lib/dates';
   import { timerStates, setTimerState, clearTimerState, defaultTimer, type TimerState, type AllTimers } from '../lib/timerStore';
+  import { recordAutoCompletedDep, getAutoCompletedDepIds, clearAutoCompletedDeps } from '../lib/autoDeps';
+  import { entriesStore } from '../stores/entries';
   import { onDestroy } from 'svelte';
   let { habit, onEdit }: { habit: Habit; onEdit?: () => void } = $props();
 
@@ -13,8 +15,11 @@
 
   let streak = $state(0);
   let todayEntry = $state<{ value: number; standardMet: boolean; targetMet: boolean } | null>(null);
+  let entryVersion = $state(0);
+  entriesStore.subscribe(() => entryVersion++);
   $effect(() => {
     if (!habit) return;
+    const _ = entryVersion;
     const engine = new HabitEngine(habit);
     (async () => {
       streak = await engine.getStreak();
@@ -189,17 +194,21 @@
       const dep = allHabits.find(h => h.id === hid);
       if (!dep) continue;
       await new HabitEngine(dep).logCompletion(today, dep.standard);
+      recordAutoCompletedDep(habit.id, today, hid);
     }
   }
 
   async function uncheckDeps(habit: Habit, today: string) {
+    const recorded = getAutoCompletedDepIds(habit.id, today);
     for (const hid of habit.dependsOn!.habitIds) {
+      if (!recorded.includes(hid)) continue;
       const entry = await getEntry(hid, today);
       if (!entry || entry.value === 0) continue;
       const dep = allHabits.find(h => h.id === hid);
       if (!dep) continue;
       await new HabitEngine(dep).logCompletion(today, 0);
     }
+    clearAutoCompletedDeps(habit.id, today);
   }
 
   async function handleBinaryChange() {

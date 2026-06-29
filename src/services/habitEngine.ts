@@ -3,6 +3,7 @@
 import type { Habit, HabitEntry, CompletionResult } from '../types';
 import { getAllEntries, saveEntry, getEntry } from './storage';
 import { getLocalDateString } from '../lib/dates';
+import { entriesStore } from '../stores/entries';
 
 function getWeekStart(d: Date): Date {
   const date = new Date(d);
@@ -51,6 +52,16 @@ export class HabitEngine {
     entry.standardMet = completion.standardMet;
     entry.targetMet = completion.targetMet;
     await saveEntry(entry);
+    // Keep entriesStore in sync so reactive components re-fetch
+    entriesStore.update(list => {
+      const idx = list.findIndex(e => e.id === entry.id);
+      if (idx >= 0) {
+        const updated = [...list];
+        updated[idx] = entry;
+        return updated;
+      }
+      return [...list, entry];
+    });
   }
 
   /** Get the current streak. For daily habits, counts consecutive days.

@@ -4,6 +4,7 @@
   import { getAllEntries } from '../../services/storage';
   import { HabitEngine } from '../../services/habitEngine';
   import { getLocalDateString } from '../../lib/dates';
+  import { recordAutoCompletedDep, getAutoCompletedDepIds, clearAutoCompletedDeps } from '../../lib/autoDeps';
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import { tick } from 'svelte';
@@ -129,17 +130,21 @@
       const dep = habits.find(h => h.id === hid);
       if (!dep) continue;
       await new HabitEngine(dep).logCompletion(date, dep.standard);
+      recordAutoCompletedDep(habit.id, date, hid);
     }
   }
 
   async function uncheckDeps(habit: Habit, date: string) {
+    const recorded = getAutoCompletedDepIds(habit.id, date);
     for (const hid of habit.dependsOn!.habitIds) {
+      if (!recorded.includes(hid)) continue;
       const entry = getDayEntry(hid, date);
       if (!entry || entry.value === 0) continue;
       const dep = habits.find(h => h.id === hid);
       if (!dep) continue;
       await new HabitEngine(dep).logCompletion(date, 0);
     }
+    clearAutoCompletedDeps(habit.id, date);
   }
 
   async function cascadeUncheck(habit: Habit, date: string) {
