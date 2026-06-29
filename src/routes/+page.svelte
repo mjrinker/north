@@ -13,23 +13,30 @@
   let habits = $derived(allHabits.filter(h => h.status === 'active'));
 
   let tagGroups = $derived.by(() => {
-    if (sortMode === 'custom') {
-      const order = getCustomOrder();
-      const ordered = order.map(id => habits.find(h => h.id === id)).filter(Boolean) as Habit[];
-      const remaining = habits.filter(h => !order.includes(h.id));
-      return [{ tag: 'All', habits: [...ordered, ...remaining] }];
-    }
     const groups: { tag: string; habits: Habit[] }[] = [];
     const tags = Array.from(new Set(habits.flatMap(h => h.tags))).sort();
+    let customOrder: string[] = [];
+    if (sortMode === 'custom') {
+      const order = getCustomOrder();
+      customOrder = order.filter(id => habits.some(h => h.id === id));
+    }
     for (const tag of tags) {
       let tagged = habits.filter(h => h.tags.includes(tag));
-      if (sortMode === 'name') tagged = tagged.sort((a, b) => a.title.localeCompare(b.title));
+      if (sortMode === 'custom') {
+        const ordered = customOrder.filter(id => tagged.some(h => h.id === id)).map(id => tagged.find(h => h.id === id)!).filter(Boolean);
+        const remaining = tagged.filter(h => !customOrder.includes(h.id));
+        tagged = [...ordered, ...remaining];
+      } else if (sortMode === 'name') tagged = tagged.sort((a, b) => a.title.localeCompare(b.title));
       else if (sortMode === 'type') tagged = tagged.sort((a, b) => a.type.localeCompare(b.type));
       groups.push({ tag, habits: tagged });
     }
     let untagged = habits.filter(h => h.tags.length === 0);
     if (untagged.length > 0) {
-      if (sortMode === 'name') untagged = untagged.sort((a, b) => a.title.localeCompare(b.title));
+      if (sortMode === 'custom') {
+        const ordered = customOrder.filter(id => untagged.some(h => h.id === id)).map(id => untagged.find(h => h.id === id)!).filter(Boolean);
+        const remaining = untagged.filter(h => !customOrder.includes(h.id));
+        untagged = [...ordered, ...remaining];
+      } else if (sortMode === 'name') untagged = untagged.sort((a, b) => a.title.localeCompare(b.title));
       else if (sortMode === 'type') untagged = untagged.sort((a, b) => a.type.localeCompare(b.type));
       groups.push({ tag: 'Untagged', habits: untagged });
     }
@@ -37,6 +44,26 @@
   });
 
   let sortMode = $state<'tag' | 'name' | 'type' | 'custom'>('tag');
+
+  let collapsedGroups = $state<Set<string>>(new Set());
+
+  function loadCollapsed() {
+    try {
+      const stored = localStorage.getItem('collapsedGroups');
+      if (stored) collapsedGroups = new Set(JSON.parse(stored));
+    } catch {}
+  }
+  loadCollapsed();
+
+  function saveCollapsed() {
+    try { localStorage.setItem('collapsedGroups', JSON.stringify([...collapsedGroups])); } catch {}
+  }
+
+  function toggleGroup(tag: string) {
+    if (collapsedGroups.has(tag)) collapsedGroups.delete(tag);
+    else collapsedGroups.add(tag);
+    saveCollapsed();
+  }
 
   let dragHabitId = $state<string | null>(null);
 
@@ -171,43 +198,45 @@
 {/if}
 
 {#each tagGroups as group}
-  <h2 class="tag-header">{group.tag}</h2>
-  <div class="habits-grid">
-    {#each group.habits as habit (habit.id)}
-      <div class="habit-wrapper"
-        draggable={sortMode === 'custom'}
-        ondragstart={(e) => handleDragStart(e, habit.id)}
-        ondragover={handleDragOver}
-        ondrop={(e) => handleDrop(e, habit.id)}
-        class:dragging={dragHabitId === habit.id}
-      >
-        <div
-          class="habit-slider"
-          style="transform: {sliderTransform(habit.id)}"
-          ontouchstart={(e) => handleTouchStart(e, habit.id)}
-          ontouchmove={(e) => handleTouchMove(e, habit.id)}
-          ontouchend={(e) => handleTouchEnd(e, habit.id)}
+  <div class="tag-section">
+    <button class="tag-header" onclick={() => toggleGroup(group.tag)}>
+      <span class="collapse-arrow">{collapsedGroups.has(group.tag) ? '▶' : '▼'}</span>
+      {group.tag}
+    </button>
+    {#if !collapsedGroups.has(group.tag)}
+    <div class="habits-grid">
+      {#each group.habits as habit (habit.id)}
+        <div class="habit-wrapper"
+          draggable={sortMode === 'custom'}
+          ondragstart={(e) => handleDragStart(e, habit.id)}
+          ondragover={handleDragOver}
+          ondrop={(e) => handleDrop(e, habit.id)}
+          class:dragging={dragHabitId === habit.id}
         >
-          {#if sortMode === 'custom'}
-            <div class="drag-handle" ondragstart={(e) => e.stopPropagation()}>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 6h2v2H8V6zm6 0h2v2h-2V6zM8 11h2v2H8v-2zm6 0h2v2h-2v-2zm-6 5h2v2H8v-2zm6 0h2v2h-2v-2z"/></svg>
-            </div>
-          {/if}
-          <HabitCard {habit} onEdit={() => openEdit(habit)} />
+          <div
+            class="habit-slider"
+            style="transform: {sliderTransform(habit.id)}"
+            ontouchstart={(e) => handleTouchStart(e, habit.id)}
+            ontouchmove={(e) => handleTouchMove(e, habit.id)}
+            ontouchend={(e) => handleTouchEnd(e, habit.id)}
+          >
+            <HabitCard {habit} onEdit={() => openEdit(habit)} />
+          </div>
+          <div
+            class="swipe-actions"
+            style="transform: {actionsTransform(habit.id)}"
+          >
+            <button class="swipe-btn archive" onclick={() => archiveHabit(habit)} aria-label="Archive">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+            </button>
+            <button class="swipe-btn delete" onclick={() => deleteHabit(habit)} aria-label="Delete">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/></svg>
+            </button>
+          </div>
         </div>
-        <div
-          class="swipe-actions"
-          style="transform: {actionsTransform(habit.id)}"
-        >
-          <button class="swipe-btn archive" onclick={() => archiveHabit(habit)} aria-label="Archive">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
-          </button>
-          <button class="swipe-btn delete" onclick={() => deleteHabit(habit)} aria-label="Delete">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/></svg>
-          </button>
-        </div>
-      </div>
-    {/each}
+      {/each}
+    </div>
+    {/if}
   </div>
 {/each}
 
@@ -251,15 +280,30 @@
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
   }
+  .tag-section { margin-bottom: 1rem; }
   .tag-header {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     font-size: 1rem;
     font-weight: 700;
     color: var(--text-secondary, #666);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin: 1rem 0 0.5rem;
+    padding: 0;
+    width: 100%;
+    text-align: left;
   }
   .tag-header:first-of-type { margin-top: 0; }
+  .collapse-arrow {
+    font-size: 0.7rem;
+    width: 1rem;
+    flex-shrink: 0;
+  }
   .habits-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -269,6 +313,7 @@
   .habit-wrapper {
     position: relative;
     overflow: hidden;
+    cursor: grab;
   }
   .habit-slider {
     position: relative;
@@ -278,17 +323,6 @@
     display: flex;
     align-items: stretch;
   }
-  .drag-handle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 4px;
-    cursor: grab;
-    color: var(--text-secondary, #999);
-    flex-shrink: 0;
-    touch-action: none;
-  }
-  .drag-handle:active { cursor: grabbing; }
   .habit-wrapper.dragging { opacity: 0.4; }
   .swipe-actions {
     position: absolute;

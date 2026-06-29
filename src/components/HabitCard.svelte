@@ -20,6 +20,7 @@
       const entry = await getEntry(habit.id, today);
       todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
     })();
+    restoreTimerState();
   });
 
   let isStandardMet = $derived(todayEntry ? todayEntry.value >= habit.standard : false);
@@ -60,20 +61,59 @@
   let timerInterval: ReturnType<typeof setInterval> | null = null;
   let manualMinutes = $state('');
 
+  function timerKey() { return `timer_${habit.id}`; }
+
+  function saveTimerState() {
+    try {
+      localStorage.setItem(timerKey(), JSON.stringify({
+        running: timerRunning,
+        paused: timerPaused,
+        elapsed: timerElapsed,
+        pausedElapsed: timerPausedElapsed,
+        startedAt: timerStartedAt
+      }));
+    } catch {}
+  }
+
+  function clearTimerState() {
+    try { localStorage.removeItem(timerKey()); } catch {}
+  }
+
+  function restoreTimerState() {
+    try {
+      const saved = localStorage.getItem(timerKey());
+      if (!saved) return;
+      const state = JSON.parse(saved);
+      timerPausedElapsed = state.pausedElapsed || 0;
+      timerStartedAt = state.startedAt || 0;
+      timerElapsed = state.elapsed || 0;
+      timerPaused = state.paused || false;
+      if (state.running && !state.paused && state.startedAt > 0) {
+        timerRunning = true;
+        timerPaused = false;
+        timerElapsed = timerPausedElapsed + Math.floor((Date.now() - state.startedAt) / 1000);
+        timerStartedAt = Date.now();
+        timerInterval = setInterval(tick, 200);
+      }
+    } catch {}
+  }
+
   function tick() {
     timerElapsed = timerPausedElapsed + Math.floor((Date.now() - timerStartedAt) / 1000);
+    saveTimerState();
   }
 
   function startTimer() {
     timerRunning = true;
     timerPaused = false;
-    const mins = manualMinutes ? parseInt(manualMinutes) : todayEntry?.value;
+    const mins = manualMinutes ? parseInt(manualMinutes) : (todayEntry?.value ?? 0);
     const initial = (isNaN(mins) ? 0 : mins) * 60;
     timerElapsed = initial;
     timerPausedElapsed = initial;
     timerStartedAt = Date.now();
     timerInterval = setInterval(tick, 200);
     manualMinutes = '';
+    saveTimerState();
   }
 
   function pauseTimer() {
@@ -82,12 +122,14 @@
     timerPausedElapsed = timerElapsed;
     timerStartedAt = 0;
     timerPaused = true;
+    saveTimerState();
   }
 
   function resumeTimer() {
     timerPaused = false;
     timerStartedAt = Date.now();
     timerInterval = setInterval(tick, 200);
+    saveTimerState();
   }
 
   async function doneTimer() {
@@ -105,6 +147,7 @@
     timerElapsed = 0;
     timerPausedElapsed = 0;
     timerStartedAt = 0;
+    clearTimerState();
   }
 
   function cancelTimer() {
@@ -115,6 +158,7 @@
     timerElapsed = 0;
     timerPausedElapsed = 0;
     timerStartedAt = 0;
+    clearTimerState();
   }
 
   async function handleManualDuration() {
@@ -178,6 +222,16 @@
       const dep = allHabits.find(h => h.id === hid);
       if (!dep) continue;
       await new HabitEngine(dep).logCompletion(today, dep.standard);
+    }
+  }
+
+  async function uncheckDeps(habit: Habit, today: string) {
+    for (const hid of habit.dependsOn!.habitIds) {
+      const entry = await getEntry(hid, today);
+      if (!entry || entry.value === 0) continue;
+      const dep = allHabits.find(h => h.id === hid);
+      if (!dep) continue;
+      await new HabitEngine(dep).logCompletion(today, 0);
     }
   }
 
@@ -284,6 +338,8 @@
     justify-content: space-between;
     align-items: center;
     gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
   }
   .card-left { flex: 1; min-width: 0; }
   .card-right { flex-shrink: 0; }
