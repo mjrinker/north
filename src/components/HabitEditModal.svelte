@@ -128,19 +128,21 @@
       {/if}
 
       <span class="field-label">Tags</span>
-      <div class="tags-input" onclick={(e) => e.stopPropagation()}>
-        {#each habitTags as tag}
-          <span class="tag-chip">{tag}<button type="button" class="tag-remove" onclick={() => removeTag(tag)}>×</button></span>
-        {/each}
-        <input type="text" bind:value={tagInput} onkeydown={handleTagKeydown} placeholder="Type tag, press Enter" />
-      </div>
-      {#if filteredSuggestions.length > 0}
-        <div class="tag-suggestions">
-          {#each filteredSuggestions as s}
-            <button type="button" onclick={() => addTag(s)}>{s}</button>
+      <div class="tags-input-wrap">
+        <div class="tags-input" onclick={(e) => e.stopPropagation()}>
+          {#each habitTags as tag}
+            <span class="tag-chip">{tag}<button type="button" class="tag-remove" onclick={() => removeTag(tag)}>×</button></span>
           {/each}
+          <input type="text" bind:value={tagInput} onkeydown={handleTagKeydown} placeholder="Type tag, press Enter" />
         </div>
-      {/if}
+        {#if tagInput && filteredSuggestions.length > 0}
+          <div class="tag-dropdown">
+            {#each filteredSuggestions as s}
+              <button type="button" class="tag-option" onclick={() => addTag(s)}>{s}</button>
+            {/each}
+          </div>
+        {/if}
+      </div>
 
       <div class="actions">
         <button onclick={handleSave}>Save Changes</button>
@@ -231,6 +233,9 @@
   .actions button.danger { background: #d32f2f; color: white; }
   .actions button.cancel-btn { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
 
+  .tags-input-wrap {
+    position: relative;
+  }
   .tags-input {
     display: flex;
     flex-wrap: wrap;
@@ -270,21 +275,32 @@
     padding: 0 2px;
     line-height: 1;
   }
-  .tag-suggestions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-  .tag-suggestions button {
-    padding: 2px 8px;
+  .tag-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: var(--card-bg, #fff);
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 4px;
-    background: var(--btn-secondary-bg, #f5f5f5);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 150px;
+    overflow-y: auto;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  .tag-option {
+    display: block;
+    width: 100%;
+    padding: 0.35rem 0.5rem;
+    border: none;
+    background: none;
+    text-align: left;
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     color: var(--text-primary, #222);
   }
-  .tag-suggestions button:hover {
+  .tag-option:hover {
     background: var(--accent, #0066cc);
     color: white;
   }

@@ -228,7 +228,7 @@
 {/if}
 
 {#if editingHabit}
-  <HabitEditModal habit={editingHabit} {habits} onClose={() => editingHabit = null} />
+  <HabitEditModal habit={editingHabit} allHabits={habits} onClose={() => editingHabit = null} />
 {/if}
 
 <div class="table-scroll" bind:this={scrollContainer} onscroll={onScroll}>

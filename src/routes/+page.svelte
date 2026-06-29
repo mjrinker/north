@@ -105,7 +105,7 @@
 {/if}
 
 {#if editingHabit}
-  <HabitEditModal habit={editingHabit} {habits} onClose={() => editingHabit = null} />
+  <HabitEditModal habit={editingHabit} allHabits={habits} onClose={() => editingHabit = null} />
 {/if}
 
 {#each tagGroups as group}
