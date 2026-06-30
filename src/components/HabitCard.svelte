@@ -17,14 +17,17 @@
   let todayEntry = $state<{ value: number; standardMet: boolean; targetMet: boolean } | null>(null);
   let trigger = $state(0);
   entriesStore.subscribe(() => trigger++);
+  let _gen = 0;
   $effect(() => {
     if (!habit) return;
     const _ = trigger;
+    const gen = ++_gen;
     const engine = new HabitEngine(habit);
     (async () => {
       streak = await engine.getStreak();
       const today = getLocalDateString();
       const entry = await getEntry(habit.id, today);
+      if (_gen !== gen) return;
       todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
     })();
   });
@@ -34,9 +37,11 @@
 
   let autoCompleted = $state(new Set<string>());
   let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + getLocalDateString()) : false);
+  let _depGen = 0;
   $effect(() => {
     if (habit.type !== 'binary' || !habit.dependsOn) return;
     const _ = trigger;
+    const gen = ++_depGen;
     const today = getLocalDateString();
     const key = habit.id + '|' + today;
     if (autoCompleted.has(key) && todayEntry?.value === 1) return;
@@ -48,6 +53,7 @@
           return { hid, met: entry && dep ? entry.value >= dep.standard : false };
         })
       );
+      if (_depGen !== gen) return;
       const satisfied = habit.dependsOn!.mode === 'and'
         ? depResults.every(r => r.met)
         : depResults.some(r => r.met);
@@ -65,6 +71,7 @@
         await new HabitEngine(habit).logCompletion(today, 0);
         autoCompleted.delete(key);
       }
+      if (_depGen !== gen) return;
       const entry = await getEntry(habit.id, today);
       todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
       if (!entry || entry.value === 0) {
