@@ -46,7 +46,27 @@
     const gen = ++_depGen;
     const today = getLocalDateString();
     const key = habit.id + '|' + today;
-    if (autoCompleted.has(key) && todayEntry?.value === 1) return;
+    if (autoCompleted.has(key) && todayEntry?.value === 1) {
+      (async () => {
+        const depResults = await Promise.all(
+          habit.dependsOn!.habitIds.map(async hid => {
+            const entry = await getEntry(hid, today);
+            const dep = allHabits.find(h => h.id === hid);
+            return { hid, met: entry && dep ? entry.value >= dep.standard : false };
+          })
+        );
+        if (_depGen !== gen) return;
+        const satisfied = habit.dependsOn!.mode === 'and'
+          ? depResults.every(r => r.met)
+          : depResults.some(r => r.met);
+        if (!satisfied) {
+          await new HabitEngine(habit).logCompletion(today, 0);
+          autoCompleted.delete(key);
+          todayEntry = { value: 0, standardMet: false, targetMet: false };
+        }
+      })();
+      return;
+    }
     (async () => {
       const depResults = await Promise.all(
         habit.dependsOn!.habitIds.map(async hid => {
