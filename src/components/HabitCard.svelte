@@ -38,8 +38,10 @@
   let autoCompleted = $state(new Set<string>());
   let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + getLocalDateString()) : false);
   let _depGen = 0;
+  let _batchLock = false;
   $effect(() => {
     if (habit.type !== 'binary' || !habit.dependsOn) return;
+    if (_batchLock) return;
     const _ = trigger;
     const gen = ++_depGen;
     const today = getLocalDateString();
@@ -213,6 +215,7 @@
 
   async function handleBinaryChange() {
     if (!habit) return;
+    _batchLock = true;
     const today = getLocalDateString();
     const wasChecked = todayEntry?.value === 1;
     const value = wasChecked ? 0 : 1;
@@ -226,6 +229,8 @@
     }
     const entry = await getEntry(habit.id, today);
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+    _batchLock = false;
+    trigger++;
   }
 
   async function handleQuantityDelta(delta: number) {
