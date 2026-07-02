@@ -73,7 +73,6 @@
         await new HabitEngine(habit).logCompletion(today, 0);
         autoCompleted.delete(key);
       }
-      if (_depGen !== gen) return;
       const entry = await getEntry(habit.id, today);
       todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
       if (!entry || entry.value === 0) {
