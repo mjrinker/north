@@ -18,86 +18,56 @@
   let trigger = $state(0);
   entriesStore.subscribe(() => trigger++);
   let _gen = 0;
+  let autoCompleted = $state(new Set<string>());
+  let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + getLocalDateString()) : false);
   $effect(() => {
     if (!habit) return;
     const _ = trigger;
     const gen = ++_gen;
-    const engine = new HabitEngine(habit);
+    const today = getLocalDateString();
+    const key = habit.id + '|' + today;
     (async () => {
-      streak = await engine.getStreak();
-      const today = getLocalDateString();
       const entry = await getEntry(habit.id, today);
       if (_gen !== gen) return;
       todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
-    })();
-  });
-
-  let isStandardMet = $derived(todayEntry ? todayEntry.value >= habit.standard : false);
-  let isTargetMet = $derived(todayEntry && habit.target != null ? todayEntry.value >= habit.target : false);
-
-  let autoCompleted = $state(new Set<string>());
-  let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + getLocalDateString()) : false);
-  let _depGen = 0;
-  let _batchLock = false;
-  $effect(() => {
-    if (habit.type !== 'binary' || !habit.dependsOn) return;
-    if (_batchLock) return;
-    const _ = trigger;
-    const gen = ++_depGen;
-    const today = getLocalDateString();
-    const key = habit.id + '|' + today;
-    if (autoCompleted.has(key) && todayEntry?.value === 1) {
-      (async () => {
+      if (!todayEntry || todayEntry.value === 0) {
+        autoCompleted.delete(key);
+      }
+      if (habit.type === 'binary' && habit.dependsOn) {
         const depResults = await Promise.all(
           habit.dependsOn!.habitIds.map(async hid => {
-            const entry = await getEntry(hid, today);
+            const e = await getEntry(hid, today);
             const dep = allHabits.find(h => h.id === hid);
-            return { hid, met: entry && dep ? entry.value >= dep.standard : false };
+            return { hid, met: e && dep ? e.value >= dep.standard : false };
           })
         );
-        if (_depGen !== gen) return;
+        if (_gen !== gen) return;
         const satisfied = habit.dependsOn!.mode === 'and'
           ? depResults.every(r => r.met)
           : depResults.some(r => r.met);
-        if (!satisfied) {
+        const value = todayEntry?.value ?? 0;
+        if (satisfied && value === 0) {
+          for (const r of depResults) {
+            if (!r.met) continue;
+            const e = await getEntry(r.hid, today);
+            if (e && e.value > 0) continue;
+            recordAutoCompletedDep(habit.id, today, r.hid);
+          }
+          autoCompleted.add(key);
+          await new HabitEngine(habit).logCompletion(today, 1);
+          todayEntry = { value: 1, standardMet: 1 >= habit.standard, targetMet: habit.target != null && 1 >= habit.target };
+        } else if (!satisfied && value === 1) {
           await new HabitEngine(habit).logCompletion(today, 0);
           autoCompleted.delete(key);
           todayEntry = { value: 0, standardMet: false, targetMet: false };
         }
-      })();
-      return;
-    }
-    (async () => {
-      const depResults = await Promise.all(
-        habit.dependsOn!.habitIds.map(async hid => {
-          const entry = await getEntry(hid, today);
-          const dep = allHabits.find(h => h.id === hid);
-          return { hid, met: entry && dep ? entry.value >= dep.standard : false };
-        })
-      );
-      if (_depGen !== gen) return;
-      const satisfied = habit.dependsOn!.mode === 'and'
-        ? depResults.every(r => r.met)
-        : depResults.some(r => r.met);
-      const value = todayEntry?.value ?? 0;
-      if (satisfied && value === 0) {
-        for (const r of depResults) {
-          if (!r.met) continue;
-          const e = await getEntry(r.hid, today);
-          if (e && e.value > 0) continue;
-          recordAutoCompletedDep(habit.id, today, r.hid);
+        if (todayEntry?.value === 0) {
+          autoCompleted.delete(key);
         }
-        autoCompleted.add(key);
-        await new HabitEngine(habit).logCompletion(today, 1);
-        todayEntry = { value: 1, standardMet: 1 >= habit.standard, targetMet: habit.target != null && 1 >= habit.target };
-      } else if (!satisfied && value === 1) {
-        await new HabitEngine(habit).logCompletion(today, 0);
-        autoCompleted.delete(key);
-        todayEntry = { value: 0, standardMet: false, targetMet: false };
       }
-      if (todayEntry?.value === 0) {
-        autoCompleted.delete(key);
-      }
+      if (_gen !== gen) return;
+      const engine = new HabitEngine(habit);
+      streak = await engine.getStreak();
     })();
   });
 
@@ -234,7 +204,6 @@
 
   async function handleBinaryChange() {
     if (!habit) return;
-    _batchLock = true;
     const today = getLocalDateString();
     const wasChecked = todayEntry?.value === 1;
     const value = wasChecked ? 0 : 1;
@@ -248,8 +217,6 @@
     }
     const entry = await getEntry(habit.id, today);
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
-    _batchLock = false;
-    trigger++;
   }
 
   async function handleQuantityDelta(delta: number) {
