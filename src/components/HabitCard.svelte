@@ -20,6 +20,8 @@
   let _gen = 0;
   let autoCompleted = $state(new Set<string>());
   let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + getLocalDateString()) : false);
+  let isStandardMet = $derived(todayEntry ? todayEntry.value >= habit.standard : false);
+  let isTargetMet = $derived(todayEntry && habit.target != null ? todayEntry.value >= habit.target : false);
   $effect(() => {
     if (!habit) return;
     const _ = trigger;
