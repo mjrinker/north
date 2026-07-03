@@ -103,6 +103,25 @@
     return entryMap().get(`${habitId}|${date}`);
   }
 
+  function upsertEntry(habitId: string, date: string, value: number) {
+    const idx = allEntries.findIndex(e => e.habitId === habitId && e.date === date);
+    if (idx >= 0) {
+      const updated = [...allEntries];
+      updated[idx] = { ...updated[idx], value };
+      allEntries = updated;
+    } else {
+      allEntries = [...allEntries, {
+        id: crypto.randomUUID(),
+        habitId,
+        date,
+        value,
+        standardMet: value >= 1,
+        targetMet: false,
+        updatedAt: new Date(),
+      } as HabitEntry];
+    }
+  }
+
   async function refreshEntries() {
     allEntries = await getAllEntries();
   }
@@ -113,6 +132,7 @@
     const value = wasChecked ? 0 : 1;
     const engine = new HabitEngine(habit);
     await engine.logCompletion(date, value);
+    upsertEntry(habit.id, date, value);
     if (value === 1 && habit.dependsOn) {
       await autoCompleteDeps(habit, date);
     }
@@ -130,6 +150,7 @@
       const dep = habits.find(h => h.id === hid);
       if (!dep) continue;
       await new HabitEngine(dep).logCompletion(date, dep.standard);
+      upsertEntry(hid, date, dep.standard);
       recordAutoCompletedDep(habit.id, date, hid);
     }
   }
@@ -143,6 +164,7 @@
       const dep = habits.find(h => h.id === hid);
       if (!dep) continue;
       await new HabitEngine(dep).logCompletion(date, 0);
+      upsertEntry(hid, date, 0);
     }
     clearAutoCompletedDeps(habit.id, date);
   }
@@ -160,6 +182,7 @@
       const satisfied = dep.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
       if (!satisfied) {
         await new HabitEngine(dep).logCompletion(date, 0);
+        upsertEntry(dep.id, date, 0);
       }
     }
   }
