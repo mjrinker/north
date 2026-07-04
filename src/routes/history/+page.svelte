@@ -133,8 +133,9 @@
     const engine = new HabitEngine(habit);
     await engine.logCompletion(date, value);
     upsertEntry(habit.id, date, value);
-    if (value === 1 && habit.dependsOn) {
-      await autoCompleteDeps(habit, date);
+    if (value === 1) {
+      if (habit.dependsOn) await autoCompleteDeps(habit, date);
+      await cascadeCheck(habit, date);
     }
     if (wasChecked) {
       await cascadeUncheck(habit, date);
@@ -183,6 +184,25 @@
       if (!satisfied) {
         await new HabitEngine(dep).logCompletion(date, 0);
         upsertEntry(dep.id, date, 0);
+      }
+    }
+  }
+
+  async function cascadeCheck(habit: Habit, date: string) {
+    const dependents = habits.filter(h => h.type === 'binary' && h.dependsOn?.habitIds.includes(habit.id));
+    for (const dep of dependents) {
+      const depEntry = getDayEntry(dep.id, date);
+      if (depEntry?.value && depEntry.value > 0) continue;
+      const results = dep.dependsOn!.habitIds.map(hid => {
+        const e = getDayEntry(hid, date);
+        const h = habits.find(x => x.id === hid);
+        return (e?.value ?? 0) >= (h?.standard ?? 1);
+      });
+      const satisfied = dep.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
+      if (satisfied) {
+        await new HabitEngine(dep).logCompletion(date, 1);
+        upsertEntry(dep.id, date, 1);
+        if (dep.dependsOn) await autoCompleteDeps(dep, date);
       }
     }
   }
