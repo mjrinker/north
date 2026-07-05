@@ -91,7 +91,7 @@
     shifting = false;
   }
 
-  let entryMap = $derived(() => {
+  let entryMap = $derived.by(() => {
     const map = new Map<string, HabitEntry>();
     for (const e of allEntries) {
       map.set(`${e.habitId}|${e.date}`, e);
@@ -100,7 +100,7 @@
   });
 
   function getDayEntry(habitId: string, date: string): HabitEntry | undefined {
-    return entryMap().get(`${habitId}|${date}`);
+    return entryMap.get(`${habitId}|${date}`);
   }
 
   function upsertEntry(habitId: string, date: string, value: number) {
@@ -142,6 +142,9 @@
       if (habit.dependsOn) await uncheckDeps(habit, date);
     }
     await refreshEntries();
+    if (value === 1) {
+      await cascadeCheck(habit, date);
+    }
   }
 
   async function autoCompleteDeps(habit: Habit, date: string) {
@@ -207,22 +210,92 @@
     }
   }
 
-  async function handleQuantityClick(habit: Habit, date: string) {
-    const entry = getDayEntry(habit.id, date);
-    const engine = new HabitEngine(habit);
-    const current = entry?.value ?? 0;
-    await engine.logCompletion(date, current + 1);
-    await refreshEntries();
+  // --- Long-press edit modal for quantity/duration ---
+  let isLongPress = $state(false);
+  let pressTimer: ReturnType<typeof setTimeout> | null = null;
+  let editTarget: { habit: Habit; date: string; type: 'quantity' | 'duration' } | null = $state(null);
+  let editValue = $state(0);
+  let editHours = $state(0);
+  let editMinutes = $state(0);
+
+  function cellPointerDown() {
+    isLongPress = false;
+    pressTimer = setTimeout(() => {
+      isLongPress = true;
+    }, 500);
   }
 
-  async function handleDuration(habit: Habit, date: string) {
-    const val = prompt('Duration (minutes):', '');
-    if (val === null) return;
-    const mins = parseInt(val);
-    if (isNaN(mins) || mins < 1) return;
+  function cellPointerUp(e: Event) {
+    e.stopPropagation();
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    }
+  }
+
+  function cellPointerLeave() {
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    }
+  }
+
+  function handleCellTap(habit: Habit, date: string) {
+    if (habit.type === 'quantity') {
+      const entry = getDayEntry(habit.id, date);
+      const engine = new HabitEngine(habit);
+      const current = entry?.value ?? 0;
+      engine.logCompletion(date, current + 1).then(refreshEntries);
+    } else if (habit.type === 'duration') {
+      const entry = getDayEntry(habit.id, date);
+      const engine = new HabitEngine(habit);
+      const current = entry?.value ?? 0;
+      engine.logCompletion(date, current + 1).then(refreshEntries);
+    }
+  }
+
+  function cellClick(e: MouseEvent, habit: Habit, date: string) {
+    e.stopPropagation();
+    if (isLongPress) {
+      isLongPress = false;
+      openEditModal(habit, date);
+      return;
+    }
+    handleCellTap(habit, date);
+  }
+
+  function openEditModal(habit: Habit, date: string) {
+    const entry = getDayEntry(habit.id, date);
+    const current = entry?.value ?? 0;
+    editTarget = { habit, date, type: habit.type as 'quantity' | 'duration' };
+    if (habit.type === 'quantity') {
+      editValue = current;
+    } else {
+      editHours = Math.floor(current / 60);
+      editMinutes = Math.round(current % 60);
+    }
+  }
+
+  async function saveEdit() {
+    if (!editTarget) return;
+    const { habit, date, type } = editTarget;
     const engine = new HabitEngine(habit);
-    await engine.logCompletion(date, mins);
+    if (type === 'quantity') {
+      await engine.logCompletion(date, editValue);
+    } else {
+      await engine.logCompletion(date, editHours * 60 + editMinutes);
+    }
     await refreshEntries();
+    editTarget = null;
+  }
+
+  async function resetEdit() {
+    if (!editTarget) return;
+    const { habit, date } = editTarget;
+    const engine = new HabitEngine(habit);
+    await engine.logCompletion(date, 0);
+    await refreshEntries();
+    editTarget = null;
   }
 
   function isToday(date: string): boolean {
@@ -313,9 +386,19 @@
               {#if habit.type === 'binary'}
                 <input type="checkbox" checked={entry?.value === 1} onclick={(e) => e.stopPropagation()} onchange={() => handleBinary(habit, date)} />
               {:else if habit.type === 'quantity'}
-                <button class="cell-btn" onclick={(e) => { e.stopPropagation(); handleQuantityClick(habit, date); }}>{entry?.value ?? 0}</button>
+                <button class="cell-btn"
+                  onclick={(e) => cellClick(e, habit, date)}
+                  onpointerdown={cellPointerDown}
+                  onpointerup={cellPointerUp}
+                  onpointerleave={cellPointerLeave}
+                >{entry?.value ?? 0}</button>
               {:else if habit.type === 'duration'}
-                <button class="cell-btn" onclick={(e) => { e.stopPropagation(); handleDuration(habit, date); }}>{entry?.value ? Math.floor(entry.value) + 'm' : '-'}</button>
+                <button class="cell-btn"
+                  onclick={(e) => cellClick(e, habit, date)}
+                  onpointerdown={cellPointerDown}
+                  onpointerup={cellPointerUp}
+                  onpointerleave={cellPointerLeave}
+                >{entry?.value ? Math.floor(entry.value) + 'm' : '-'}</button>
               {/if}
             </td>
           {/each}
@@ -325,6 +408,39 @@
     </tbody>
   </table>
 </div>
+
+{#if editTarget}
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+  <div class="modal-overlay" onclick={() => editTarget = null}>
+    <div class="edit-modal" onclick={(e) => e.stopPropagation()}>
+      <button class="modal-close" onclick={() => editTarget = null}>×</button>
+      <h3>{editTarget.habit.title}</h3>
+      <p class="modal-date">{editTarget.date}</p>
+      {#if editTarget.type === 'quantity'}
+        <label class="modal-field">
+          <span>Value</span>
+          <input type="number" bind:value={editValue} min="0" />
+        </label>
+      {:else}
+        <div class="time-fields">
+          <label class="modal-field">
+            <span>Hours</span>
+            <input type="number" bind:value={editHours} min="0" />
+          </label>
+          <label class="modal-field">
+            <span>Minutes</span>
+            <input type="number" bind:value={editMinutes} min="0" max="59" />
+          </label>
+        </div>
+      {/if}
+      <div class="modal-actions">
+        <button class="save-btn" onclick={saveEdit}>Save</button>
+        <button class="reset-btn" onclick={resetEdit}>Reset</button>
+        <button class="cancel-btn" onclick={() => editTarget = null}>Cancel</button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   h1 {
@@ -420,10 +536,104 @@
     color: var(--text-primary, #222);
     min-width: 2.4rem;
     text-align: center;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    user-select: none;
   }
   .cell-btn:hover {
     background: var(--accent, #0066cc);
     color: white;
     border-color: var(--accent, #0066cc);
   }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+  }
+  .edit-modal {
+    background: var(--card-bg, #fff);
+    border-radius: 8px;
+    padding: 1.25rem;
+    min-width: 220px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    position: relative;
+  }
+  .edit-modal h3 {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+  }
+  .modal-date {
+    margin: 0 0 1rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #666);
+  }
+  .modal-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--text-secondary, #999);
+    line-height: 1;
+  }
+  .modal-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-bottom: 0.75rem;
+  }
+  .modal-field span {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #666);
+  }
+  .modal-field input {
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .time-fields {
+    display: flex;
+    gap: 0.75rem;
+  }
+  .time-fields .modal-field {
+    flex: 1;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+  }
+  .modal-actions button {
+    padding: 0.4rem 0.8rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .save-btn {
+    background: var(--accent, #0066cc);
+    color: white;
+  }
+  .reset-btn {
+    background: #d32f2f;
+    color: white;
+  }
+  .cancel-btn {
+    background: transparent;
+    color: var(--text-secondary, #666);
+    border: 1px solid var(--card-border, #ccc) !important;
+  }
+  .save-btn:hover, .reset-btn:hover { opacity: 0.85; }
+  .cancel-btn:hover { background: var(--hover-bg, rgba(0,0,0,0.04)); }
 </style>
