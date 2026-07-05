@@ -218,10 +218,13 @@
   let editHours = $state(0);
   let editMinutes = $state(0);
 
-  function cellPointerDown() {
+  function cellPointerDown(e: Event, habit: Habit, date: string) {
+    e.preventDefault();
+    e.stopPropagation();
     isLongPress = false;
     pressTimer = setTimeout(() => {
       isLongPress = true;
+      openEditModal(habit, date);
     }, 500);
   }
 
@@ -241,27 +244,24 @@
   }
 
   function handleCellTap(habit: Habit, date: string) {
-    if (habit.type === 'quantity') {
-      const entry = getDayEntry(habit.id, date);
-      const engine = new HabitEngine(habit);
-      const current = entry?.value ?? 0;
-      engine.logCompletion(date, current + 1).then(refreshEntries);
-    } else if (habit.type === 'duration') {
-      const entry = getDayEntry(habit.id, date);
-      const engine = new HabitEngine(habit);
-      const current = entry?.value ?? 0;
-      engine.logCompletion(date, current + 1).then(refreshEntries);
-    }
+    const entry = getDayEntry(habit.id, date);
+    const engine = new HabitEngine(habit);
+    const current = entry?.value ?? 0;
+    engine.logCompletion(date, current + 1).then(() => afterLogCompletion(habit, date));
   }
 
   function cellClick(e: MouseEvent, habit: Habit, date: string) {
     e.stopPropagation();
     if (isLongPress) {
       isLongPress = false;
-      openEditModal(habit, date);
       return;
     }
     handleCellTap(habit, date);
+  }
+
+  async function afterLogCompletion(habit: Habit, date: string) {
+    await refreshEntries();
+    await cascadeCheck(habit, date);
   }
 
   function openEditModal(habit: Habit, date: string) {
@@ -285,7 +285,7 @@
     } else {
       await engine.logCompletion(date, editHours * 60 + editMinutes);
     }
-    await refreshEntries();
+    await afterLogCompletion(habit, date);
     editTarget = null;
   }
 
@@ -294,7 +294,7 @@
     const { habit, date } = editTarget;
     const engine = new HabitEngine(habit);
     await engine.logCompletion(date, 0);
-    await refreshEntries();
+    await afterLogCompletion(habit, date);
     editTarget = null;
   }
 
@@ -388,14 +388,14 @@
               {:else if habit.type === 'quantity'}
                 <button class="cell-btn"
                   onclick={(e) => cellClick(e, habit, date)}
-                  onpointerdown={cellPointerDown}
+                  onpointerdown={(e) => cellPointerDown(e, habit, date)}
                   onpointerup={cellPointerUp}
                   onpointerleave={cellPointerLeave}
                 >{entry?.value ?? 0}</button>
               {:else if habit.type === 'duration'}
                 <button class="cell-btn"
                   onclick={(e) => cellClick(e, habit, date)}
-                  onpointerdown={cellPointerDown}
+                  onpointerdown={(e) => cellPointerDown(e, habit, date)}
                   onpointerup={cellPointerUp}
                   onpointerleave={cellPointerLeave}
                 >{entry?.value ? Math.floor(entry.value) + 'm' : '-'}</button>
