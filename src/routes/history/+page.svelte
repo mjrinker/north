@@ -205,7 +205,6 @@
       if (satisfied) {
         await new HabitEngine(dep).logCompletion(date, 1);
         upsertEntry(dep.id, date, 1);
-        if (dep.dependsOn) await autoCompleteDeps(dep, date);
       }
     }
   }
