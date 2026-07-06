@@ -221,8 +221,6 @@
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
   }
 
-  let manualQuantity = $state('');
-
   async function handleQuantityDelta(delta: number) {
     if (!habit) return;
     const engine = new HabitEngine(habit);
@@ -234,16 +232,13 @@
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
   }
 
-  async function handleQuantityInput() {
-    if (!habit || !manualQuantity) return;
-    const val = parseInt(manualQuantity);
-    if (isNaN(val) || val < 0) return;
+  async function handleQuantitySet(value: number) {
+    if (!habit) return;
     const engine = new HabitEngine(habit);
     const today = getLocalDateString();
-    await engine.logCompletion(today, val);
+    await engine.logCompletion(today, value);
     const entry = await getEntry(habit.id, today);
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
-    manualQuantity = '';
   }
 </script>
 
@@ -272,23 +267,34 @@
     {:else if habit.type === 'quantity'}
       <div class="action-control">
         <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(-1); }} class="btn small">−</button>
-        <span
-          class="quantity-value"
-          class:standard-met={isStandardMet}
-          class:target-met={isTargetMet}
-        >{todayEntry?.value ?? 0}</span>
-        <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(1); }} class="btn small">+</button>
-        <div class="quantity-input-wrap" onclick={(e) => e.stopPropagation()}>
+        <div class="qty-input-wrap" onclick={(e) => e.stopPropagation()}>
           <input
             type="number"
-            bind:value={manualQuantity}
-            placeholder={String(todayEntry?.value ?? 0)}
+            value={todayEntry?.value ?? 0}
             min="0"
             class="qty-input"
-            onkeydown={(e) => { if (e.key === 'Enter') handleQuantityInput(); }}
-            onblur={handleQuantityInput}
+            class:standard-met={isStandardMet}
+            class:target-met={isTargetMet}
+            onkeydown={(e) => {
+              if (e.key === 'Enter') {
+                const target = e.currentTarget as HTMLInputElement;
+                const val = parseInt(target.value);
+                if (!isNaN(val) && val >= 0) {
+                  handleQuantitySet(val);
+                }
+                target.blur();
+              }
+            }}
+            onblur={(e) => {
+              const target = e.currentTarget as HTMLInputElement;
+              const val = parseInt(target.value);
+              if (!isNaN(val) && val >= 0) {
+                handleQuantitySet(val);
+              }
+            }}
           />
         </div>
+        <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(1); }} class="btn small">+</button>
       </div>
     {:else if habit.type === 'duration'}
       <div class="action-control">
@@ -405,34 +411,26 @@
     border: 1px solid var(--card-border, #ccc);
   }
   .btn:hover { opacity: 0.85; }
-  .quantity-value {
-    min-width: 1.8rem;
-    text-align: center;
-    font-weight: bold;
-    font-size: 0.9rem;
-    color: var(--text-primary, #222);
-    transition: color 0.3s;
-  }
-  .quantity-input-wrap {
+  .qty-input-wrap {
     display: flex;
     align-items: center;
   }
   .qty-input {
     width: 3rem;
-    padding: 0.2rem 0.3rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 4px;
-    font-size: 0.75rem;
+    padding: 0.2rem 0;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: bold;
     text-align: center;
-    background: var(--input-bg, #fff);
+    background: transparent;
     color: var(--text-primary, #222);
     outline: none;
+    -moz-appearance: textfield;
   }
-  .qty-input:focus {
-    border-color: var(--accent, #0066cc);
-  }
-  .quantity-value.standard-met { color: #2e7d32; }
-  .quantity-value.target-met {
+  .qty-input::-webkit-outer-spin-button,
+  .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .qty-input.standard-met { color: #2e7d32; }
+  .qty-input.target-met {
     color: #2e7d32;
     animation: shimmer 1.2s ease-in-out;
   }
