@@ -320,7 +320,7 @@
         {#if todayEntry && todayEntry.value > 0}
           <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn reset">Reset</button>
         {/if}
-        <div class="dur-input-wrap" style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
+        <div class="dur-input-wrap" class:running={timerState.running} style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
           {#if (timerState.running ? timerHrs : durHours) > 0}
             <input
               type="text"
@@ -502,8 +502,12 @@
     height: 1.8rem;
     box-sizing: border-box;
   }
-  .dur-input:disabled { color: #888; -webkit-text-fill-color: #888; opacity: 1; background: transparent; border: 1px solid var(--card-border, #ccc); border-radius: 3px; }
+  .dur-input:disabled { color: #888; -webkit-text-fill-color: #888; opacity: 1; }
   .dur-input:last-child { text-align: left; }
+  .dur-input-wrap.running .dur-input:disabled:first-child { background: transparent; border: 1px solid var(--card-border, #ccc); border-right: none; border-radius: 3px 0 0 3px; }
+  .dur-input-wrap.running .dur-input:disabled:last-child { background: transparent; border: 1px solid var(--card-border, #ccc); border-left: none; border-radius: 0 3px 3px 0; }
+  .dur-input-wrap.running .dur-input:disabled:not(:first-child):not(:last-child) { background: transparent; border-top: 1px solid var(--card-border, #ccc); border-bottom: 1px solid var(--card-border, #ccc); border-radius: 0; }
+  .dur-input-wrap.running .dur-sep { height: 1.8rem; box-sizing: border-box; border-top: 1px solid var(--card-border, #ccc); border-bottom: 1px solid var(--card-border, #ccc); background: transparent; }
 
 
   .dur-input::-webkit-outer-spin-button,
