@@ -452,7 +452,7 @@
     display: flex;
     align-items: center;
     background: var(--input-bg, #f5f5f5);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 0 0.4rem;
     height: 1.8rem;
     box-sizing: border-box;
@@ -483,7 +483,7 @@
     align-items: center;
     gap: 0;
     background: var(--input-bg, #f5f5f5);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 0 0.4rem;
     height: 1.8rem;
     box-sizing: border-box;
@@ -504,7 +504,7 @@
   }
   .dur-input:disabled { color: var(--text-secondary, #888); -webkit-text-fill-color: var(--text-secondary, #888); }
   .dur-input:last-child { text-align: left; }
-  .dur-input-wrap.disabled-inputs .dur-sep { color: var(--text-secondary, #888); }
+  .dur-input-wrap.disabled-inputs .dur-sep { color: var(--text-secondary, #888); -webkit-text-fill-color: var(--text-secondary, #888); }
   .dur-input::-webkit-outer-spin-button,
   .dur-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .dur-sep {
