@@ -148,14 +148,29 @@
     clearTimerState(habit.id);
   }
 
-  async function handleDurationSet(hours: number, minutes: number) {
+  async function handleDurationSet(hours: number, minutes: number, seconds: number) {
     if (!habit) return;
-    const total = hours * 60 + minutes;
+    const total = hours * 60 + minutes + seconds / 60;
     const engine = new HabitEngine(habit);
     const today = getLocalDateString();
     await engine.logCompletion(today, total);
     const entry = await getEntry(habit.id, today);
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+  }
+
+  let durTotalSec = $derived(Math.round((todayEntry?.value ?? 0) * 60));
+  let durHours = $derived(Math.floor(durTotalSec / 3600));
+  let durMinutes = $derived(Math.floor((durTotalSec % 3600) / 60));
+  let durSeconds = $derived(durTotalSec % 60);
+
+  function saveDurInputs(e: Event) {
+    const wrap = (e.currentTarget as HTMLElement).closest('.dur-input-wrap')!;
+    const inputs = wrap.querySelectorAll<HTMLInputElement>('.dur-input');
+    const vals = [...inputs].map(i => parseInt(i.value) || 0);
+    let h = 0, m = 0, s = 0;
+    if (vals.length === 3) { h = vals[0]; m = vals[1]; s = vals[2]; }
+    else { m = vals[0]; s = vals[1]; }
+    handleDurationSet(h, m, s);
   }
 
   async function handleReset() {
@@ -309,57 +324,38 @@
         {:else}
           <button onclick={(e) => { e.stopPropagation(); startTimer(); }} class="btn start">Start</button>
           <div class="dur-input-wrap" onclick={(e) => e.stopPropagation()}>
+            {#if durHours > 0}
+              <input
+                type="number"
+                value={durHours}
+                min="0"
+                class="dur-input"
+                onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
+                onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
+                onblur={saveDurInputs}
+              />
+              <span class="dur-sep">:</span>
+            {/if}
             <input
               type="number"
-              value={Math.floor((todayEntry?.value ?? 0) / 60)}
+              value={durMinutes}
               min="0"
+              max="59"
               class="dur-input"
-              onfocus={(e) => {
-                const t = e.currentTarget as HTMLInputElement;
-                t.setSelectionRange(t.value.length, t.value.length);
-              }}
-              onkeydown={(e) => {
-                if (e.key === 'Enter') {
-                  const wrap = (e.currentTarget as HTMLElement).closest('.dur-input-wrap')!;
-                  const h = parseInt((wrap.querySelector('.dur-input:first-child') as HTMLInputElement).value) || 0;
-                  const m = parseInt((wrap.querySelector('.dur-input:last-child') as HTMLInputElement).value) || 0;
-                  handleDurationSet(h, m);
-                  (e.currentTarget as HTMLInputElement).blur();
-                }
-              }}
-              onblur={(e) => {
-                const wrap = (e.currentTarget as HTMLElement).closest('.dur-input-wrap')!;
-                const h = parseInt((wrap.querySelector('.dur-input:first-child') as HTMLInputElement).value) || 0;
-                const m = parseInt((wrap.querySelector('.dur-input:last-child') as HTMLInputElement).value) || 0;
-                handleDurationSet(h, m);
-              }}
+              onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
+              onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
+              onblur={saveDurInputs}
             />
             <span class="dur-sep">:</span>
             <input
               type="number"
-              value={Math.round((todayEntry?.value ?? 0) % 60)}
+              value={durSeconds}
               min="0"
               max="59"
               class="dur-input"
-              onfocus={(e) => {
-                const t = e.currentTarget as HTMLInputElement;
-                t.setSelectionRange(t.value.length, t.value.length);
-              }}
-              onkeydown={(e) => {
-                if (e.key === 'Enter') {
-                  const wrap = (e.currentTarget as HTMLElement).closest('.dur-input-wrap')!;
-                  const h = parseInt((wrap.querySelector('.dur-input:first-child') as HTMLInputElement).value) || 0;
-                  const m = parseInt((wrap.querySelector('.dur-input:last-child') as HTMLInputElement).value) || 0;
-                  handleDurationSet(h, m);
-                  (e.currentTarget as HTMLInputElement).blur();
-                }
-              }}
-              onblur={(e) => {
-                const wrap = (e.currentTarget as HTMLElement).closest('.dur-input-wrap')!;
-                const h = parseInt((wrap.querySelector('.dur-input:first-child') as HTMLInputElement).value) || 0;
-                const m = parseInt((wrap.querySelector('.dur-input:last-child') as HTMLInputElement).value) || 0;
-                handleDurationSet(h, m);
-              }}
+              onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
+              onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
+              onblur={saveDurInputs}
             />
           </div>
           {#if todayEntry && todayEntry.value > 0}
@@ -509,6 +505,8 @@
     font-weight: bold;
     color: var(--text-primary, #222);
     line-height: 1;
+    margin: 0 -0.2rem;
+    pointer-events: none;
   }
   .checkbox-label {
     display: flex;
