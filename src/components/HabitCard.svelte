@@ -447,10 +447,13 @@
   .qty-input-wrap {
     display: flex;
     align-items: center;
+    background: var(--input-bg, #f5f5f5);
+    border-radius: 8px;
+    padding: 0 0.4rem;
   }
   .qty-input {
     width: 3rem;
-    padding: 0.2rem 0;
+    padding: 0.3rem 0;
     border: none;
     font-size: 0.9rem;
     font-weight: bold;
@@ -471,10 +474,13 @@
     display: flex;
     align-items: center;
     gap: 0;
+    background: var(--input-bg, #f5f5f5);
+    border-radius: 8px;
+    padding: 0 0.4rem;
   }
   .dur-input {
     width: 1.6rem;
-    padding: 0.2rem 0;
+    padding: 0.3rem 0;
     border: none;
     font-size: 0.9rem;
     font-weight: bold;
@@ -484,9 +490,9 @@
     outline: none;
     -moz-appearance: textfield;
   }
-  .dur-input:disabled { opacity: 1; color: var(--text-primary, #222); -webkit-text-fill-color: var(--text-primary, #222); }
+  .dur-input:disabled { color: var(--text-secondary, #888); -webkit-text-fill-color: var(--text-secondary, #888); }
   .dur-input:last-child { text-align: left; }
-  .dur-input-wrap:has(.dur-input:disabled) .dur-sep { color: var(--text-primary, #222); }
+  .dur-input-wrap:has(.dur-input:disabled) .dur-sep { color: var(--text-secondary, #888); }
   .dur-input::-webkit-outer-spin-button,
   .dur-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .dur-sep {
