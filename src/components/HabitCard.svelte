@@ -221,6 +221,8 @@
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
   }
 
+  let manualQuantity = $state('');
+
   async function handleQuantityDelta(delta: number) {
     if (!habit) return;
     const engine = new HabitEngine(habit);
@@ -230,6 +232,18 @@
     await engine.logCompletion(today, newValue);
     const entry = await getEntry(habit.id, today);
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+  }
+
+  async function handleQuantityInput() {
+    if (!habit || !manualQuantity) return;
+    const val = parseInt(manualQuantity);
+    if (isNaN(val) || val < 0) return;
+    const engine = new HabitEngine(habit);
+    const today = getLocalDateString();
+    await engine.logCompletion(today, val);
+    const entry = await getEntry(habit.id, today);
+    todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+    manualQuantity = '';
   }
 </script>
 
@@ -264,6 +278,17 @@
           class:target-met={isTargetMet}
         >{todayEntry?.value ?? 0}</span>
         <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(1); }} class="btn small">+</button>
+        <div class="quantity-input-wrap" onclick={(e) => e.stopPropagation()}>
+          <input
+            type="number"
+            bind:value={manualQuantity}
+            placeholder={String(todayEntry?.value ?? 0)}
+            min="0"
+            class="qty-input"
+            onkeydown={(e) => { if (e.key === 'Enter') handleQuantityInput(); }}
+            onblur={handleQuantityInput}
+          />
+        </div>
       </div>
     {:else if habit.type === 'duration'}
       <div class="action-control">
@@ -387,6 +412,24 @@
     font-size: 0.9rem;
     color: var(--text-primary, #222);
     transition: color 0.3s;
+  }
+  .quantity-input-wrap {
+    display: flex;
+    align-items: center;
+  }
+  .qty-input {
+    width: 3rem;
+    padding: 0.2rem 0.3rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    text-align: center;
+    background: var(--input-bg, #fff);
+    color: var(--text-primary, #222);
+    outline: none;
+  }
+  .qty-input:focus {
+    border-color: var(--accent, #0066cc);
   }
   .quantity-value.standard-met { color: #2e7d32; }
   .quantity-value.target-met {
