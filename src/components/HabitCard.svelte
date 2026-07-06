@@ -504,7 +504,6 @@
     font-weight: bold;
     color: var(--text-primary, #222);
     line-height: 1;
-    margin: 0 -0.3rem;
     pointer-events: none;
   }
   .checkbox-label {
