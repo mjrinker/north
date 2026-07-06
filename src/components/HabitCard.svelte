@@ -275,6 +275,11 @@
             class="qty-input"
             class:standard-met={isStandardMet}
             class:target-met={isTargetMet}
+            onfocus={(e) => {
+              const target = e.currentTarget as HTMLInputElement;
+              const len = target.value.length;
+              target.setSelectionRange(len, len);
+            }}
             onkeydown={(e) => {
               if (e.key === 'Enter') {
                 const target = e.currentTarget as HTMLInputElement;
