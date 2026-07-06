@@ -410,34 +410,38 @@
     border-radius: 4px;
     cursor: pointer;
     font-weight: 600;
+    height: 1.8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
   }
   .btn.small {
     width: 1.8rem;
-    height: 1.8rem;
     font-size: 0.9rem;
     background: var(--accent, #0066cc);
     color: white;
   }
   .btn.start {
-    padding: 0.35rem 0.75rem;
+    padding: 0 0.75rem;
     font-size: 0.8rem;
     background: var(--accent, #0066cc);
     color: white;
   }
   .btn.stop {
-    padding: 0.35rem 0.75rem;
+    padding: 0 0.75rem;
     font-size: 0.8rem;
     background: #d32f2f;
     color: white;
   }
   .btn.cancel {
-    padding: 0.2rem 0.5rem;
+    padding: 0 0.5rem;
     font-size: 0.7rem;
     background: #666;
     color: white;
   }
   .btn.reset {
-    padding: 0.2rem 0.5rem;
+    padding: 0 0.5rem;
     font-size: 0.7rem;
     background: transparent;
     color: var(--text-secondary, #666);
@@ -450,10 +454,12 @@
     background: var(--input-bg, #f5f5f5);
     border-radius: 8px;
     padding: 0 0.4rem;
+    height: 1.8rem;
+    box-sizing: border-box;
   }
   .qty-input {
     width: 3rem;
-    padding: 0.3rem 0;
+    padding: 0;
     border: none;
     font-size: 0.9rem;
     font-weight: bold;
@@ -462,6 +468,7 @@
     color: var(--text-primary, #222);
     outline: none;
     -moz-appearance: textfield;
+    height: 100%;
   }
   .qty-input::-webkit-outer-spin-button,
   .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -477,10 +484,12 @@
     background: var(--input-bg, #f5f5f5);
     border-radius: 8px;
     padding: 0 0.4rem;
+    height: 1.8rem;
+    box-sizing: border-box;
   }
   .dur-input {
     width: 1.6rem;
-    padding: 0.3rem 0;
+    padding: 0;
     border: none;
     font-size: 0.9rem;
     font-weight: bold;
@@ -489,6 +498,7 @@
     color: var(--text-primary, #222);
     outline: none;
     -moz-appearance: textfield;
+    height: 100%;
   }
   .dur-input:disabled { color: var(--text-secondary, #888); -webkit-text-fill-color: var(--text-secondary, #888); }
   .dur-input:last-child { text-align: left; }
