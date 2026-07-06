@@ -326,9 +326,9 @@
           <div class="dur-input-wrap" onclick={(e) => e.stopPropagation()}>
             {#if durHours > 0}
               <input
-                type="number"
+                type="text"
+                inputmode="numeric"
                 value={durHours}
-                min="0"
                 class="dur-input"
                 onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
                 onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
@@ -337,10 +337,9 @@
               <span class="dur-sep">:</span>
             {/if}
             <input
-              type="number"
-              value={durMinutes}
-              min="0"
-              max="59"
+              type="text"
+              inputmode="numeric"
+              value={String(durMinutes).padStart(2, '0')}
               class="dur-input"
               onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
               onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
@@ -348,10 +347,9 @@
             />
             <span class="dur-sep">:</span>
             <input
-              type="number"
-              value={durSeconds}
-              min="0"
-              max="59"
+              type="text"
+              inputmode="numeric"
+              value={String(durSeconds).padStart(2, '0')}
               class="dur-input"
               onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
               onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
@@ -487,17 +485,18 @@
     gap: 0;
   }
   .dur-input {
-    width: 2.4rem;
+    width: 1.6rem;
     padding: 0.2rem 0;
     border: none;
     font-size: 0.9rem;
     font-weight: bold;
-    text-align: center;
+    text-align: right;
     background: transparent;
     color: var(--text-primary, #222);
     outline: none;
     -moz-appearance: textfield;
   }
+  .dur-input:last-child { text-align: left; }
   .dur-input::-webkit-outer-spin-button,
   .dur-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .dur-sep {
@@ -505,7 +504,7 @@
     font-weight: bold;
     color: var(--text-primary, #222);
     line-height: 1;
-    margin: 0 -0.2rem;
+    margin: 0 -0.3rem;
     pointer-events: none;
   }
   .checkbox-label {
