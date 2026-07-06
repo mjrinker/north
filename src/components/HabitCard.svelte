@@ -507,7 +507,7 @@
   .dur-input-wrap.running .dur-input:disabled:first-child { background: transparent; border: 1px solid var(--card-border, #ccc); border-right: none; border-radius: 3px 0 0 3px; }
   .dur-input-wrap.running .dur-input:disabled:last-child { background: transparent; border: 1px solid var(--card-border, #ccc); border-left: none; border-radius: 0 3px 3px 0; }
   .dur-input-wrap.running .dur-input:disabled:not(:first-child):not(:last-child) { background: transparent; border-top: 1px solid var(--card-border, #ccc); border-bottom: 1px solid var(--card-border, #ccc); border-radius: 0; }
-  .dur-input-wrap.running .dur-sep { height: 1.8rem; box-sizing: border-box; border-top: 1px solid var(--card-border, #ccc); border-bottom: 1px solid var(--card-border, #ccc); background: transparent; }
+  .dur-input-wrap.running .dur-sep { height: 1.8rem; box-sizing: border-box; border-top: 1px solid var(--card-border, #ccc); border-bottom: 1px solid var(--card-border, #ccc); background: transparent; display: flex; align-items: center; justify-content: center; }
 
 
   .dur-input::-webkit-outer-spin-button,
