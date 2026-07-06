@@ -148,16 +148,14 @@
     clearTimerState(habit.id);
   }
 
-  async function handleManualDuration() {
-    if (!manualMinutes) return;
-    const val = parseInt(manualMinutes);
-    if (isNaN(val) || val < 1) return;
+  async function handleDurationSet(hours: number, minutes: number) {
+    if (!habit) return;
+    const total = hours * 60 + minutes;
     const engine = new HabitEngine(habit);
     const today = getLocalDateString();
-    await engine.logCompletion(today, val);
+    await engine.logCompletion(today, total);
     const entry = await getEntry(habit.id, today);
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
-    manualMinutes = '';
   }
 
   async function handleReset() {
@@ -173,11 +171,6 @@
     const s = totalSec % 60;
     if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     return `${m}:${s.toString().padStart(2, '0')}`;
-  }
-
-  function formatLoggedMinutes(minutes: number): string {
-    const totalSec = Math.round(minutes * 60);
-    return formatDuration(totalSec);
   }
 
   async function autoCompleteDeps(habit: Habit, today: string) {
@@ -315,16 +308,61 @@
           {/if}
         {:else}
           <button onclick={(e) => { e.stopPropagation(); startTimer(); }} class="btn start">Start</button>
-          <div class="manual-entry" onclick={(e) => e.stopPropagation()}>
-            <input type="number" bind:value={manualMinutes} placeholder="min" min="1" class="min-input" />
-            <button onclick={(e) => { e.stopPropagation(); handleManualDuration(); }} class="btn small">+</button>
+          <div class="dur-input-wrap" onclick={(e) => e.stopPropagation()}>
+            <input
+              type="number"
+              value={Math.floor((todayEntry?.value ?? 0) / 60)}
+              min="0"
+              class="dur-input"
+              onfocus={(e) => {
+                const t = e.currentTarget as HTMLInputElement;
+                t.setSelectionRange(t.value.length, t.value.length);
+              }}
+              onkeydown={(e) => {
+                if (e.key === 'Enter') {
+                  const wrap = (e.currentTarget as HTMLElement).closest('.dur-input-wrap')!;
+                  const h = parseInt((wrap.querySelector('.dur-input:first-child') as HTMLInputElement).value) || 0;
+                  const m = parseInt((wrap.querySelector('.dur-input:last-child') as HTMLInputElement).value) || 0;
+                  handleDurationSet(h, m);
+                  (e.currentTarget as HTMLInputElement).blur();
+                }
+              }}
+              onblur={(e) => {
+                const wrap = (e.currentTarget as HTMLElement).closest('.dur-input-wrap')!;
+                const h = parseInt((wrap.querySelector('.dur-input:first-child') as HTMLInputElement).value) || 0;
+                const m = parseInt((wrap.querySelector('.dur-input:last-child') as HTMLInputElement).value) || 0;
+                handleDurationSet(h, m);
+              }}
+            />
+            <span class="dur-sep">:</span>
+            <input
+              type="number"
+              value={Math.round((todayEntry?.value ?? 0) % 60)}
+              min="0"
+              max="59"
+              class="dur-input"
+              onfocus={(e) => {
+                const t = e.currentTarget as HTMLInputElement;
+                t.setSelectionRange(t.value.length, t.value.length);
+              }}
+              onkeydown={(e) => {
+                if (e.key === 'Enter') {
+                  const wrap = (e.currentTarget as HTMLElement).closest('.dur-input-wrap')!;
+                  const h = parseInt((wrap.querySelector('.dur-input:first-child') as HTMLInputElement).value) || 0;
+                  const m = parseInt((wrap.querySelector('.dur-input:last-child') as HTMLInputElement).value) || 0;
+                  handleDurationSet(h, m);
+                  (e.currentTarget as HTMLInputElement).blur();
+                }
+              }}
+              onblur={(e) => {
+                const wrap = (e.currentTarget as HTMLElement).closest('.dur-input-wrap')!;
+                const h = parseInt((wrap.querySelector('.dur-input:first-child') as HTMLInputElement).value) || 0;
+                const m = parseInt((wrap.querySelector('.dur-input:last-child') as HTMLInputElement).value) || 0;
+                handleDurationSet(h, m);
+              }}
+            />
           </div>
           {#if todayEntry && todayEntry.value > 0}
-            <span
-              class="logged-value"
-              class:standard-met={isStandardMet}
-              class:target-met={isTargetMet}
-            >{formatLoggedMinutes(todayEntry.value)}</span>
             <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn reset">Reset</button>
           {/if}
         {/if}
@@ -447,31 +485,30 @@
     min-width: 4rem;
     text-align: center;
   }
-  .manual-entry {
+  .dur-input-wrap {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 0;
   }
-  .min-input {
-    width: 3rem;
-    padding: 0.25rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 4px;
-    font-size: 0.75rem;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
+  .dur-input {
+    width: 2.4rem;
+    padding: 0.2rem 0;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: bold;
     text-align: center;
+    background: transparent;
+    color: var(--text-primary, #222);
+    outline: none;
+    -moz-appearance: textfield;
   }
-  .logged-value {
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-left: 0.25rem;
-    transition: color 0.3s;
-  }
-  .logged-value.standard-met { color: #2e7d32; }
-  .logged-value.target-met {
-    color: #2e7d32;
-    animation: shimmer 1.2s ease-in-out;
+  .dur-input::-webkit-outer-spin-button,
+  .dur-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .dur-sep {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--text-primary, #222);
+    line-height: 1;
   }
   .checkbox-label {
     display: flex;
