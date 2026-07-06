@@ -77,6 +77,9 @@
   let allTimerStates = $state<AllTimers>({});
   let unsubTimer = timerStates.subscribe(v => allTimerStates = v);
   let timerState = $derived(allTimerStates[habit.id] ?? defaultTimer);
+  let timerHrs = $derived(Math.floor(timerState.elapsed / 3600));
+  let timerMins = $derived(Math.floor((timerState.elapsed % 3600) / 60));
+  let timerSecs = $derived(timerState.elapsed % 60);
   let timerInterval: ReturnType<typeof setInterval> | null = null;
   let manualMinutes = $state('');
 
@@ -178,14 +181,6 @@
     const today = getLocalDateString();
     await engine.logCompletion(today, 0);
     todayEntry = null;
-  }
-
-  function formatDuration(totalSec: number): string {
-    const h = Math.floor(totalSec / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    const s = totalSec % 60;
-    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    return `${m}:${s.toString().padStart(2, '0')}`;
   }
 
   async function autoCompleteDeps(habit: Habit, today: string) {
@@ -312,7 +307,15 @@
     {:else if habit.type === 'duration'}
       <div class="action-control">
         {#if timerState.running}
-          <span class="timer-display">{formatDuration(timerState.elapsed)}</span>
+          <div class="dur-input-wrap">
+            {#if timerHrs > 0}
+              <input type="text" value={timerHrs} class="dur-input" disabled />
+              <span class="dur-sep">:</span>
+            {/if}
+            <input type="text" value={String(timerMins).padStart(2, '0')} class="dur-input" disabled />
+            <span class="dur-sep">:</span>
+            <input type="text" value={String(timerSecs).padStart(2, '0')} class="dur-input" disabled />
+          </div>
           {#if timerState.paused}
             <button onclick={(e) => { e.stopPropagation(); resumeTimer(); }} class="btn start">Resume</button>
             <button onclick={(e) => { e.stopPropagation(); doneTimer(); }} class="btn stop">Done</button>
@@ -470,14 +473,6 @@
   .qty-input.target-met {
     color: #2e7d32;
     animation: shimmer 1.2s ease-in-out;
-  }
-  .timer-display {
-    font-variant-numeric: tabular-nums;
-    font-weight: bold;
-    font-size: 0.9rem;
-    color: var(--text-primary, #222);
-    min-width: 4rem;
-    text-align: center;
   }
   .dur-input-wrap {
     display: flex;
