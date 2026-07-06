@@ -502,9 +502,9 @@
     height: 1.8rem;
     box-sizing: border-box;
   }
-  .dur-input:disabled { color: var(--text-secondary, #888); -webkit-text-fill-color: var(--text-secondary, #888); }
+  .dur-input:disabled { color: #888; -webkit-text-fill-color: #888; opacity: 1; }
   .dur-input:last-child { text-align: left; }
-  .dur-input:disabled ~ .dur-sep { color: var(--text-secondary, #888); -webkit-text-fill-color: var(--text-secondary, #888); }
+  .dur-input:disabled ~ .dur-sep { color: #888; -webkit-text-fill-color: #888; }
   .dur-input::-webkit-outer-spin-button,
   .dur-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .dur-sep {
