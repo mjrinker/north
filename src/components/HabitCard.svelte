@@ -484,7 +484,9 @@
     outline: none;
     -moz-appearance: textfield;
   }
+  .dur-input:disabled { opacity: 1; color: var(--text-primary, #222); -webkit-text-fill-color: var(--text-primary, #222); }
   .dur-input:last-child { text-align: left; }
+  .dur-input-wrap:has(.dur-input:disabled) .dur-sep { color: var(--text-primary, #222); }
   .dur-input::-webkit-outer-spin-button,
   .dur-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .dur-sep {
