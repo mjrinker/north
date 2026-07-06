@@ -320,7 +320,7 @@
         {#if todayEntry && todayEntry.value > 0}
           <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn reset">Reset</button>
         {/if}
-        <div class="dur-input-wrap" onclick={(e) => e.stopPropagation()}>
+        <div class="dur-input-wrap" style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
           {#if (timerState.running ? timerHrs : durHours) > 0}
             <input
               type="text"
@@ -504,13 +504,14 @@
   }
   .dur-input:disabled { color: #888; -webkit-text-fill-color: #888; opacity: 1; }
   .dur-input:last-child { text-align: left; }
-  .dur-input:disabled ~ .dur-sep { color: #888; -webkit-text-fill-color: #888; }
+
+
   .dur-input::-webkit-outer-spin-button,
   .dur-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .dur-sep {
     font-size: 0.9rem;
     font-weight: bold;
-    color: var(--text-primary, #222);
+    color: var(--sep-color, var(--text-primary, #222));
     line-height: 1;
     pointer-events: none;
   }
