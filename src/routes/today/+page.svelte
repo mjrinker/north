@@ -133,6 +133,7 @@
     }
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
+    if (touchStartY > window.innerHeight - 40) return;
     touchDx = 0;
     swipingHabitId = habitId;
   }
@@ -146,7 +147,7 @@
     if (swipingHabitId !== habitId) return;
     swipingHabitId = null;
     const dy = e.changedTouches[0].clientY - touchStartY;
-    if (touchDx < -SWIPE_THRESHOLD / 2 && Math.abs(touchDx) > Math.abs(dy) * 1.5) {
+    if (touchDx < -SWIPE_THRESHOLD / 2 && Math.abs(touchDx) > Math.abs(dy) * 3) {
       swipedHabitId = habitId;
     } else {
       swipedHabitId = null;
