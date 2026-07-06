@@ -504,6 +504,7 @@
   }
   .dur-input:disabled { color: #888; -webkit-text-fill-color: #888; opacity: 1; }
   .dur-input:last-child { text-align: left; }
+  .dur-input:not(:first-child):not(:last-child) { text-align: center; }
   .dur-input-wrap.running .dur-input:disabled:first-child { background: transparent; border: 1px solid var(--card-border, #ccc); border-right: none; border-radius: 3px 0 0 3px; }
   .dur-input-wrap.running .dur-input:disabled:last-child { background: transparent; border: 1px solid var(--card-border, #ccc); border-left: none; border-radius: 0 3px 3px 0; }
   .dur-input-wrap.running .dur-input:disabled:not(:first-child):not(:last-child) { background: transparent; border-top: 1px solid var(--card-border, #ccc); border-bottom: 1px solid var(--card-border, #ccc); border-radius: 0; }
