@@ -307,62 +307,55 @@
     {:else if habit.type === 'duration'}
       <div class="action-control">
         {#if timerState.running}
-          <div class="dur-input-wrap">
-            {#if timerHrs > 0}
-              <input type="text" value={timerHrs} class="dur-input" disabled />
-              <span class="dur-sep">:</span>
-            {/if}
-            <input type="text" value={String(timerMins).padStart(2, '0')} class="dur-input" disabled />
-            <span class="dur-sep">:</span>
-            <input type="text" value={String(timerSecs).padStart(2, '0')} class="dur-input" disabled />
-          </div>
           {#if timerState.paused}
             <button onclick={(e) => { e.stopPropagation(); resumeTimer(); }} class="btn start">Resume</button>
-            <button onclick={(e) => { e.stopPropagation(); doneTimer(); }} class="btn stop">Done</button>
-            <button onclick={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn cancel">X</button>
           {:else}
             <button onclick={(e) => { e.stopPropagation(); pauseTimer(); }} class="btn stop">Pause</button>
-            <button onclick={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn cancel">X</button>
           {/if}
+          <button onclick={(e) => { e.stopPropagation(); doneTimer(); }} class="btn stop">Done</button>
+          <button onclick={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn cancel">X</button>
         {:else}
           <button onclick={(e) => { e.stopPropagation(); startTimer(); }} class="btn start">Start</button>
-          <div class="dur-input-wrap" onclick={(e) => e.stopPropagation()}>
-            {#if durHours > 0}
-              <input
-                type="text"
-                inputmode="numeric"
-                value={durHours}
-                class="dur-input"
-                onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
-                onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
-                onblur={saveDurInputs}
-              />
-              <span class="dur-sep">:</span>
-            {/if}
+        {/if}
+        {#if todayEntry && todayEntry.value > 0}
+          <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn reset">Reset</button>
+        {/if}
+        <div class="dur-input-wrap" onclick={(e) => e.stopPropagation()}>
+          {#if (timerState.running ? timerHrs : durHours) > 0}
             <input
               type="text"
               inputmode="numeric"
-              value={String(durMinutes).padStart(2, '0')}
+              value={timerState.running ? timerHrs : durHours}
               class="dur-input"
+              disabled={timerState.running}
               onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
               onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
               onblur={saveDurInputs}
             />
             <span class="dur-sep">:</span>
-            <input
-              type="text"
-              inputmode="numeric"
-              value={String(durSeconds).padStart(2, '0')}
-              class="dur-input"
-              onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
-              onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
-              onblur={saveDurInputs}
-            />
-          </div>
-          {#if todayEntry && todayEntry.value > 0}
-            <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn reset">Reset</button>
           {/if}
-        {/if}
+          <input
+            type="text"
+            inputmode="numeric"
+            value={String(timerState.running ? timerMins : durMinutes).padStart(2, '0')}
+            class="dur-input"
+            disabled={timerState.running}
+            onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
+            onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
+            onblur={saveDurInputs}
+          />
+          <span class="dur-sep">:</span>
+          <input
+            type="text"
+            inputmode="numeric"
+            value={String(timerState.running ? timerSecs : durSeconds).padStart(2, '0')}
+            class="dur-input"
+            disabled={timerState.running}
+            onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
+            onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
+            onblur={saveDurInputs}
+          />
+        </div>
       </div>
     {/if}
   </div>
