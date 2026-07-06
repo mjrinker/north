@@ -72,8 +72,10 @@
   }
 
   function toggleGroup(tag: string) {
-    if (collapsedGroups.has(tag)) collapsedGroups.delete(tag);
-    else collapsedGroups.add(tag);
+    const next = new Set(collapsedGroups);
+    if (next.has(tag)) next.delete(tag);
+    else next.add(tag);
+    collapsedGroups = next;
     saveCollapsed();
   }
 
