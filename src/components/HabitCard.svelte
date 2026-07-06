@@ -502,7 +502,7 @@
     height: 1.8rem;
     box-sizing: border-box;
   }
-  .dur-input:disabled { color: #888; -webkit-text-fill-color: #888; opacity: 1; }
+  .dur-input:disabled { color: #888; -webkit-text-fill-color: #888; opacity: 1; background: transparent; border: 1px solid var(--card-border, #ccc); border-radius: 3px; }
   .dur-input:last-child { text-align: left; }
 
 
