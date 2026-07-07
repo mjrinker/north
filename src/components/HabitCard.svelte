@@ -374,7 +374,7 @@
     min-width: 0;
   }
   .card-left { flex: 1; min-width: 0; }
-  .card-right { flex-shrink: 0; align-self: stretch; display: flex; align-items: center; }
+  .card-right { flex-shrink: 0; }
   .title-row {
     display: flex;
     align-items: center;
@@ -403,21 +403,20 @@
     display: flex;
     align-items: center;
     gap: 0.35rem;
-    height: 100%;
   }
   .btn {
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-weight: 600;
-    height: calc(100% - 4px);
+    height: 2.4rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
   }
   .btn.small {
-    width: 1.8rem;
+    width: 2.4rem;
     font-size: 0.9rem;
     background: var(--accent, #0066cc);
     color: white;
@@ -454,7 +453,7 @@
     background: var(--input-bg, #f5f5f5);
     border-radius: 4px;
     padding: 0 0.4rem;
-    height: calc(100% - 4px);
+    height: 2.4rem;
     box-sizing: border-box;
   }
   .qty-input {
@@ -468,7 +467,7 @@
     color: var(--text-primary, #222);
     outline: none;
     -moz-appearance: textfield;
-    height: 100%;
+    height: 2.4rem;
     box-sizing: border-box;
   }
   .qty-input::-webkit-outer-spin-button,
@@ -485,7 +484,7 @@
     background: var(--input-bg, #f5f5f5);
     border-radius: 4px;
     padding: 0 0.4rem;
-    height: calc(100% - 4px);
+    height: 2.4rem;
     box-sizing: border-box;
   }
   .dur-input {
@@ -499,7 +498,7 @@
     color: var(--text-primary, #222);
     outline: none;
     -moz-appearance: textfield;
-    height: 100%;
+    height: 2.4rem;
     box-sizing: border-box;
   }
   .dur-input:disabled { color: #888; -webkit-text-fill-color: #888; opacity: 1; }
@@ -523,8 +522,8 @@
     justify-content: center;
     background: var(--input-bg, #f5f5f5);
     border-radius: 4px;
-    height: calc(100% - 4px);
-    width: 2.2rem;
+    height: 2.4rem;
+    width: 2.4rem;
     box-sizing: border-box;
     cursor: pointer;
   }
@@ -540,8 +539,12 @@
     transition: background 0.2s;
   }
   .binary-input-wrap input:checked {
-    background: var(--accent, #0066cc);
     border-color: var(--accent, #0066cc);
+    color: var(--accent, #0066cc);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z' fill='currentColor'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
   }
 
   @keyframes shimmer {
