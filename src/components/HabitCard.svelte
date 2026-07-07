@@ -504,7 +504,7 @@
   }
   .dur-input:disabled { color: #888; -webkit-text-fill-color: #888; opacity: 1; }
   .dur-input:last-child { text-align: left; }
-  .dur-input-wrap.running { border: 1px solid var(--card-border, #ccc); padding: 0 0.4rem; }
+  .dur-input-wrap.running { border: 1px solid var(--card-border, #ccc); padding: 0 0.4rem; background: transparent; }
   .dur-input-wrap.running .dur-input:disabled { background: transparent; }
 
 
