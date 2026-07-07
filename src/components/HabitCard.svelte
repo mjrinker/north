@@ -262,10 +262,9 @@
   <div class="card-right">
     {#if habit.type === 'binary'}
       <div class="action-control">
-        <label class="checkbox-label" onclick={(e) => e.stopPropagation()}>
+        <label class="binary-input-wrap" onclick={(e) => e.stopPropagation()}>
           <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} disabled={isAutoCompleted} />
         </label>
-        <span class="action-label">Done</span>
       </div>
     {:else if habit.type === 'quantity'}
       <div class="action-control">
@@ -410,7 +409,7 @@
     border-radius: 4px;
     cursor: pointer;
     font-weight: 600;
-    height: 1.8rem;
+    height: 2.2rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -454,7 +453,7 @@
     background: var(--input-bg, #f5f5f5);
     border-radius: 4px;
     padding: 0 0.4rem;
-    height: 1.8rem;
+    height: 2.2rem;
     box-sizing: border-box;
   }
   .qty-input {
@@ -468,7 +467,7 @@
     color: var(--text-primary, #222);
     outline: none;
     -moz-appearance: textfield;
-    height: 1.8rem;
+    height: 2.2rem;
     box-sizing: border-box;
   }
   .qty-input::-webkit-outer-spin-button,
@@ -485,7 +484,7 @@
     background: var(--input-bg, #f5f5f5);
     border-radius: 4px;
     padding: 0 0.4rem;
-    height: 1.8rem;
+    height: 2.2rem;
     box-sizing: border-box;
   }
   .dur-input {
@@ -499,7 +498,7 @@
     color: var(--text-primary, #222);
     outline: none;
     -moz-appearance: textfield;
-    height: 1.8rem;
+    height: 2.2rem;
     box-sizing: border-box;
   }
   .dur-input:disabled { color: #888; -webkit-text-fill-color: #888; opacity: 1; }
@@ -517,14 +516,20 @@
     line-height: 1;
     pointer-events: none;
   }
-  .checkbox-label {
+  .binary-input-wrap {
     display: flex;
     align-items: center;
+    justify-content: center;
+    background: var(--input-bg, #f5f5f5);
+    border-radius: 4px;
+    height: 2.2rem;
+    width: 2.2rem;
+    box-sizing: border-box;
     cursor: pointer;
   }
-  .checkbox-label input {
-    width: 1.1rem;
-    height: 1.1rem;
+  .binary-input-wrap input {
+    width: 1.3rem;
+    height: 1.3rem;
     appearance: none;
     border: 2px solid var(--card-border, #ccc);
     border-radius: 3px;
@@ -533,7 +538,7 @@
     background: var(--input-bg, #fff);
     transition: background 0.2s;
   }
-  .checkbox-label input:checked {
+  .binary-input-wrap input:checked {
     background: var(--accent, #0066cc);
     border-color: var(--accent, #0066cc);
   }
