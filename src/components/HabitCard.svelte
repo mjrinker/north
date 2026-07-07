@@ -540,7 +540,7 @@
     cursor: pointer;
   }
   .check-icon {
-    font-size: 1.8rem;
+    font-size: 2.2rem;
     color: var(--text-primary, #222);
     pointer-events: none;
   }
