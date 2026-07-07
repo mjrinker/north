@@ -33,6 +33,7 @@
 		"vite": "^8.0.16"
 	},
 	"dependencies": {
+		"@iconify/svelte": "^5.2.2",
 		"@supabase/ssr": "^0.12.0",
 		"@supabase/supabase-js": "^2.108.2",
 		"idb": "^8.0.3"

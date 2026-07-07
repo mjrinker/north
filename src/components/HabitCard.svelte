@@ -8,6 +8,7 @@
   import { recordAutoCompletedDep, getAutoCompletedDepIds, clearAutoCompletedDeps } from '../lib/autoDeps';
   import { entriesStore } from '../stores/entries';
   import { onDestroy } from 'svelte';
+  import Icon from '@iconify/svelte';
   let { habit, onEdit }: { habit: Habit; onEdit?: () => void } = $props();
 
   let allHabits = $state<Habit[]>([]);
@@ -262,8 +263,11 @@
   <div class="card-right">
     {#if habit.type === 'binary'}
       <div class="action-control">
-        <label class="binary-input-wrap" onclick={(e) => e.stopPropagation()}>
+        <label class="binary-input-wrap" class:checked={todayEntry?.value === 1} onclick={(e) => e.stopPropagation()}>
           <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} disabled={isAutoCompleted} />
+          {#if todayEntry?.value === 1}
+            <Icon icon="mdi:check" class="check-icon" />
+          {/if}
         </label>
       </div>
     {:else if habit.type === 'quantity'}
@@ -526,25 +530,19 @@
     width: 2.4rem;
     box-sizing: border-box;
     cursor: pointer;
+    position: relative;
   }
   .binary-input-wrap input {
-    width: 1.3rem;
-    height: 1.3rem;
-    appearance: none;
-    border: 2px solid var(--card-border, #ccc);
-    border-radius: 3px;
-    outline: none;
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
     cursor: pointer;
-    background: var(--input-bg, #fff);
-    transition: background 0.2s;
   }
-  .binary-input-wrap input:checked {
-    border-color: var(--accent, #0066cc);
-    color: var(--accent, #0066cc);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z' fill='currentColor'/%3E%3C/svg%3E");
-    background-size: contain;
-    background-position: center;
-    background-repeat: no-repeat;
+  .check-icon {
+    font-size: 1.4rem;
+    color: var(--text-primary, #222);
+    pointer-events: none;
   }
 
   @keyframes shimmer {
