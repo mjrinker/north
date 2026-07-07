@@ -138,7 +138,7 @@
     const total = s.elapsed;
     const engine = new HabitEngine(habit);
     const today = getLocalDateString();
-    const minutes = Math.max(0.1, total / 60);
+    const minutes = total / 60;
     await engine.logCompletion(today, minutes);
     const entry = await getEntry(habit.id, today);
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
