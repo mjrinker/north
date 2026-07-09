@@ -4,32 +4,27 @@ import { getLocalDateString, getWeekStart } from '../lib/dates';
 import { computeDailyStreak } from '../lib/streakUtils';
 import { entriesStore } from '../stores/entries';
 
-/**
- * Simple Habit Engine handling completion logic and streak tracking.
- * It operates on a single habit; callers provide the habit definition.
- */
 export class HabitEngine {
   constructor(private habit: Habit) {}
 
-  /**
-   * Calculate completion for a given value.
-   * Returns a CompletionResult based on standard/target thresholds.
-   */
-  calculateCompletion(value: number): CompletionResult {
-    const standardMet = value >= this.habit.standard;
-    const targetMet = this.habit.target !== undefined ? value >= this.habit.target : false;
-    const progressPercentage = this.habit.standard > 0 ? value / this.habit.standard : 0;
+  static calculateCompletion(habit: Habit, value: number): CompletionResult {
+    const standardMet = value >= habit.standard;
+    const targetMet = habit.target !== undefined ? value >= habit.target : false;
+    const progressPercentage = habit.standard > 0 ? value / habit.standard : 0;
     return { standardMet, targetMet, progressPercentage };
   }
 
-  /** Log a completion entry for the habit on a specific date (ISO string). */
-  async logCompletion(date: string, value: number, notes?: string): Promise<void> {
-    const existing = await getEntry(this.habit.id, date);
+  calculateCompletion(value: number): CompletionResult {
+    return HabitEngine.calculateCompletion(this.habit, value);
+  }
+
+  static async logCompletion(habit: Habit, date: string, value: number, notes?: string): Promise<void> {
+    const existing = await getEntry(habit.id, date);
     const entry: HabitEntry = existing
       ? { ...existing, value, notes, updatedAt: new Date() }
       : {
           id: crypto.randomUUID(),
-          habitId: this.habit.id,
+          habitId: habit.id,
           date,
           value,
           standardMet: false,
@@ -37,12 +32,10 @@ export class HabitEngine {
           notes,
           updatedAt: new Date()
         };
-    // Update derived flags
-    const completion = this.calculateCompletion(value);
+    const completion = HabitEngine.calculateCompletion(habit, value);
     entry.standardMet = completion.standardMet;
     entry.targetMet = completion.targetMet;
     await saveEntry(entry);
-    // Keep entriesStore in sync so reactive components re-fetch
     entriesStore.update(list => {
       const idx = list.findIndex(e => e.id === entry.id);
       if (idx >= 0) {
@@ -54,23 +47,25 @@ export class HabitEngine {
     });
   }
 
-  /** Get the current streak. For daily habits, counts consecutive days.
-   *  For weekly habits (daysPerWeek set), counts consecutive weeks. */
-  async getStreak(): Promise<number> {
+  async logCompletion(date: string, value: number, notes?: string): Promise<void> {
+    return HabitEngine.logCompletion(this.habit, date, value, notes);
+  }
+
+  static async getStreak(habit: Habit): Promise<number> {
     const all = await getAllEntries();
-    const habitEntries = all.filter(e => e.habitId === this.habit.id && e.standardMet);
+    const habitEntries = all.filter(e => e.habitId === habit.id && e.standardMet);
 
-    if (this.habit.schedule.daysPerWeek) {
-      return this.getWeeklyStreak(habitEntries);
+    if (habit.schedule.daysPerWeek) {
+      return HabitEngine.getWeeklyStreak(habit, habitEntries);
     }
-    return this.getDailyStreak(habitEntries);
+    return computeDailyStreak(habitEntries);
   }
 
-  private async getDailyStreak(entries: HabitEntry[]): Promise<number> {
-    return computeDailyStreak(entries);
+  async getStreak(): Promise<number> {
+    return HabitEngine.getStreak(this.habit);
   }
 
-  private async getWeeklyStreak(entries: HabitEntry[]): Promise<number> {
+  private static async getWeeklyStreak(habit: Habit, entries: HabitEntry[]): Promise<number> {
     const weekCounts = new Map<string, number>();
     for (const e of entries) {
       const d = new Date(e.date);
@@ -79,9 +74,9 @@ export class HabitEngine {
       weekCounts.set(key, (weekCounts.get(key) || 0) + 1);
     }
 
-    const daysPerWeek = this.habit.schedule.daysPerWeek!;
+    const daysPerWeek = habit.schedule.daysPerWeek!;
     let streak = 0;
-    let date = new Date();
+    const date = new Date();
     date.setHours(0, 0, 0, 0);
     const currentWeekStart = getWeekStart(date);
     const currentKey = getLocalDateString(currentWeekStart);
@@ -101,9 +96,8 @@ export class HabitEngine {
     return streak;
   }
 
-  /** Calculate the next scheduled occurrence based on the habit's schedule. */
-  getNextOccurrence(): Date | null {
-    const { schedule } = this.habit;
+  static getNextOccurrence(habit: Habit): Date | null {
+    const { schedule } = habit;
     const now = new Date();
     switch (schedule.frequency) {
       case 'daily':
@@ -117,7 +111,6 @@ export class HabitEngine {
         return d;
       }
       case 'custom':
-        // Placeholder: custom recurrence not implemented yet
         return null;
       default:
         return null;

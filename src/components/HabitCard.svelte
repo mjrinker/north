@@ -58,10 +58,10 @@
             recordAutoCompletedDep(habit.id, today, r.hid);
           }
           autoCompleted.add(key);
-          await new HabitEngine(habit).logCompletion(today, 1);
+            await HabitEngine.logCompletion(habit, today, 1);
           todayEntry = { value: 1, standardMet: 1 >= habit.standard, targetMet: habit.target != null && 1 >= habit.target };
         } else if (!satisfied && value === 1) {
-          await new HabitEngine(habit).logCompletion(today, 0);
+          await HabitEngine.logCompletion(habit, today, 0);
           autoCompleted.delete(key);
           todayEntry = { value: 0, standardMet: false, targetMet: false };
         }
@@ -70,8 +70,7 @@
         }
       }
       if (_gen !== gen) return;
-      const engine = new HabitEngine(habit);
-      streak = await engine.getStreak();
+      streak = await HabitEngine.getStreak(habit);
     })();
   });
 
@@ -163,9 +162,8 @@
   }
 
   async function logAndRefresh(value: number) {
-    const engine = new HabitEngine(habit);
     const today = getLocalDateString();
-    await engine.logCompletion(today, value);
+    await HabitEngine.logCompletion(habit, today, value);
     const entry = await getEntry(habit.id, today);
     todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
   }

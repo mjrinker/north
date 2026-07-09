@@ -130,8 +130,7 @@
     const entry = getDayEntry(habit.id, date);
     const wasChecked = entry?.value === 1;
     const value = wasChecked ? 0 : 1;
-    const engine = new HabitEngine(habit);
-    await engine.logCompletion(date, value);
+    await HabitEngine.logCompletion(habit, date, value);
     upsertEntry(habit.id, date, value);
     if (value === 1) {
       if (habit.dependsOn) await autoCompleteDependencies(habit, date, habits, getDayEntryAsync, afterUpsert);
@@ -185,9 +184,8 @@
 
   function handleCellTap(habit: Habit, date: string) {
     const entry = getDayEntry(habit.id, date);
-    const engine = new HabitEngine(habit);
     const current = entry?.value ?? 0;
-    engine.logCompletion(date, current + 1).then(() => afterLogCompletion(habit, date));
+    HabitEngine.logCompletion(habit, date, current + 1).then(() => afterLogCompletion(habit, date));
   }
 
   function cellClick(e: MouseEvent, habit: Habit, date: string) {
@@ -220,12 +218,8 @@
   async function saveEdit() {
     if (!editTarget) return;
     const { habit, date, type } = editTarget;
-    const engine = new HabitEngine(habit);
-    if (type === 'quantity') {
-      await engine.logCompletion(date, editValue);
-    } else {
-      await engine.logCompletion(date, editHours * 60 + editMinutes);
-    }
+    const value = type === 'quantity' ? editValue : editHours * 60 + editMinutes;
+    await HabitEngine.logCompletion(habit, date, value);
     await afterLogCompletion(habit, date);
     editTarget = null;
   }
@@ -233,8 +227,7 @@
   async function resetEdit() {
     if (!editTarget) return;
     const { habit, date } = editTarget;
-    const engine = new HabitEngine(habit);
-    await engine.logCompletion(date, 0);
+    await HabitEngine.logCompletion(habit, date, 0);
     await afterLogCompletion(habit, date);
     editTarget = null;
   }

@@ -31,7 +31,7 @@ export async function autoCompleteDependencies(
     if (entry?.value && entry.value > 0) continue;
     const dep = habits.find(h => h.id === hid);
     if (!dep) continue;
-    await new HabitEngine(dep).logCompletion(today, dep.standard);
+    await HabitEngine.logCompletion(dep, today, dep.standard);
     afterLogCompletion?.(hid, today, dep.standard);
     recordAutoCompletedDep(habit.id, today, hid);
   }
@@ -51,7 +51,7 @@ export async function uncheckDependencies(
     if (!entry || entry.value === 0) continue;
     const dep = habits.find(h => h.id === hid);
     if (!dep) continue;
-    await new HabitEngine(dep).logCompletion(date, 0);
+    await HabitEngine.logCompletion(dep, date, 0);
     afterLogCompletion?.(hid, date, 0);
   }
   clearAutoCompletedDeps(habit.id, date);
@@ -70,7 +70,7 @@ export async function cascadeUncheck(
     if (!depEntry || depEntry.value === 0) continue;
     const satisfied = await areDependenciesSatisfied(dep, date, habits, getEntry);
     if (!satisfied) {
-      await new HabitEngine(dep).logCompletion(date, 0);
+      await HabitEngine.logCompletion(dep, date, 0);
       afterLogCompletion?.(dep.id, date, 0);
     }
   }
@@ -89,7 +89,7 @@ export async function cascadeCheck(
     if (depEntry?.value && depEntry.value > 0) continue;
     const satisfied = await areDependenciesSatisfied(dep, date, habits, getEntry);
     if (satisfied) {
-      await new HabitEngine(dep).logCompletion(date, 1);
+      await HabitEngine.logCompletion(dep, date, 1);
       afterLogCompletion?.(dep.id, date, 1);
     }
   }

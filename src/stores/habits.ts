@@ -1,23 +1,6 @@
-// src/stores/habits.ts
 import type { Habit } from '../types';
-import { writable, type Writable } from 'svelte/store';
 import { getAllHabits, saveHabit, deleteHabit as deleteHabitFromDB } from '../services/storage';
-
-export const habitsStore: Writable<Habit[]> = writable([]);
-
-// Load initial data only on the client
-if (typeof window !== 'undefined') {
-  getAllHabits().then(h => habitsStore.set(h));
-}
-
-export function addHabit(habit: Habit) {
-  const cloned = cloneHabit(habit);
-  habitsStore.update(list => {
-    const updated = [...list, cloned];
-    saveHabit(cloned).catch(console.error);
-    return updated;
-  });
-}
+import { createStore } from '../lib/storeFactory';
 
 function cloneHabit(h: Habit): Habit {
   return {
@@ -31,17 +14,18 @@ function cloneHabit(h: Habit): Habit {
   };
 }
 
+export const habitsStore = createStore<Habit>(getAllHabits, saveHabit, deleteHabitFromDB);
+
+export function addHabit(habit: Habit) {
+  habitsStore.add(cloneHabit(habit));
+}
+
 export function updateHabit(habit: Habit) {
   const cloned = cloneHabit(habit);
   cloned.updatedAt = new Date();
-  habitsStore.update(list => {
-    const updated = list.map(h => h.id === cloned.id ? cloned : h);
-    saveHabit(cloned).catch(console.error);
-    return updated;
-  });
+  habitsStore.updateItem(cloned);
 }
 
 export function removeHabit(id: string) {
-  habitsStore.update(list => list.filter(h => h.id !== id));
-  deleteHabitFromDB(id).catch(console.error);
+  habitsStore.remove(id);
 }
