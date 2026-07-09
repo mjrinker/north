@@ -139,12 +139,8 @@
       await uncheckDependencies(habit, date, habits, getDayEntryAsync, afterUpsert);
     }
     await refreshEntries();
-    if (value === 1) {
-      await cascadeCheck(habit, date, habits, getDayEntryAsync, afterUpsert);
-    }
-    if (wasChecked) {
-      await cascadeUncheck(habit, date, habits, getDayEntryAsync, afterUpsert);
-    }
+    await cascadeCheck(habit, date, habits, getDayEntryAsync, afterUpsert);
+    await cascadeUncheck(habit, date, habits, getDayEntryAsync, afterUpsert);
   }
 
   const getDayEntryAsync = (hid: string, d: string) => Promise.resolve(getDayEntry(hid, d));
