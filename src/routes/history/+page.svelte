@@ -107,7 +107,7 @@
     const idx = allEntries.findIndex(e => e.habitId === habitId && e.date === date);
     if (idx >= 0) {
       const updated = [...allEntries];
-      updated[idx] = { ...updated[idx], value };
+      updated[idx] = { ...updated[idx], value, standardMet: value >= 1 };
       allEntries = updated;
     } else {
       allEntries = [...allEntries, {
@@ -132,22 +132,22 @@
     const value = wasChecked ? 0 : 1;
     await HabitEngine.logCompletion(habit, date, value);
     upsertEntry(habit.id, date, value);
-    if (value === 1) {
-      if (habit.dependsOn) await autoCompleteDependencies(habit, date, habits, getDayEntryAsync, afterUpsert);
-      await cascadeCheck(habit, date, habits, getDayEntryAsync, afterUpsert);
+    if (value === 1 && habit.dependsOn) {
+      await autoCompleteDependencies(habit, date, habits, getDayEntryAsync);
     }
-    if (wasChecked) {
-      await cascadeUncheck(habit, date, habits, getDayEntryAsync, afterUpsert);
-      if (habit.dependsOn) await uncheckDependencies(habit, date, habits, getDayEntryAsync, afterUpsert);
+    if (wasChecked && habit.dependsOn) {
+      await uncheckDependencies(habit, date, habits, getDayEntryAsync);
     }
     await refreshEntries();
     if (value === 1) {
-      await cascadeCheck(habit, date, habits, getDayEntryAsync, afterUpsert);
+      await cascadeCheck(habit, date, habits, getDayEntryAsync);
+    }
+    if (wasChecked) {
+      await cascadeUncheck(habit, date, habits, getDayEntryAsync);
     }
   }
 
   const getDayEntryAsync = (hid: string, d: string) => Promise.resolve(getDayEntry(hid, d));
-  const afterUpsert = (hid: string, d: string, v: number) => upsertEntry(hid, d, v);
 
   // --- Long-press edit modal for quantity/duration ---
   let isLongPress = $state(false);
