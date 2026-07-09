@@ -5,7 +5,8 @@
   import { habitsStore } from '../stores/habits';
   import { getLocalDateString } from '../lib/dates';
   import { timerStates, setTimerState, clearTimerState, defaultTimer, type TimerState, type AllTimers } from '../lib/timerStore';
-  import { recordAutoCompletedDep, getAutoCompletedDepIds, clearAutoCompletedDeps } from '../lib/autoDeps';
+  import { recordAutoCompletedDep } from '../lib/autoDeps';
+  import { autoCompleteDependencies, uncheckDependencies } from '../lib/dependencyEngine';
   import { entriesStore } from '../stores/entries';
   import { onDestroy } from 'svelte';
   import Icon from '@iconify/svelte';
@@ -84,21 +85,15 @@
   let timerInterval: ReturnType<typeof setInterval> | null = null;
   let manualMinutes = $state('');
 
-  // Resume interval if timer was running when component mounts
   $effect(() => {
     if (timerState.running && !timerState.paused && timerState.startedAt > 0) {
-      if (!timerInterval) {
-        timerInterval = setInterval(tick, 200);
-      }
+      if (!timerInterval) startTimerInterval();
     }
   });
 
   onDestroy(() => {
     unsubTimer();
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-    }
+    clearTimerInterval();
   });
 
   function tick() {
@@ -112,13 +107,12 @@
     const mins = manualMinutes ? parseInt(manualMinutes) : (todayEntry?.value ?? 0);
     const initial = (isNaN(mins) ? 0 : mins) * 60;
     setTimerState(habit.id, { running: true, paused: false, elapsed: initial, pausedElapsed: initial, startedAt: Date.now() });
-    timerInterval = setInterval(tick, 200);
+    startTimerInterval();
     manualMinutes = '';
   }
 
   function pauseTimer() {
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = null;
+    clearTimerInterval();
     const s = allTimerStates[habit.id];
     if (!s) return;
     setTimerState(habit.id, { ...s, paused: true, pausedElapsed: s.elapsed, startedAt: 0 });
@@ -128,38 +122,25 @@
     const s = allTimerStates[habit.id];
     if (!s) return;
     setTimerState(habit.id, { ...s, paused: false, startedAt: Date.now() });
-    timerInterval = setInterval(tick, 200);
+    startTimerInterval();
   }
 
   async function doneTimer() {
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = null;
     const s = allTimerStates[habit.id];
     if (!s) return;
-    const total = s.elapsed;
-    const engine = new HabitEngine(habit);
-    const today = getLocalDateString();
-    const minutes = total / 60;
-    await engine.logCompletion(today, minutes);
-    const entry = await getEntry(habit.id, today);
-    todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+    clearTimerInterval();
+    await logAndRefresh(s.elapsed / 60);
     clearTimerState(habit.id);
   }
 
   function cancelTimer() {
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = null;
+    clearTimerInterval();
     clearTimerState(habit.id);
   }
 
   async function handleDurationSet(hours: number, minutes: number, seconds: number) {
     if (!habit) return;
-    const total = hours * 60 + minutes + seconds / 60;
-    const engine = new HabitEngine(habit);
-    const today = getLocalDateString();
-    await engine.logCompletion(today, total);
-    const entry = await getEntry(habit.id, today);
-    todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+    await logAndRefresh(hours * 60 + minutes + seconds / 60);
   }
 
   let durTotalSec = $derived(Math.round((todayEntry?.value ?? 0) * 60));
@@ -178,34 +159,24 @@
   }
 
   async function handleReset() {
+    await logAndRefresh(0);
+  }
+
+  async function logAndRefresh(value: number) {
     const engine = new HabitEngine(habit);
     const today = getLocalDateString();
-    await engine.logCompletion(today, 0);
-    todayEntry = null;
+    await engine.logCompletion(today, value);
+    const entry = await getEntry(habit.id, today);
+    todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
   }
 
-  async function autoCompleteDeps(habit: Habit, today: string) {
-    for (const hid of habit.dependsOn!.habitIds) {
-      const entry = await getEntry(hid, today);
-      if (entry?.value && entry.value > 0) continue;
-      const dep = allHabits.find(h => h.id === hid);
-      if (!dep) continue;
-      await new HabitEngine(dep).logCompletion(today, dep.standard);
-      recordAutoCompletedDep(habit.id, today, hid);
-    }
+  function clearTimerInterval() {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   }
 
-  async function uncheckDeps(habit: Habit, today: string) {
-    const recorded = getAutoCompletedDepIds(habit.id, today);
-    for (const hid of habit.dependsOn!.habitIds) {
-      if (!recorded.includes(hid)) continue;
-      const entry = await getEntry(hid, today);
-      if (!entry || entry.value === 0) continue;
-      const dep = allHabits.find(h => h.id === hid);
-      if (!dep) continue;
-      await new HabitEngine(dep).logCompletion(today, 0);
-    }
-    clearAutoCompletedDeps(habit.id, today);
+  function startTimerInterval() {
+    clearTimerInterval();
+    timerInterval = setInterval(tick, 200);
   }
 
   async function handleBinaryChange() {
@@ -213,36 +184,25 @@
     const today = getLocalDateString();
     const wasChecked = todayEntry?.value === 1;
     const value = wasChecked ? 0 : 1;
-    const engine = new HabitEngine(habit);
-    await engine.logCompletion(today, value);
+    const getEntryFn = (hid: string, d: string) => getEntry(hid, d);
     if (value === 1 && habit.dependsOn) {
-      await autoCompleteDeps(habit, today);
+      await autoCompleteDependencies(habit, today, allHabits, getEntryFn);
     }
     if (wasChecked && habit.dependsOn) {
-      await uncheckDeps(habit, today);
+      await uncheckDependencies(habit, today, allHabits, getEntryFn);
     }
-    const entry = await getEntry(habit.id, today);
-    todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+    await logAndRefresh(value);
   }
 
   async function handleQuantityDelta(delta: number) {
     if (!habit) return;
-    const engine = new HabitEngine(habit);
-    const today = getLocalDateString();
     const current = todayEntry?.value ?? 0;
-    const newValue = Math.max(0, current + delta);
-    await engine.logCompletion(today, newValue);
-    const entry = await getEntry(habit.id, today);
-    todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+    await logAndRefresh(Math.max(0, current + delta));
   }
 
   async function handleQuantitySet(value: number) {
     if (!habit) return;
-    const engine = new HabitEngine(habit);
-    const today = getLocalDateString();
-    await engine.logCompletion(today, value);
-    const entry = await getEntry(habit.id, today);
-    todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+    await logAndRefresh(value);
   }
 </script>
 

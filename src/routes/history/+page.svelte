@@ -3,8 +3,8 @@
   import { habitsStore } from '../../stores/habits';
   import { getAllEntries } from '../../services/storage';
   import { HabitEngine } from '../../services/habitEngine';
-  import { getLocalDateString } from '../../lib/dates';
-  import { recordAutoCompletedDep, getAutoCompletedDepIds, clearAutoCompletedDeps } from '../../lib/autoDeps';
+  import { getLocalDateString, parseLocalDate, isToday } from '../../lib/dates';
+  import { autoCompleteDependencies, uncheckDependencies, cascadeCheck, cascadeUncheck } from '../../lib/dependencyEngine';
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import { tick } from 'svelte';
@@ -134,80 +134,21 @@
     await engine.logCompletion(date, value);
     upsertEntry(habit.id, date, value);
     if (value === 1) {
-      if (habit.dependsOn) await autoCompleteDeps(habit, date);
-      await cascadeCheck(habit, date);
+      if (habit.dependsOn) await autoCompleteDependencies(habit, date, habits, getDayEntryAsync, afterUpsert);
+      await cascadeCheck(habit, date, habits, getDayEntryAsync, afterUpsert);
     }
     if (wasChecked) {
-      await cascadeUncheck(habit, date);
-      if (habit.dependsOn) await uncheckDeps(habit, date);
+      await cascadeUncheck(habit, date, habits, getDayEntryAsync, afterUpsert);
+      if (habit.dependsOn) await uncheckDependencies(habit, date, habits, getDayEntryAsync, afterUpsert);
     }
     await refreshEntries();
     if (value === 1) {
-      await cascadeCheck(habit, date);
+      await cascadeCheck(habit, date, habits, getDayEntryAsync, afterUpsert);
     }
   }
 
-  async function autoCompleteDeps(habit: Habit, date: string) {
-    for (const hid of habit.dependsOn!.habitIds) {
-      const entry = getDayEntry(hid, date);
-      if (entry?.value && entry.value > 0) continue;
-      const dep = habits.find(h => h.id === hid);
-      if (!dep) continue;
-      await new HabitEngine(dep).logCompletion(date, dep.standard);
-      upsertEntry(hid, date, dep.standard);
-      recordAutoCompletedDep(habit.id, date, hid);
-    }
-  }
-
-  async function uncheckDeps(habit: Habit, date: string) {
-    const recorded = getAutoCompletedDepIds(habit.id, date);
-    for (const hid of habit.dependsOn!.habitIds) {
-      if (!recorded.includes(hid)) continue;
-      const entry = getDayEntry(hid, date);
-      if (!entry || entry.value === 0) continue;
-      const dep = habits.find(h => h.id === hid);
-      if (!dep) continue;
-      await new HabitEngine(dep).logCompletion(date, 0);
-      upsertEntry(hid, date, 0);
-    }
-    clearAutoCompletedDeps(habit.id, date);
-  }
-
-  async function cascadeUncheck(habit: Habit, date: string) {
-    const dependents = habits.filter(h => h.type === 'binary' && h.dependsOn?.habitIds.includes(habit.id));
-    for (const dep of dependents) {
-      const depEntry = getDayEntry(dep.id, date);
-      if (!depEntry || depEntry.value === 0) continue;
-      const results = dep.dependsOn!.habitIds.map(hid => {
-        const e = getDayEntry(hid, date);
-        const h = habits.find(x => x.id === hid);
-        return (e?.value ?? 0) >= (h?.standard ?? 1);
-      });
-      const satisfied = dep.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
-      if (!satisfied) {
-        await new HabitEngine(dep).logCompletion(date, 0);
-        upsertEntry(dep.id, date, 0);
-      }
-    }
-  }
-
-  async function cascadeCheck(habit: Habit, date: string) {
-    const dependents = habits.filter(h => h.type === 'binary' && h.dependsOn?.habitIds.includes(habit.id));
-    for (const dep of dependents) {
-      const depEntry = getDayEntry(dep.id, date);
-      if (depEntry?.value && depEntry.value > 0) continue;
-      const results = dep.dependsOn!.habitIds.map(hid => {
-        const e = getDayEntry(hid, date);
-        const h = habits.find(x => x.id === hid);
-        return (e?.value ?? 0) >= (h?.standard ?? 1);
-      });
-      const satisfied = dep.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);
-      if (satisfied) {
-        await new HabitEngine(dep).logCompletion(date, 1);
-        upsertEntry(dep.id, date, 1);
-      }
-    }
-  }
+  const getDayEntryAsync = (hid: string, d: string) => Promise.resolve(getDayEntry(hid, d));
+  const afterUpsert = (hid: string, d: string, v: number) => upsertEntry(hid, d, v);
 
   // --- Long-press edit modal for quantity/duration ---
   let isLongPress = $state(false);
@@ -260,8 +201,8 @@
 
   async function afterLogCompletion(habit: Habit, date: string) {
     await refreshEntries();
-    await cascadeCheck(habit, date);
-    await cascadeUncheck(habit, date);
+    await cascadeCheck(habit, date, habits, getDayEntryAsync);
+    await cascadeUncheck(habit, date, habits, getDayEntryAsync);
   }
 
   function openEditModal(habit: Habit, date: string) {
@@ -298,14 +239,7 @@
     editTarget = null;
   }
 
-  function isToday(date: string): boolean {
-    return date === getLocalDateString();
-  }
 
-  function parseLocalDate(dateStr: string): Date {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  }
 
   function getDayName(dateStr: string): string {
     const d = parseLocalDate(dateStr);

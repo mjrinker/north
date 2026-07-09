@@ -1,18 +1,8 @@
-// src/services/habitEngine.ts
-
 import type { Habit, HabitEntry, CompletionResult } from '../types';
 import { getAllEntries, saveEntry, getEntry } from './storage';
-import { getLocalDateString } from '../lib/dates';
+import { getLocalDateString, getWeekStart } from '../lib/dates';
+import { computeDailyStreak } from '../lib/streakUtils';
 import { entriesStore } from '../stores/entries';
-
-function getWeekStart(d: Date): Date {
-  const date = new Date(d);
-  const day = date.getDay();
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-  date.setDate(diff);
-  date.setHours(0, 0, 0, 0);
-  return date;
-}
 
 /**
  * Simple Habit Engine handling completion logic and streak tracking.
@@ -77,24 +67,7 @@ export class HabitEngine {
   }
 
   private async getDailyStreak(entries: HabitEntry[]): Promise<number> {
-    const completedDates = new Set(entries.map(e => e.date));
-    let streak = 0;
-    let date = new Date();
-    date.setHours(0, 0, 0, 0);
-    const todayStr = getLocalDateString(date);
-    if (!completedDates.has(todayStr)) {
-      date.setDate(date.getDate() - 1);
-    }
-    while (true) {
-      const dateStr = getLocalDateString(date);
-      if (completedDates.has(dateStr)) {
-        streak++;
-        date.setDate(date.getDate() - 1);
-      } else {
-        break;
-      }
-    }
-    return streak;
+    return computeDailyStreak(entries);
   }
 
   private async getWeeklyStreak(entries: HabitEntry[]): Promise<number> {
