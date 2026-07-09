@@ -133,21 +133,22 @@
     await HabitEngine.logCompletion(habit, date, value);
     upsertEntry(habit.id, date, value);
     if (value === 1 && habit.dependsOn) {
-      await autoCompleteDependencies(habit, date, habits, getDayEntryAsync);
+      await autoCompleteDependencies(habit, date, habits, getDayEntryAsync, afterUpsert);
     }
     if (wasChecked && habit.dependsOn) {
-      await uncheckDependencies(habit, date, habits, getDayEntryAsync);
+      await uncheckDependencies(habit, date, habits, getDayEntryAsync, afterUpsert);
     }
     await refreshEntries();
     if (value === 1) {
-      await cascadeCheck(habit, date, habits, getDayEntryAsync);
+      await cascadeCheck(habit, date, habits, getDayEntryAsync, afterUpsert);
     }
     if (wasChecked) {
-      await cascadeUncheck(habit, date, habits, getDayEntryAsync);
+      await cascadeUncheck(habit, date, habits, getDayEntryAsync, afterUpsert);
     }
   }
 
   const getDayEntryAsync = (hid: string, d: string) => Promise.resolve(getDayEntry(hid, d));
+  const afterUpsert = (hid: string, d: string, v: number) => upsertEntry(hid, d, v);
 
   // --- Long-press edit modal for quantity/duration ---
   let isLongPress = $state(false);
