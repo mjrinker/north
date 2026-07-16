@@ -401,8 +401,8 @@
   .btn-icon.play { background: var(--accent, #0066cc); color: white; }
   .btn-icon.pause { background: #f59e0b; color: white; }
   .btn-icon.done { background: #2e7d32; color: white; }
-  .btn-icon.cancel { background: #666; color: white; }
-  .btn-icon.restart { background: transparent; color: var(--text-secondary, #666); border: 1px solid var(--card-border, #ccc); }
+  .btn-icon.cancel { background: transparent; color: var(--text-primary, #222); border: 1px solid var(--card-border, #ccc); }
+  .btn-icon.restart { background: transparent; color: var(--text-primary, #222); border: 1px solid var(--card-border, #ccc); }
   .qty-input-wrap {
     display: flex;
     align-items: center;

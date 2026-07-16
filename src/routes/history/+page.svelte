@@ -561,6 +561,6 @@
   .modal-actions .icon-btn :global(svg), .modal-actions .icon-btn :global(.iconify) { font-size: 1.3rem; }
   .modal-actions .icon-btn.save-btn { background: var(--accent, #0066cc); color: white; }
   .modal-actions .icon-btn.reset-btn { background: #d32f2f; color: white; }
-  .modal-actions .icon-btn.cancel-btn { background: transparent; color: var(--text-secondary, #666); border: 1px solid var(--card-border, #ccc); }
+  .modal-actions .icon-btn.cancel-btn { background: transparent; color: var(--text-primary, #222); border: 1px solid var(--card-border, #ccc); }
   .modal-actions .icon-btn:hover { opacity: 0.85; }
 </style>
