@@ -269,17 +269,17 @@
       <div class="action-control">
         {#if timerState.running}
           {#if timerState.paused}
-            <button onclick={(e) => { e.stopPropagation(); resumeTimer(); }} class="btn start">Resume</button>
+            <button onclick={(e) => { e.stopPropagation(); resumeTimer(); }} class="btn-icon play" aria-label="Resume"><Icon icon="mdi:play" /></button>
           {:else}
-            <button onclick={(e) => { e.stopPropagation(); pauseTimer(); }} class="btn stop">Pause</button>
+            <button onclick={(e) => { e.stopPropagation(); pauseTimer(); }} class="btn-icon pause" aria-label="Pause"><Icon icon="mdi:pause" /></button>
           {/if}
-          <button onclick={(e) => { e.stopPropagation(); doneTimer(); }} class="btn stop">Done</button>
-          <button onclick={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn cancel">X</button>
+          <button onclick={(e) => { e.stopPropagation(); doneTimer(); }} class="btn-icon done" aria-label="Done"><Icon icon="mdi:check" /></button>
+          <button onclick={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn-icon cancel" aria-label="Cancel"><Icon icon="mdi:close" /></button>
         {:else}
-          <button onclick={(e) => { e.stopPropagation(); startTimer(); }} class="btn start">Start</button>
+          <button onclick={(e) => { e.stopPropagation(); startTimer(); }} class="btn-icon play" aria-label="Start"><Icon icon="mdi:play" /></button>
         {/if}
         {#if todayEntry && todayEntry.value > 0}
-          <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn reset">Reset</button>
+          <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn-icon restart" aria-label="Reset"><Icon icon="mdi:restart" /></button>
         {/if}
         <div class="dur-input-wrap" class:running={timerState.running} style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
           {#if (timerState.running ? timerHrs : durHours) > 0}
@@ -383,32 +383,26 @@
     background: var(--accent, #0066cc);
     color: white;
   }
-  .btn.start {
-    padding: 0 0.75rem;
-    font-size: 0.8rem;
-    background: var(--accent, #0066cc);
-    color: white;
-  }
-  .btn.stop {
-    padding: 0 0.75rem;
-    font-size: 0.8rem;
-    background: #d32f2f;
-    color: white;
-  }
-  .btn.cancel {
-    padding: 0 0.5rem;
-    font-size: 0.7rem;
-    background: #666;
-    color: white;
-  }
-  .btn.reset {
-    padding: 0 0.5rem;
-    font-size: 0.7rem;
-    background: transparent;
-    color: var(--text-secondary, #666);
-    border: 1px solid var(--card-border, #ccc);
-  }
   .btn:hover { opacity: 0.85; }
+  .btn-icon {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+  .btn-icon:hover { opacity: 0.85; }
+  .btn-icon :global(svg), .btn-icon :global(.iconify) { font-size: 1.3rem; }
+  .btn-icon.play { background: var(--accent, #0066cc); color: white; }
+  .btn-icon.pause { background: #f59e0b; color: white; }
+  .btn-icon.done { background: #2e7d32; color: white; }
+  .btn-icon.cancel { background: #666; color: white; }
+  .btn-icon.restart { background: transparent; color: var(--text-secondary, #666); border: 1px solid var(--card-border, #ccc); }
   .qty-input-wrap {
     display: flex;
     align-items: center;

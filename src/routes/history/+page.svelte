@@ -7,6 +7,7 @@
   import { autoCompleteDependencies, uncheckDependencies, cascadeCheck, cascadeUncheck } from '../../lib/dependencyEngine';
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
+  import Icon from '@iconify/svelte';
   import { tick } from 'svelte';
 
   let habits = $state<Habit[]>([]);
@@ -272,7 +273,7 @@
 
 <h1>History</h1>
 
-<button class="add-btn" onclick={() => showCreate = true}>+ Add New Habit</button>
+<button class="fab" onclick={() => showCreate = true} aria-label="Add Habit"><Icon icon="mdi:plus" /></button>
 
 {#if showCreate}
   <HabitCreateModal {habits} onClose={() => showCreate = false} />
@@ -358,9 +359,9 @@
         </div>
       {/if}
       <div class="modal-actions">
-        <button class="save-btn" onclick={saveEdit}>Save</button>
-        <button class="reset-btn" onclick={resetEdit}>Reset</button>
-        <button class="cancel-btn" onclick={() => editTarget = null}>Cancel</button>
+        <button class="icon-btn save-btn" onclick={saveEdit} aria-label="Save"><Icon icon="mdi:check" /></button>
+        <button class="icon-btn reset-btn" onclick={resetEdit} aria-label="Reset"><Icon icon="mdi:restart" /></button>
+        <button class="icon-btn cancel-btn" onclick={() => editTarget = null} aria-label="Cancel"><Icon icon="mdi:close" /></button>
       </div>
     </div>
   </div>
@@ -372,17 +373,25 @@
     color: var(--text-primary, #222);
     margin-bottom: 0.5rem;
   }
-  .add-btn {
+  .fab {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 50%;
     background: var(--accent, #0066cc);
     color: white;
     border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    margin-bottom: 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    z-index: 50;
   }
-  .add-btn:hover { opacity: 0.9; }
+  .fab :global(svg), .fab :global(.iconify) { font-size: 1.75rem; }
+  .fab:hover { opacity: 0.9; }
 
   .table-scroll {
     overflow-x: auto;
@@ -538,26 +547,20 @@
     justify-content: flex-end;
     margin-top: 1rem;
   }
-  .modal-actions button {
-    padding: 0.4rem 0.8rem;
+  .modal-actions .icon-btn {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
     border: none;
-    border-radius: 4px;
-    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    box-sizing: border-box;
   }
-  .save-btn {
-    background: var(--accent, #0066cc);
-    color: white;
-  }
-  .reset-btn {
-    background: #d32f2f;
-    color: white;
-  }
-  .cancel-btn {
-    background: transparent;
-    color: var(--text-secondary, #666);
-    border: 1px solid var(--card-border, #ccc) !important;
-  }
-  .save-btn:hover, .reset-btn:hover { opacity: 0.85; }
-  .cancel-btn:hover { background: var(--hover-bg, rgba(0,0,0,0.04)); }
+  .modal-actions .icon-btn :global(svg), .modal-actions .icon-btn :global(.iconify) { font-size: 1.3rem; }
+  .modal-actions .icon-btn.save-btn { background: var(--accent, #0066cc); color: white; }
+  .modal-actions .icon-btn.reset-btn { background: #d32f2f; color: white; }
+  .modal-actions .icon-btn.cancel-btn { background: transparent; color: var(--text-secondary, #666); border: 1px solid var(--card-border, #ccc); }
+  .modal-actions .icon-btn:hover { opacity: 0.85; }
 </style>

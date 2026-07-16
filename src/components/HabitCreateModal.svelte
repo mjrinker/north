@@ -4,6 +4,7 @@
   import Modal from './Modal.svelte';
   import TagInput from './TagInput.svelte';
   import DependencyPicker from './DependencyPicker.svelte';
+  import Icon from '@iconify/svelte';
 
   let {
     habits,
@@ -111,8 +112,8 @@
     <TagInput bind:tags={habitTags} allTags={existingTags} />
 
     <div class="modal-actions">
-      <button type="submit">Create</button>
-      <button type="button" onclick={onClose}>Cancel</button>
+      <button type="submit" class="icon-btn" aria-label="Create"><Icon icon="mdi:check" /></button>
+      <button type="button" onclick={onClose} class="icon-btn cancel" aria-label="Cancel"><Icon icon="mdi:close" /></button>
     </div>
   </form>
 </Modal>
@@ -149,21 +150,21 @@
     display: flex;
     gap: 0.5rem;
     margin-top: 1rem;
+    justify-content: flex-end;
   }
-  .modal-actions button {
-    flex: 1;
-    padding: 0.5rem;
-    border-radius: 4px;
+  .modal-actions .icon-btn {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
     border: none;
-    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    box-sizing: border-box;
   }
-  .modal-actions button[type="submit"] {
-    background: var(--accent, #0066cc);
-    color: white;
-  }
-  .modal-actions button[type="button"] {
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-primary, #222);
-  }
+  .modal-actions .icon-btn :global(svg), .modal-actions .icon-btn :global(.iconify) { font-size: 1.3rem; }
+  .modal-actions .icon-btn[type="submit"] { background: var(--accent, #0066cc); color: white; }
+  .modal-actions .icon-btn.cancel { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
+  .modal-actions .icon-btn:hover { opacity: 0.85; }
 </style>

@@ -7,6 +7,7 @@
   import HabitCard from '../../components/HabitCard.svelte';
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
+  import Icon from '@iconify/svelte';
 
   let allHabits = $state<Habit[]>([]);
   habitsStore.subscribe(v => allHabits = v);
@@ -192,7 +193,6 @@
 <h1 class="page-title">Today</h1>
 
 <div class="toolbar">
-  <button class="add-habit-btn" onclick={() => showCreate = true}>+ Add Habit</button>
   <label class="sort-label">
     Sort:
     <select bind:value={sortMode}>
@@ -203,6 +203,8 @@
     </select>
   </label>
 </div>
+
+<button class="fab" onclick={() => showCreate = true} aria-label="Add Habit"><Icon icon="mdi:plus" /></button>
 
 {#if showCreate}
   <HabitCreateModal {habits} onClose={() => showCreate = false} />
@@ -261,17 +263,6 @@
     margin-bottom: 0.5rem;
     color: var(--text-primary, #222);
   }
-  .add-habit-btn {
-    background: var(--accent, #0066cc);
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    font-size: 1.2rem;
-    cursor: pointer;
-    margin-bottom: 1rem;
-  }
-  .add-habit-btn:hover { opacity: 0.9; }
   .toolbar {
     display: flex;
     align-items: center;
@@ -279,6 +270,25 @@
     margin-bottom: 1rem;
     flex-wrap: wrap;
   }
+  .fab {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 50%;
+    background: var(--accent, #0066cc);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    z-index: 50;
+  }
+  .fab :global(svg), .fab :global(.iconify) { font-size: 1.75rem; }
+  .fab:hover { opacity: 0.9; }
   .sort-label {
     display: flex;
     align-items: center;

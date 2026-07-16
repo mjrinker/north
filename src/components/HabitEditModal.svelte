@@ -4,6 +4,7 @@
   import Modal from './Modal.svelte';
   import TagInput from './TagInput.svelte';
   import DependencyPicker from './DependencyPicker.svelte';
+  import Icon from '@iconify/svelte';
 
   let {
     habit,
@@ -93,9 +94,9 @@
     <TagInput bind:tags={habitTags} allTags={existingTags} />
 
     <div class="actions">
-      <button onclick={handleSave}>Save Changes</button>
-      <button class="danger" onclick={handleDelete}>Delete</button>
-      <button class="cancel-btn" onclick={onClose}>Cancel</button>
+      <button onclick={handleSave} class="icon-btn" aria-label="Save"><Icon icon="mdi:check" /></button>
+      <button onclick={handleDelete} class="icon-btn danger" aria-label="Delete"><Icon icon="mdi:delete" /></button>
+      <button onclick={onClose} class="icon-btn cancel" aria-label="Cancel"><Icon icon="mdi:close" /></button>
     </div>
   </div>
 </Modal>
@@ -124,16 +125,21 @@
     font-weight: 500;
     color: var(--text-primary, #222);
   }
-  .actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
-  .actions button {
-    flex: 1;
-    padding: 0.5rem;
+  .actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; justify-content: flex-end; }
+  .actions .icon-btn {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
     border: none;
-    border-radius: 4px;
-    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    box-sizing: border-box;
   }
-  .actions button:first-child { background: var(--accent, #0066cc); color: white; }
-  .actions button.danger { background: #d32f2f; color: white; }
-  .actions button.cancel-btn { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
+  .actions .icon-btn :global(svg), .actions .icon-btn :global(.iconify) { font-size: 1.3rem; }
+  .actions .icon-btn:first-child { background: var(--accent, #0066cc); color: white; }
+  .actions .icon-btn.danger { background: #d32f2f; color: white; }
+  .actions .icon-btn.cancel { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
+  .actions .icon-btn:hover { opacity: 0.85; }
 </style>
