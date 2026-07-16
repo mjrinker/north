@@ -274,12 +274,12 @@
             <button onclick={(e) => { e.stopPropagation(); pauseTimer(); }} class="btn-icon pause" aria-label="Pause"><Icon icon="mdi:pause" style="color: inherit" /></button>
           {/if}
           <button onclick={(e) => { e.stopPropagation(); doneTimer(); }} class="btn-icon done" aria-label="Done"><Icon icon="mdi:check" style="color: inherit" /></button>
-          <button onclick={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn-icon cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: #333" /></button>
+          <button onclick={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn-icon cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: inherit" /></button>
         {:else}
           <button onclick={(e) => { e.stopPropagation(); startTimer(); }} class="btn-icon play" aria-label="Start"><Icon icon="mdi:play" style="color: inherit" /></button>
         {/if}
         {#if todayEntry && todayEntry.value > 0}
-          <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn-icon restart" aria-label="Reset"><Icon icon="mdi:restart" style="color: #333" /></button>
+          <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn-icon restart" aria-label="Reset"><Icon icon="mdi:restart" style="color: inherit" /></button>
         {/if}
         <div class="dur-input-wrap" class:running={timerState.running} style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
           {#if (timerState.running ? timerHrs : durHours) > 0}
@@ -401,8 +401,8 @@
   .btn-icon.play { background: var(--accent, #0066cc); color: white; }
   .btn-icon.pause { background: #f59e0b; color: white; }
   .btn-icon.done { background: #2e7d32; color: white; }
-  .btn-icon.cancel { background: transparent; color: var(--text-primary, #222); border: 1px solid var(--card-border, #ccc); }
-  .btn-icon.restart { background: transparent; color: var(--text-primary, #222); border: 1px solid var(--card-border, #ccc); }
+  .btn-icon.cancel { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
+  .btn-icon.restart { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
   .qty-input-wrap {
     display: flex;
     align-items: center;

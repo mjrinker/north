@@ -34,6 +34,7 @@ body.light {
   --input-border: #ccc;
   --accent: #0066cc;
   --accent-hover: #0052a3;
+  --btn-secondary-bg: #eee;
   --slide-track: #e0e0e0;
   --slide-thumb: #fff;
   background: var(--bg);
@@ -54,6 +55,7 @@ body.dark {
   --input-border: #2a3a5e;
   --accent: #4da6ff;
   --accent-hover: #3d8be8;
+  --btn-secondary-bg: #2a3a5e;
   --slide-track: #2a3a5e;
   --slide-thumb: #1a1a2e;
   background: var(--bg);
@@ -75,6 +77,7 @@ body.dark {
     --input-border: #2a3a5e;
     --accent: #4da6ff;
     --accent-hover: #3d8be8;
+    --btn-secondary-bg: #2a3a5e;
     --slide-track: #2a3a5e;
     --slide-thumb: #1a1a2e;
     background: var(--bg);
@@ -96,6 +99,7 @@ body.dark {
     --input-border: #ccc;
     --accent: #0066cc;
     --accent-hover: #0052a3;
+    --btn-secondary-bg: #eee;
     --slide-track: #e0e0e0;
     --slide-thumb: #fff;
     background: var(--bg);

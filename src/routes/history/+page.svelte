@@ -361,7 +361,7 @@
       <div class="modal-actions">
         <button class="icon-btn save-btn" onclick={saveEdit} aria-label="Save"><Icon icon="mdi:check" style="color: inherit" /></button>
         <button class="icon-btn reset-btn" onclick={resetEdit} aria-label="Reset"><Icon icon="mdi:restart" style="color: inherit" /></button>
-        <button class="icon-btn cancel-btn" onclick={() => editTarget = null} aria-label="Cancel"><Icon icon="mdi:close" style="color: #333" /></button>
+        <button class="icon-btn cancel-btn" onclick={() => editTarget = null} aria-label="Cancel"><Icon icon="mdi:close" style="color: inherit" /></button>
       </div>
     </div>
   </div>
@@ -561,6 +561,6 @@
   .modal-actions .icon-btn :global(svg), .modal-actions .icon-btn :global(.iconify) { font-size: 1.3rem; color: inherit; }
   .modal-actions .icon-btn.save-btn { background: var(--accent, #0066cc); color: white; }
   .modal-actions .icon-btn.reset-btn { background: #d32f2f; color: white; }
-  .modal-actions .icon-btn.cancel-btn { background: transparent; color: var(--text-primary, #222); border: 1px solid var(--card-border, #ccc); }
+  .modal-actions .icon-btn.cancel-btn { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
   .modal-actions .icon-btn:hover { opacity: 0.85; }
 </style>

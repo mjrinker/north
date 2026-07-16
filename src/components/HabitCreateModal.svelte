@@ -113,7 +113,7 @@
 
     <div class="modal-actions">
       <button type="submit" class="icon-btn" aria-label="Create"><Icon icon="mdi:check" style="color: inherit" /></button>
-      <button type="button" onclick={onClose} class="icon-btn cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: #333" /></button>
+      <button type="button" onclick={onClose} class="icon-btn cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: inherit" /></button>
     </div>
   </form>
 </Modal>
