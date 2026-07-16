@@ -196,8 +196,8 @@
 
   async function afterLogCompletion(habit: Habit, date: string) {
     await refreshEntries();
-    await cascadeCheck(habit, date, habits, getDayEntryAsync);
-    await cascadeUncheck(habit, date, habits, getDayEntryAsync);
+    await cascadeCheck(habit, date, habits, getDayEntryAsync, afterUpsert);
+    await cascadeUncheck(habit, date, habits, getDayEntryAsync, afterUpsert);
   }
 
   function openEditModal(habit: Habit, date: string) {
