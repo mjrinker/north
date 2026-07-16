@@ -94,9 +94,11 @@
     <TagInput bind:tags={habitTags} allTags={existingTags} />
 
     <div class="actions">
-      <button onclick={handleSave} class="icon-btn" aria-label="Save"><Icon icon="mdi:check" style="color: inherit" /></button>
       <button onclick={handleDelete} class="icon-btn danger" aria-label="Delete"><Icon icon="mdi:delete" style="color: inherit" /></button>
-      <button onclick={onClose} class="icon-btn cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: inherit" /></button>
+      <div class="actions-right">
+        <button onclick={handleSave} class="icon-btn save" aria-label="Save"><Icon icon="mdi:check" style="color: inherit" /></button>
+        <button onclick={onClose} class="icon-btn cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: inherit" /></button>
+      </div>
     </div>
   </div>
 </Modal>
@@ -125,10 +127,11 @@
     font-weight: 500;
     color: var(--text-primary, #222);
   }
-  .actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; justify-content: flex-end; }
+  .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; }
+  .actions-right { display: flex; gap: 0.5rem; }
   .actions .icon-btn {
-    width: 2.4rem;
-    height: 2.4rem;
+    width: 2.8rem;
+    height: 2.8rem;
     border-radius: 50%;
     border: none;
     display: inline-flex;
@@ -137,8 +140,8 @@
     cursor: pointer;
     box-sizing: border-box;
   }
-  .actions .icon-btn :global(svg), .actions .icon-btn :global(.iconify) { font-size: 1.3rem; color: inherit; }
-  .actions .icon-btn:first-child { background: var(--accent, #0066cc); color: white; }
+  .actions .icon-btn :global(svg), .actions .icon-btn :global(.iconify) { font-size: 1.5rem; color: inherit; }
+  .actions .icon-btn.save { background: var(--accent, #0066cc); color: white; }
   .actions .icon-btn.danger { background: #d32f2f; color: white; }
   .actions .icon-btn.cancel { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
   .actions .icon-btn:hover { opacity: 0.85; }
