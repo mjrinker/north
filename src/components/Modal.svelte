@@ -1,5 +1,13 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+
   let { onClose, children }: { onClose: () => void; children?: import('svelte').Snippet } = $props();
+
+  onMount(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  });
 </script>
 
 <div class="modal-overlay" role="dialog" aria-modal="true" tabindex="-1" onclick={onClose} onkeydown={(e) => { if (e.key === 'Escape') onClose(); }}>

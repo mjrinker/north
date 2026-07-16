@@ -10,6 +10,13 @@
   import Icon from '@iconify/svelte';
   import { tick } from 'svelte';
 
+  $effect(() => {
+    if (editTarget) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  });
+
   let habits = $state<Habit[]>([]);
   habitsStore.subscribe(v => (habits = v.filter(h => h.status === 'active')));
 
