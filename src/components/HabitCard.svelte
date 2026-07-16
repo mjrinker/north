@@ -278,7 +278,7 @@
         {:else}
           <button onclick={(e) => { e.stopPropagation(); startTimer(); }} class="btn-icon play" aria-label="Start"><Icon icon="mdi:play" style="color: inherit" /></button>
         {/if}
-        {#if todayEntry && todayEntry.value > 0}
+        {#if todayEntry && todayEntry.value > 0 && !timerState.running}
           <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn-icon restart" aria-label="Reset"><Icon icon="mdi:restart" style="color: inherit" /></button>
         {/if}
         <div class="dur-input-wrap" class:running={timerState.running} style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
