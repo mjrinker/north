@@ -204,7 +204,7 @@
   </label>
 </div>
 
-<button class="fab" onclick={() => showCreate = true} aria-label="Add Habit"><Icon icon="mdi:plus" /></button>
+<button class="fab" onclick={() => showCreate = true} aria-label="Add Habit"><Icon icon="mdi:plus" style="color: inherit" /></button>
 
 {#if showCreate}
   <HabitCreateModal {habits} onClose={() => showCreate = false} />

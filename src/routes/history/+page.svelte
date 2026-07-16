@@ -273,7 +273,7 @@
 
 <h1>History</h1>
 
-<button class="fab" onclick={() => showCreate = true} aria-label="Add Habit"><Icon icon="mdi:plus" /></button>
+<button class="fab" onclick={() => showCreate = true} aria-label="Add Habit"><Icon icon="mdi:plus" style="color: inherit" /></button>
 
 {#if showCreate}
   <HabitCreateModal {habits} onClose={() => showCreate = false} />
@@ -359,9 +359,9 @@
         </div>
       {/if}
       <div class="modal-actions">
-        <button class="icon-btn save-btn" onclick={saveEdit} aria-label="Save"><Icon icon="mdi:check" /></button>
-        <button class="icon-btn reset-btn" onclick={resetEdit} aria-label="Reset"><Icon icon="mdi:restart" /></button>
-        <button class="icon-btn cancel-btn" onclick={() => editTarget = null} aria-label="Cancel"><Icon icon="mdi:close" /></button>
+        <button class="icon-btn save-btn" onclick={saveEdit} aria-label="Save"><Icon icon="mdi:check" style="color: inherit" /></button>
+        <button class="icon-btn reset-btn" onclick={resetEdit} aria-label="Reset"><Icon icon="mdi:restart" style="color: inherit" /></button>
+        <button class="icon-btn cancel-btn" onclick={() => editTarget = null} aria-label="Cancel"><Icon icon="mdi:close" style="color: var(--text-primary, #222)" /></button>
       </div>
     </div>
   </div>

@@ -112,8 +112,8 @@
     <TagInput bind:tags={habitTags} allTags={existingTags} />
 
     <div class="modal-actions">
-      <button type="submit" class="icon-btn" aria-label="Create"><Icon icon="mdi:check" /></button>
-      <button type="button" onclick={onClose} class="icon-btn cancel" aria-label="Cancel"><Icon icon="mdi:close" /></button>
+      <button type="submit" class="icon-btn" aria-label="Create"><Icon icon="mdi:check" style="color: inherit" /></button>
+      <button type="button" onclick={onClose} class="icon-btn cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: var(--text-primary, #222)" /></button>
     </div>
   </form>
 </Modal>
