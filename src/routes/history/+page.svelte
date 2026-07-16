@@ -390,7 +390,7 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     z-index: 50;
   }
-  .fab :global(svg), .fab :global(.iconify) { font-size: 1.75rem; }
+  .fab :global(svg), .fab :global(.iconify) { font-size: 1.75rem; color: inherit; }
   .fab:hover { opacity: 0.9; }
 
   .table-scroll {
@@ -558,7 +558,7 @@
     cursor: pointer;
     box-sizing: border-box;
   }
-  .modal-actions .icon-btn :global(svg), .modal-actions .icon-btn :global(.iconify) { font-size: 1.3rem; }
+  .modal-actions .icon-btn :global(svg), .modal-actions .icon-btn :global(.iconify) { font-size: 1.3rem; color: inherit; }
   .modal-actions .icon-btn.save-btn { background: var(--accent, #0066cc); color: white; }
   .modal-actions .icon-btn.reset-btn { background: #d32f2f; color: white; }
   .modal-actions .icon-btn.cancel-btn { background: transparent; color: var(--text-primary, #222); border: 1px solid var(--card-border, #ccc); }

@@ -163,7 +163,7 @@
     cursor: pointer;
     box-sizing: border-box;
   }
-  .modal-actions .icon-btn :global(svg), .modal-actions .icon-btn :global(.iconify) { font-size: 1.3rem; }
+  .modal-actions .icon-btn :global(svg), .modal-actions .icon-btn :global(.iconify) { font-size: 1.3rem; color: inherit; }
   .modal-actions .icon-btn[type="submit"] { background: var(--accent, #0066cc); color: white; }
   .modal-actions .icon-btn.cancel { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
   .modal-actions .icon-btn:hover { opacity: 0.85; }

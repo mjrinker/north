@@ -287,7 +287,7 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     z-index: 50;
   }
-  .fab :global(svg), .fab :global(.iconify) { font-size: 1.75rem; }
+  .fab :global(svg), .fab :global(.iconify) { font-size: 1.75rem; color: inherit; }
   .fab:hover { opacity: 0.9; }
   .sort-label {
     display: flex;

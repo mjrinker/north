@@ -397,7 +397,7 @@
     flex-shrink: 0;
   }
   .btn-icon:hover { opacity: 0.85; }
-  .btn-icon :global(svg), .btn-icon :global(.iconify) { font-size: 1.3rem; }
+  .btn-icon :global(svg), .btn-icon :global(.iconify) { font-size: 1.3rem; color: inherit; }
   .btn-icon.play { background: var(--accent, #0066cc); color: white; }
   .btn-icon.pause { background: #f59e0b; color: white; }
   .btn-icon.done { background: #2e7d32; color: white; }

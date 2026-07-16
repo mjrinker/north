@@ -137,7 +137,7 @@
     cursor: pointer;
     box-sizing: border-box;
   }
-  .actions .icon-btn :global(svg), .actions .icon-btn :global(.iconify) { font-size: 1.3rem; }
+  .actions .icon-btn :global(svg), .actions .icon-btn :global(.iconify) { font-size: 1.3rem; color: inherit; }
   .actions .icon-btn:first-child { background: var(--accent, #0066cc); color: white; }
   .actions .icon-btn.danger { background: #d32f2f; color: white; }
   .actions .icon-btn.cancel { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
