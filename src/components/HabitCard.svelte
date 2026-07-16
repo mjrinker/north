@@ -274,12 +274,12 @@
             <button onclick={(e) => { e.stopPropagation(); pauseTimer(); }} class="btn-icon pause" aria-label="Pause"><Icon icon="mdi:pause" style="color: inherit" /></button>
           {/if}
           <button onclick={(e) => { e.stopPropagation(); doneTimer(); }} class="btn-icon done" aria-label="Done"><Icon icon="mdi:check" style="color: inherit" /></button>
-          <button onclick={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn-icon cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: var(--text-primary, #222)" /></button>
+          <button onclick={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn-icon cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: #333" /></button>
         {:else}
           <button onclick={(e) => { e.stopPropagation(); startTimer(); }} class="btn-icon play" aria-label="Start"><Icon icon="mdi:play" style="color: inherit" /></button>
         {/if}
         {#if todayEntry && todayEntry.value > 0}
-          <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn-icon restart" aria-label="Reset"><Icon icon="mdi:restart" style="color: var(--text-primary, #222)" /></button>
+          <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn-icon restart" aria-label="Reset"><Icon icon="mdi:restart" style="color: #333" /></button>
         {/if}
         <div class="dur-input-wrap" class:running={timerState.running} style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
           {#if (timerState.running ? timerHrs : durHours) > 0}

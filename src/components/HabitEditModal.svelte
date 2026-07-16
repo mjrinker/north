@@ -96,7 +96,7 @@
     <div class="actions">
       <button onclick={handleSave} class="icon-btn" aria-label="Save"><Icon icon="mdi:check" style="color: inherit" /></button>
       <button onclick={handleDelete} class="icon-btn danger" aria-label="Delete"><Icon icon="mdi:delete" style="color: inherit" /></button>
-      <button onclick={onClose} class="icon-btn cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: var(--text-primary, #222)" /></button>
+      <button onclick={onClose} class="icon-btn cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: #333" /></button>
     </div>
   </div>
 </Modal>
