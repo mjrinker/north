@@ -16,10 +16,9 @@
   let tagGroups = $derived.by(() => {
     const groups: { tag: string; habits: Habit[] }[] = [];
     const tags = Array.from(new Set(habits.flatMap(h => h.tags))).sort();
-    let customOrder: string[] = [];
+    let order: string[] = [];
     if (sortMode === 'custom') {
-      const order = getCustomOrder();
-      customOrder = order.filter(id => habits.some(h => h.id === id));
+      order = customOrder.filter(id => habits.some(h => h.id === id));
     }
     for (const tag of tags) {
       let tagged = habits.filter(h => h.tags.includes(tag));
@@ -83,22 +82,24 @@
   let dragHabitId = $state<string | null>(null);
   let touchDragHabitId = $state<string | null>(null);
 
-  function getCustomOrder(): string[] {
+  function loadCustomOrder(): string[] {
     try {
       const stored = localStorage.getItem('habitOrder');
       return stored ? JSON.parse(stored) : [];
     } catch { return []; }
   }
 
+  let customOrder = $state<string[]>(loadCustomOrder());
+
   function saveCustomOrder(order: string[]) {
+    customOrder = order;
     localStorage.setItem('habitOrder', JSON.stringify(order));
   }
 
   function reorder(fromId: string, targetId: string) {
     if (!fromId || fromId === targetId) return;
-    const order = getCustomOrder();
     const allIds = habits.map(h => h.id);
-    const baseOrder = order.length > 0 ? order.filter(id => allIds.includes(id)) : allIds;
+    const baseOrder = customOrder.length > 0 ? customOrder.filter(id => allIds.includes(id)) : [...allIds];
     const fromIdx = baseOrder.indexOf(fromId);
     const toIdx = baseOrder.indexOf(targetId);
     if (fromIdx === -1 || toIdx === -1) return;
@@ -118,15 +119,15 @@
     e.preventDefault();
     e.dataTransfer!.dropEffect = 'move';
     const el = (e.target as HTMLElement).closest<HTMLElement>('.habit-wrapper');
-    if (el) {
-      document.querySelectorAll('.habit-wrapper.drag-over').forEach(n => n.classList.remove('drag-over'));
-      el.classList.add('drag-over');
+    if (el && el.dataset.habitId && el.dataset.habitId !== dragHabitId) {
+      document.querySelectorAll('.habit-wrapper.drop-target').forEach(n => n.classList.remove('drop-target'));
+      el.classList.add('drop-target');
     }
   }
 
   function handleGridDrop(e: DragEvent) {
     e.preventDefault();
-    document.querySelectorAll('.habit-wrapper.drag-over').forEach(n => n.classList.remove('drag-over'));
+    document.querySelectorAll('.habit-wrapper.drop-target').forEach(n => n.classList.remove('drop-target'));
     const el = (e.target as HTMLElement).closest<HTMLElement>('.habit-wrapper');
     if (!el) return;
     const targetId = el.dataset.habitId;
@@ -137,18 +138,20 @@
   }
 
   function handleDragEnd() {
-    document.querySelectorAll('.habit-wrapper.drag-over').forEach(n => n.classList.remove('drag-over'));
+    document.querySelectorAll('.habit-wrapper.drop-target').forEach(n => n.classList.remove('drop-target'));
     dragHabitId = null;
   }
 
   // Touch drag-and-drop (mobile)
   let touchDragFromId: string | null = null;
+  let touchDragTargetId: string | null = null;
 
   function handleTouchDragStart(e: TouchEvent, habitId: string) {
     if (sortMode !== 'custom') return;
     e.preventDefault();
     e.stopPropagation();
     touchDragFromId = habitId;
+    touchDragTargetId = null;
     const el = (e.currentTarget as HTMLElement).closest<HTMLElement>('.habit-wrapper');
     if (el) el.classList.add('dragging');
   }
@@ -156,32 +159,23 @@
   function handleTouchDragMove(e: TouchEvent) {
     if (!touchDragFromId) return;
     e.preventDefault();
-    const y = e.touches[0].clientY;
-    const target = document.elementFromPoint(e.touches[0].clientX, y);
+    const target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
     if (!target) return;
     const el = (target as HTMLElement).closest<HTMLElement>('.habit-wrapper');
-    if (!el) return;
-    document.querySelectorAll('.habit-wrapper.drag-over').forEach(n => n.classList.remove('drag-over'));
-    if (el.dataset.habitId !== touchDragFromId) {
-      el.classList.add('drag-over');
+    if (!el || !el.dataset.habitId || el.dataset.habitId === touchDragFromId) return;
+    if (el.dataset.habitId !== touchDragTargetId) {
+      touchDragTargetId = el.dataset.habitId;
+      reorder(touchDragFromId, el.dataset.habitId);
     }
   }
 
   function handleTouchDragEnd(e: TouchEvent) {
     if (!touchDragFromId) return;
     e.preventDefault();
-    document.querySelectorAll('.habit-wrapper.dragging, .habit-wrapper.drag-over').forEach(n => {
-      n.classList.remove('dragging', 'drag-over');
+    document.querySelectorAll('.habit-wrapper.dragging').forEach(n => {
+      n.classList.remove('dragging');
     });
-    const y = e.changedTouches[0].clientY;
-    const x = e.changedTouches[0].clientX;
-    const target = document.elementFromPoint(x, y);
-    if (target) {
-      const el = (target as HTMLElement).closest<HTMLElement>('.habit-wrapper');
-      if (el && el.dataset.habitId && el.dataset.habitId !== touchDragFromId) {
-        reorder(touchDragFromId!, el.dataset.habitId);
-      }
-    }
+    touchDragTargetId = null;
     touchDragFromId = null;
   }
 
@@ -415,7 +409,8 @@
     overflow: hidden;
   }
   .habit-wrapper.dragging { opacity: 0.4; }
-  .habit-wrapper.drag-over { outline: 2px dashed var(--accent, #0066cc); outline-offset: -2px; border-radius: 8px; }
+  .habit-wrapper.drop-target { outline: 2px dashed var(--accent, #0066cc); outline-offset: -2px; border-radius: 8px; }
+
   .habit-slider {
     position: relative;
     z-index: 1;
