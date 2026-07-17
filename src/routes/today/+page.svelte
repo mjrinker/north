@@ -1,5 +1,6 @@
 <script lang="ts">
   import { get } from 'svelte/store';
+  import { flip } from 'svelte/animate';
   import { habitsStore, updateHabit, removeHabit } from '../../stores/habits';
   import { supabaseSyncProvider } from '../../services/sync.providers/supabase';
   import { user } from '../../stores/auth';
@@ -141,9 +142,12 @@
     dragHabitId = null;
   }
 
-  // Touch drag-and-drop (mobile)
+  // Touch drag-and-drop (mobile) — ghost + FLIP
   let touchDragFromId: string | null = null;
   let touchDragTargetId: string | null = null;
+  let dragGhost: HTMLElement | null = null;
+  let ghostStartX = 0;
+  let ghostStartY = 0;
 
   function handleTouchDragStart(e: TouchEvent, habitId: string) {
     if (sortMode !== 'custom') return;
@@ -152,26 +156,44 @@
     touchDragFromId = habitId;
     touchDragTargetId = null;
     document.body.style.overflow = 'hidden';
-    const el = (e.currentTarget as HTMLElement).closest<HTMLElement>('.habit-wrapper');
-    if (el) el.classList.add('dragging');
+    const wrapper = (e.currentTarget as HTMLElement).closest<HTMLElement>('.habit-wrapper');
+    if (!wrapper) return;
+    const rect = wrapper.getBoundingClientRect();
+    const ghost = wrapper.cloneNode(true) as HTMLElement;
+    ghost.style.position = 'fixed';
+    ghost.style.left = rect.left + 'px';
+    ghost.style.top = rect.top + 'px';
+    ghost.style.width = rect.width + 'px';
+    ghost.style.height = rect.height + 'px';
+    ghost.style.zIndex = '1000';
+    ghost.style.pointerEvents = 'none';
+    ghost.style.transform = 'scale(1.05)';
+    ghost.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
+    ghost.style.borderRadius = '8px';
+    ghost.style.opacity = '0.95';
+    ghost.style.overflow = 'hidden';
+    ghost.classList.add('drag-ghost');
+    document.body.appendChild(ghost);
+    dragGhost = ghost;
+    ghostStartX = e.touches[0].clientX;
+    ghostStartY = e.touches[0].clientY;
+    wrapper.style.opacity = '0.25';
   }
 
   function handleTouchDragMove(e: TouchEvent) {
-    if (!touchDragFromId) return;
+    if (!touchDragFromId || !dragGhost) return;
     e.preventDefault();
     e.stopPropagation();
+    const dx = e.touches[0].clientX - ghostStartX;
+    const dy = e.touches[0].clientY - ghostStartY;
+    dragGhost.style.transform = `translate(${dx}px, ${dy}px) scale(1.05)`;
     const target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
     if (!target) return;
     const el = (target as HTMLElement).closest<HTMLElement>('.habit-wrapper');
-    if (!el || !el.dataset.habitId) return;
-    if (el.dataset.habitId === touchDragFromId) return;
+    if (!el || !el.dataset.habitId || el.dataset.habitId === touchDragFromId) return;
     touchDragTargetId = el.dataset.habitId;
-    clearDropTargets();
-    el.classList.add('drop-target');
-  }
-
-  function clearDropTargets() {
     document.querySelectorAll('.habit-wrapper.drop-target').forEach(n => n.classList.remove('drop-target'));
+    el.classList.add('drop-target');
   }
 
   function handleTouchDragEnd(e: TouchEvent) {
@@ -179,11 +201,11 @@
     e.preventDefault();
     e.stopPropagation();
     document.body.style.overflow = '';
-    document.querySelectorAll('.habit-wrapper.dragging').forEach(n => n.classList.remove('dragging'));
-    clearDropTargets();
-    if (touchDragTargetId) {
-      reorder(touchDragFromId, touchDragTargetId);
-    }
+    if (dragGhost) { dragGhost.remove(); dragGhost = null; }
+    const wrapper = document.querySelector<HTMLElement>(`.habit-wrapper[data-habit-id="${CSS.escape(touchDragFromId)}"]`);
+    if (wrapper) wrapper.style.opacity = '';
+    document.querySelectorAll('.habit-wrapper.drop-target').forEach(n => n.classList.remove('drop-target'));
+    if (touchDragTargetId) reorder(touchDragFromId, touchDragTargetId);
     touchDragTargetId = null;
     touchDragFromId = null;
   }
@@ -297,36 +319,38 @@
       on:dragend={handleDragEnd}
     >
       {#each group.habits as habit (habit.id)}
-        <div class="habit-wrapper" data-habit-id={habit.id} class:dragging={dragHabitId === habit.id}>
-          <div
-            class="habit-slider"
-            style="transform: {sliderTransform(habit.id)}"
-            on:touchstart|nonpassive={(e) => handleTouchStart(e, habit.id)}
-            on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
-            on:touchend={(e) => handleTouchEnd(e, habit.id)}
-          >
-            {#if sortMode === 'custom'}
-              <span
-                class="drag-handle"
-                draggable="true"
-                on:dragstart={(e) => handleDragStart(e, habit.id)}
-                on:touchstart|nonpassive={(e) => handleTouchDragStart(e, habit.id)}
-                on:touchmove|nonpassive={(e) => handleTouchDragMove(e)}
-                on:touchend={(e) => handleTouchDragEnd(e)}
-              ><Icon icon="mdi:drag" /></span>
-            {/if}
-            <HabitCard {habit} onEdit={() => openEdit(habit)} />
-          </div>
-          <div
-            class="swipe-actions"
-            style="transform: {actionsTransform(habit.id)}"
-          >
-            <button class="swipe-btn archive" on:click={() => archiveHabit(habit)} aria-label="Archive">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
-            </button>
-            <button class="swipe-btn delete" on:click={() => deleteHabit(habit)} aria-label="Delete">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/></svg>
-            </button>
+        <div animate:flip={{ duration: 200 }}>
+          <div class="habit-wrapper" data-habit-id={habit.id}>
+            <div
+              class="habit-slider"
+              style="transform: {sliderTransform(habit.id)}"
+              on:touchstart|nonpassive={(e) => handleTouchStart(e, habit.id)}
+              on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
+              on:touchend={(e) => handleTouchEnd(e, habit.id)}
+            >
+              {#if sortMode === 'custom'}
+                <span
+                  class="drag-handle"
+                  draggable="true"
+                  on:dragstart={(e) => handleDragStart(e, habit.id)}
+                  on:touchstart|nonpassive={(e) => handleTouchDragStart(e, habit.id)}
+                  on:touchmove|nonpassive={(e) => handleTouchDragMove(e)}
+                  on:touchend={(e) => handleTouchDragEnd(e)}
+                ><Icon icon="mdi:drag" /></span>
+              {/if}
+              <HabitCard {habit} onEdit={() => openEdit(habit)} />
+            </div>
+            <div
+              class="swipe-actions"
+              style="transform: {actionsTransform(habit.id)}"
+            >
+              <button class="swipe-btn archive" on:click={() => archiveHabit(habit)} aria-label="Archive">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+              </button>
+              <button class="swipe-btn delete" on:click={() => deleteHabit(habit)} aria-label="Delete">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/></svg>
+              </button>
+            </div>
           </div>
         </div>
       {/each}
@@ -417,8 +441,8 @@
     position: relative;
     overflow: hidden;
   }
-  .habit-wrapper.dragging { opacity: 0.4; }
   .habit-wrapper.drop-target { outline: 2px dashed var(--accent, #0066cc); outline-offset: -2px; border-radius: 8px; }
+  .drag-ghost { transition: transform 0.05s linear; }
 
   .habit-slider {
     position: relative;
