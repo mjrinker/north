@@ -346,11 +346,14 @@
   }
   .dep-badge {
     font-size: 0.65rem;
-    padding: 1px 6px;
-    border-radius: 4px;
+    padding: 2px 10px;
+    border-radius: 999px;
     white-space: nowrap;
-    background: var(--card-bg, #f5f5f5);
-    color: var(--text-secondary, #666);
+    background: var(--accent, #0066cc);
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
   }
   .streak {
     margin: 2px 0 0 0;
