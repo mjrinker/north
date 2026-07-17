@@ -81,6 +81,7 @@
   }
 
   let dragHabitId = $state<string | null>(null);
+  let touchDragHabitId = $state<string | null>(null);
 
   function getCustomOrder(): string[] {
     try {
@@ -93,18 +94,7 @@
     localStorage.setItem('habitOrder', JSON.stringify(order));
   }
 
-  function handleDragStart(e: DragEvent, habitId: string) {
-    dragHabitId = habitId;
-    e.dataTransfer?.setData('text/plain', habitId);
-  }
-
-  function handleDragOver(e: DragEvent) {
-    e.preventDefault();
-  }
-
-  function handleDrop(e: DragEvent, targetId: string) {
-    e.preventDefault();
-    const fromId = e.dataTransfer?.getData('text/plain') || dragHabitId;
+  function reorder(fromId: string, targetId: string) {
     if (!fromId || fromId === targetId) return;
     const order = getCustomOrder();
     const allIds = habits.map(h => h.id);
@@ -115,7 +105,84 @@
     baseOrder.splice(fromIdx, 1);
     baseOrder.splice(toIdx, 0, fromId);
     saveCustomOrder(baseOrder);
+  }
+
+  // HTML5 drag-and-drop (desktop)
+  function handleDragStart(e: DragEvent, habitId: string) {
+    dragHabitId = habitId;
+    e.dataTransfer!.effectAllowed = 'move';
+    e.dataTransfer!.setData('text/plain', habitId);
+  }
+
+  function handleGridDragOver(e: DragEvent) {
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = 'move';
+    const el = (e.target as HTMLElement).closest<HTMLElement>('.habit-wrapper');
+    if (el) {
+      document.querySelectorAll('.habit-wrapper.drag-over').forEach(n => n.classList.remove('drag-over'));
+      el.classList.add('drag-over');
+    }
+  }
+
+  function handleGridDrop(e: DragEvent) {
+    e.preventDefault();
+    document.querySelectorAll('.habit-wrapper.drag-over').forEach(n => n.classList.remove('drag-over'));
+    const el = (e.target as HTMLElement).closest<HTMLElement>('.habit-wrapper');
+    if (!el) return;
+    const targetId = el.dataset.habitId;
+    if (!targetId) return;
+    const fromId = e.dataTransfer?.getData('text/plain') || dragHabitId;
+    if (fromId) reorder(fromId, targetId);
     dragHabitId = null;
+  }
+
+  function handleDragEnd() {
+    document.querySelectorAll('.habit-wrapper.drag-over').forEach(n => n.classList.remove('drag-over'));
+    dragHabitId = null;
+  }
+
+  // Touch drag-and-drop (mobile)
+  let touchDragFromId: string | null = null;
+
+  function handleTouchDragStart(e: TouchEvent, habitId: string) {
+    if (sortMode !== 'custom') return;
+    e.preventDefault();
+    e.stopPropagation();
+    touchDragFromId = habitId;
+    const el = (e.currentTarget as HTMLElement).closest<HTMLElement>('.habit-wrapper');
+    if (el) el.classList.add('dragging');
+  }
+
+  function handleTouchDragMove(e: TouchEvent) {
+    if (!touchDragFromId) return;
+    e.preventDefault();
+    const y = e.touches[0].clientY;
+    const target = document.elementFromPoint(e.touches[0].clientX, y);
+    if (!target) return;
+    const el = (target as HTMLElement).closest<HTMLElement>('.habit-wrapper');
+    if (!el) return;
+    document.querySelectorAll('.habit-wrapper.drag-over').forEach(n => n.classList.remove('drag-over'));
+    if (el.dataset.habitId !== touchDragFromId) {
+      el.classList.add('drag-over');
+    }
+  }
+
+  function handleTouchDragEnd(e: TouchEvent) {
+    if (!touchDragFromId) return;
+    e.preventDefault();
+    document.querySelectorAll('.habit-wrapper.dragging, .habit-wrapper.drag-over').forEach(n => {
+      n.classList.remove('dragging', 'drag-over');
+    });
+    const y = e.changedTouches[0].clientY;
+    const x = e.changedTouches[0].clientX;
+    const target = document.elementFromPoint(x, y);
+    if (target) {
+      const el = (target as HTMLElement).closest<HTMLElement>('.habit-wrapper');
+      if (el && el.dataset.habitId && el.dataset.habitId !== touchDragFromId) {
+        reorder(touchDragFromId!, el.dataset.habitId);
+      }
+    }
+    touchDragFromId = null;
   }
 
   let showCreate = $state(false);
@@ -221,15 +288,13 @@
       {group.tag}
     </button>
     {#if !collapsedGroups.has(group.tag)}
-    <div class="habits-grid">
+    <div class="habits-grid"
+      ondragover={handleGridDragOver}
+      ondrop={handleGridDrop}
+      ondragend={handleDragEnd}
+    >
       {#each group.habits as habit (habit.id)}
-        <div class="habit-wrapper"
-          draggable={sortMode === 'custom'}
-          ondragstart={(e) => handleDragStart(e, habit.id)}
-          ondragover={handleDragOver}
-          ondrop={(e) => handleDrop(e, habit.id)}
-          class:dragging={dragHabitId === habit.id}
-        >
+        <div class="habit-wrapper" data-habit-id={habit.id} class:dragging={dragHabitId === habit.id}>
           <div
             class="habit-slider"
             style="transform: {sliderTransform(habit.id)}"
@@ -237,6 +302,16 @@
             ontouchmove={(e) => handleTouchMove(e, habit.id)}
             ontouchend={(e) => handleTouchEnd(e, habit.id)}
           >
+            {#if sortMode === 'custom'}
+              <span
+                class="drag-handle"
+                draggable="true"
+                ondragstart={(e) => handleDragStart(e, habit.id)}
+                ontouchstart={(e) => handleTouchDragStart(e, habit.id)}
+                ontouchmove={(e) => handleTouchDragMove(e)}
+                ontouchend={(e) => handleTouchDragEnd(e)}
+              ><Icon icon="mdi:drag" /></span>
+            {/if}
             <HabitCard {habit} onEdit={() => openEdit(habit)} />
           </div>
           <div
@@ -338,8 +413,9 @@
   .habit-wrapper {
     position: relative;
     overflow: hidden;
-    cursor: grab;
   }
+  .habit-wrapper.dragging { opacity: 0.4; }
+  .habit-wrapper.drag-over { outline: 2px dashed var(--accent, #0066cc); outline-offset: -2px; border-radius: 8px; }
   .habit-slider {
     position: relative;
     z-index: 1;
@@ -348,7 +424,18 @@
     display: flex;
     align-items: stretch;
   }
-  .habit-wrapper.dragging { opacity: 0.4; }
+  .drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    cursor: grab;
+    color: var(--text-secondary, #888);
+    flex-shrink: 0;
+    touch-action: none;
+  }
+  .drag-handle:active { cursor: grabbing; }
+  .drag-handle :global(svg), .drag-handle :global(.iconify) { font-size: 1.4rem; }
   .swipe-actions {
     position: absolute;
     right: 0;
