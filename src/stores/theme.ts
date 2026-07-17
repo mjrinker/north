@@ -41,32 +41,32 @@ function hexToHsl(hex: string): { h: number; s: number; l: number } {
 function applyPalette(hue: number, isDark: boolean) {
   const body = document.body;
   if (isDark) {
-    body.style.setProperty('--bg', `hsl(${hue}, 20%, 8%)`);
-    body.style.setProperty('--text', `hsl(${hue}, 10%, 88%)`);
-    body.style.setProperty('--text-primary', `hsl(${hue}, 10%, 88%)`);
-    body.style.setProperty('--text-secondary', `hsl(${hue}, 8%, 65%)`);
-    body.style.setProperty('--nav-bg', `hsl(${hue}, 18%, 12%)`);
-    body.style.setProperty('--nav-border', `hsl(${hue}, 15%, 20%)`);
-    body.style.setProperty('--card-bg', `hsl(${hue}, 18%, 12%)`);
-    body.style.setProperty('--card-border', `hsl(${hue}, 15%, 20%)`);
-    body.style.setProperty('--input-bg', `hsl(${hue}, 20%, 8%)`);
-    body.style.setProperty('--input-border', `hsl(${hue}, 15%, 20%)`);
-    body.style.setProperty('--btn-secondary-bg', `hsl(${hue}, 15%, 18%)`);
-    body.style.setProperty('--slide-track', `hsl(${hue}, 15%, 20%)`);
-    body.style.setProperty('--slide-thumb', `hsl(${hue}, 18%, 12%)`);
+    body.style.setProperty('--bg', `hsl(${hue}, 45%, 10%)`);
+    body.style.setProperty('--text', `hsl(${hue}, 15%, 90%)`);
+    body.style.setProperty('--text-primary', `hsl(${hue}, 15%, 90%)`);
+    body.style.setProperty('--text-secondary', `hsl(${hue}, 10%, 65%)`);
+    body.style.setProperty('--nav-bg', `hsl(${hue}, 40%, 15%)`);
+    body.style.setProperty('--nav-border', `hsl(${hue}, 30%, 25%)`);
+    body.style.setProperty('--card-bg', `hsl(${hue}, 40%, 15%)`);
+    body.style.setProperty('--card-border', `hsl(${hue}, 30%, 25%)`);
+    body.style.setProperty('--input-bg', `hsl(${hue}, 45%, 10%)`);
+    body.style.setProperty('--input-border', `hsl(${hue}, 30%, 25%)`);
+    body.style.setProperty('--btn-secondary-bg', `hsl(${hue}, 30%, 22%)`);
+    body.style.setProperty('--slide-track', `hsl(${hue}, 30%, 25%)`);
+    body.style.setProperty('--slide-thumb', `hsl(${hue}, 40%, 15%)`);
   } else {
-    body.style.setProperty('--bg', `hsl(${hue}, 15%, 97%)`);
-    body.style.setProperty('--text', `hsl(${hue}, 10%, 20%)`);
-    body.style.setProperty('--text-primary', `hsl(${hue}, 10%, 20%)`);
-    body.style.setProperty('--text-secondary', `hsl(${hue}, 8%, 45%)`);
-    body.style.setProperty('--nav-bg', `hsl(${hue}, 12%, 95%)`);
-    body.style.setProperty('--nav-border', `hsl(${hue}, 10%, 88%)`);
+    body.style.setProperty('--bg', `hsl(${hue}, 35%, 92%)`);
+    body.style.setProperty('--text', `hsl(${hue}, 25%, 18%)`);
+    body.style.setProperty('--text-primary', `hsl(${hue}, 25%, 18%)`);
+    body.style.setProperty('--text-secondary', `hsl(${hue}, 20%, 45%)`);
+    body.style.setProperty('--nav-bg', `hsl(${hue}, 30%, 88%)`);
+    body.style.setProperty('--nav-border', `hsl(${hue}, 20%, 78%)`);
     body.style.setProperty('--card-bg', `#ffffff`);
-    body.style.setProperty('--card-border', `hsl(${hue}, 10%, 88%)`);
+    body.style.setProperty('--card-border', `hsl(${hue}, 20%, 78%)`);
     body.style.setProperty('--input-bg', `#ffffff`);
-    body.style.setProperty('--input-border', `hsl(${hue}, 8%, 80%)`);
-    body.style.setProperty('--btn-secondary-bg', `hsl(${hue}, 8%, 92%)`);
-    body.style.setProperty('--slide-track', `hsl(${hue}, 10%, 88%)`);
+    body.style.setProperty('--input-border', `hsl(${hue}, 15%, 70%)`);
+    body.style.setProperty('--btn-secondary-bg', `hsl(${hue}, 20%, 84%)`);
+    body.style.setProperty('--slide-track', `hsl(${hue}, 20%, 78%)`);
     body.style.setProperty('--slide-thumb', `#ffffff`);
   }
 }
