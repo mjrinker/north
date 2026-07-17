@@ -271,7 +271,7 @@
   </label>
 </div>
 
-<button class="fab" onclick={() => showCreate = true} aria-label="Add Habit"><Icon icon="mdi:plus" style="color: inherit" /></button>
+<button class="fab" on:click={() => showCreate = true} aria-label="Add Habit"><Icon icon="mdi:plus" style="color: inherit" /></button>
 
 {#if showCreate}
   <HabitCreateModal {habits} onClose={() => showCreate = false} />
@@ -283,33 +283,33 @@
 
 {#each tagGroups as group}
   <div class="tag-section">
-    <button class="tag-header" onclick={() => toggleGroup(group.tag)}>
+    <button class="tag-header" on:click={() => toggleGroup(group.tag)}>
       <span class="collapse-arrow">{collapsedGroups.has(group.tag) ? '▶' : '▼'}</span>
       {group.tag}
     </button>
     {#if !collapsedGroups.has(group.tag)}
     <div class="habits-grid"
-      ondragover={handleGridDragOver}
-      ondrop={handleGridDrop}
-      ondragend={handleDragEnd}
+      on:dragover={handleGridDragOver}
+      on:drop={handleGridDrop}
+      on:dragend={handleDragEnd}
     >
       {#each group.habits as habit (habit.id)}
         <div class="habit-wrapper" data-habit-id={habit.id} class:dragging={dragHabitId === habit.id}>
           <div
             class="habit-slider"
             style="transform: {sliderTransform(habit.id)}"
-            ontouchstart={(e) => handleTouchStart(e, habit.id)}
-            ontouchmove={(e) => handleTouchMove(e, habit.id)}
-            ontouchend={(e) => handleTouchEnd(e, habit.id)}
+            on:touchstart|nonpassive={(e) => handleTouchStart(e, habit.id)}
+            on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
+            on:touchend={(e) => handleTouchEnd(e, habit.id)}
           >
             {#if sortMode === 'custom'}
               <span
                 class="drag-handle"
                 draggable="true"
-                ondragstart={(e) => handleDragStart(e, habit.id)}
-                ontouchstart={(e) => handleTouchDragStart(e, habit.id)}
-                ontouchmove={(e) => handleTouchDragMove(e)}
-                ontouchend={(e) => handleTouchDragEnd(e)}
+                on:dragstart={(e) => handleDragStart(e, habit.id)}
+                on:touchstart|nonpassive={(e) => handleTouchDragStart(e, habit.id)}
+                on:touchmove|nonpassive={(e) => handleTouchDragMove(e)}
+                on:touchend={(e) => handleTouchDragEnd(e)}
               ><Icon icon="mdi:drag" /></span>
             {/if}
             <HabitCard {habit} onEdit={() => openEdit(habit)} />
@@ -318,10 +318,10 @@
             class="swipe-actions"
             style="transform: {actionsTransform(habit.id)}"
           >
-            <button class="swipe-btn archive" onclick={() => archiveHabit(habit)} aria-label="Archive">
+            <button class="swipe-btn archive" on:click={() => archiveHabit(habit)} aria-label="Archive">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
             </button>
-            <button class="swipe-btn delete" onclick={() => deleteHabit(habit)} aria-label="Delete">
+            <button class="swipe-btn delete" on:click={() => deleteHabit(habit)} aria-label="Delete">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/></svg>
             </button>
           </div>
