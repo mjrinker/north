@@ -9,6 +9,8 @@
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import Icon from '@iconify/svelte';
+  import { loadPlaces, getCurrentTimeSlot, getCurrentLocation, isAtPlace } from '../../lib/places';
+  import type { SuggestedPlace } from '../../types';
 
   let allHabits = $state<Habit[]>([]);
   habitsStore.subscribe(v => allHabits = v);
@@ -43,6 +45,24 @@
     }
     return groups;
   });
+
+  // Smart suggestions
+  let places = $state<SuggestedPlace[]>(loadPlaces());
+  let currentTimeSlot = $derived(getCurrentTimeSlot());
+  let currentLocation = $state<GeolocationPosition | null>(null);
+  let locationChecked = $state(false);
+
+  $effect(() => {
+    getCurrentLocation().then(pos => { currentLocation = pos; locationChecked = true; });
+  });
+
+  let suggestedHabits = $derived(habits.filter(h => {
+    const matchTime = h.suggestedTimeSlot && h.suggestedTimeSlot === currentTimeSlot;
+    const matchPlace = h.suggestedPlaceId && currentLocation
+      ? places.some(p => p.id === h.suggestedPlaceId && isAtPlace(currentLocation, p))
+      : false;
+    return matchTime || matchPlace;
+  }));
 
   function loadSortMode(): 'tag' | 'name' | 'type' | 'custom' {
     try {
@@ -311,6 +331,33 @@
   <HabitEditModal habit={editingHabit} allHabits={habits} onClose={() => editingHabit = null} />
 {/if}
 
+{#if suggestedHabits.length > 0}
+  <section class="suggested-section">
+    <div class="suggested-header">
+      <span class="suggested-icon">💡</span>
+      Suggested
+      {#if currentTimeSlot}
+        <span class="suggested-time">{currentTimeSlot}</span>
+      {/if}
+    </div>
+    <div class="habits-grid">
+      {#each suggestedHabits as habit (habit.id)}
+        <div>
+          <div class="habit-wrapper" data-habit-id={habit.id}>
+            <div class="habit-slider" style="transform: {sliderTransform(habit.id)}"
+              on:touchstart|nonpassive={(e) => handleTouchStart(e, habit.id)}
+              on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
+              on:touchend={(e) => handleTouchEnd(e, habit.id)}
+            >
+              <HabitCard {habit} onEdit={() => openEdit(habit)} />
+            </div>
+          </div>
+        </div>
+      {/each}
+    </div>
+  </section>
+{/if}
+
 {#each tagGroups as group}
   <div class="tag-section">
     <button class="tag-header" on:click={() => toggleGroup(group.tag)}>
@@ -443,6 +490,31 @@
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1rem;
     margin-bottom: 2rem;
+  }
+  .suggested-section {
+    margin-bottom: 1.5rem;
+  }
+  .suggested-section .habits-grid { margin-bottom: 0; }
+  .suggested-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent, #0066cc);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.75rem;
+  }
+  .suggested-icon { font-size: 1rem; }
+  .suggested-time {
+    font-size: 0.7rem;
+    background: var(--accent, #0066cc);
+    color: #fff;
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-weight: 600;
+    text-transform: capitalize;
   }
   .habit-wrapper {
     position: relative;

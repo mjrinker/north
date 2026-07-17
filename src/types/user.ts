@@ -5,10 +5,19 @@ export interface AppUser {
   avatar?: string
 }
 
+export interface SuggestedPlace {
+  id: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+  radius: number;
+}
+
 export interface UserPreferences {
   theme: 'light' | 'dark' | 'system'
   timezone: string
   notificationSettings: NotificationSettings
+  places?: SuggestedPlace[];
 }
 
 export interface NotificationSettings {

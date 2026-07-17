@@ -2,6 +2,7 @@ import type { Schedule } from './schedule';
 
 export type HabitType = 'binary' | 'quantity' | 'duration';
 export type HabitStatus = 'active' | 'paused' | 'archived';
+export type TimeSlot = 'morning' | 'afternoon' | 'evening';
 
 export interface DependsOn {
   habitIds: string[];
@@ -28,6 +29,10 @@ export interface Habit {
 	
 	identityId?: string;
 	tags: string[];
+	
+	// Smart suggestions
+	suggestedTimeSlot?: TimeSlot;
+	suggestedPlaceId?: string;
 	
 	status: HabitStatus;
 	createdAt: Date;
