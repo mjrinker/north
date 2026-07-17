@@ -11,6 +11,7 @@
   import { onDestroy } from 'svelte';
   import Icon from '@iconify/svelte';
   import { addLog } from '../lib/completionLog';
+  import { marked } from 'marked';
   let { habit, onEdit }: { habit: Habit; onEdit?: () => void } = $props();
 
   let allHabits = $state<Habit[]>([]);
@@ -221,6 +222,9 @@
       {/if}
     </div>
     <p class="streak">Streak: {streak} {habit.schedule.daysPerWeek ? 'weeks' : 'days'}</p>
+    {#if habit.description}
+      <div class="desc">{@html marked.parse(habit.description)}</div>
+    {/if}
   </div>
   <div class="card-right">
     {#if habit.type === 'binary'}
@@ -352,6 +356,24 @@
     font-size: 1rem;
     color: var(--text-primary, #222);
   }
+  .desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #666);
+    line-height: 1.5;
+    max-height: 4.5em;
+    overflow-y: auto;
+    margin-top: 0.35rem;
+    word-wrap: break-word;
+  }
+  .desc :global(p) { margin: 0 0 0.4em; }
+  .desc :global(p:last-child) { margin-bottom: 0; }
+  .desc :global(ul), .desc :global(ol) { margin: 0.3em 0; padding-left: 1.2em; }
+  .desc :global(li) { margin: 0.1em 0; }
+  .desc :global(code) { font-size: 0.75em; background: var(--btn-secondary-bg, #eee); padding: 1px 4px; border-radius: 3px; }
+  .desc :global(pre) { font-size: 0.75em; background: var(--btn-secondary-bg, #eee); padding: 0.5rem; border-radius: 4px; overflow-x: auto; margin: 0.4em 0; }
+  .desc :global(blockquote) { margin: 0.4em 0; padding-left: 0.6em; border-left: 3px solid var(--card-border, #ccc); color: var(--text-secondary, #888); }
+  .desc :global(a) { color: var(--text-secondary, #666); text-decoration: underline; }
+  .desc :global(img) { max-width: 100%; height: auto; border-radius: 4px; }
   .dep-badge {
     font-size: 0.65rem;
     padding: 2px 10px;

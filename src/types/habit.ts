@@ -12,6 +12,7 @@ export interface DependsOn {
 export interface Habit {
 	id: string;
 	title: string;
+	description?: string;
 	type: HabitType;
 	
 	// The numeric value required for "Standard" success

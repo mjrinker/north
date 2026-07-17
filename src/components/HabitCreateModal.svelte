@@ -15,6 +15,7 @@
   } = $props();
 
   let title = $state('');
+  let description = $state('');
   let standard = $state(1);
   let target = $state<number | undefined>(2);
   let type: Habit['type'] = $state('binary');
@@ -37,6 +38,7 @@
     const newHabit: Habit = {
       id: crypto.randomUUID(),
       title: title.trim(),
+      description: description.trim() || undefined,
       standard,
       target: (type !== 'binary' && target) ? target : undefined,
       type,
@@ -71,6 +73,9 @@
   <form onsubmit={handleSubmit}>
     <label for="title">Title</label>
     <input type="text" bind:value={title} placeholder="Enter habit title" required />
+
+    <label for="description">Description (optional, supports Markdown)</label>
+    <textarea bind:value={description} placeholder="Add details about this habit..." class="desc-input"></textarea>
 
     <label for="type">Type</label>
     <select bind:value={type} required>
@@ -126,7 +131,7 @@
     font-weight: 500;
     color: var(--text-primary, #222);
   }
-  input, select {
+  input, select, .desc-input {
     width: 100%;
     padding: 0.5rem;
     border: 1px solid var(--card-border, #ccc);
@@ -136,6 +141,12 @@
     margin-bottom: 0.75rem;
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
+  }
+  .desc-input {
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+    min-height: 4rem;
+    resize: vertical;
   }
   .field-label {
     display: block;

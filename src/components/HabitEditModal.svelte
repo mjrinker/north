@@ -17,6 +17,7 @@
   } = $props();
 
   let title = $state(habit.title);
+  let description = $state(habit.description ?? '');
   let standard = $state(habit.standard);
   let target = $state<number | undefined>(habit.target);
   let type = $state<Habit['type']>(habit.type);
@@ -34,6 +35,7 @@
     const updated: Habit = {
       ...habit,
       title,
+      description: description.trim() || undefined,
       standard,
       target: type !== 'binary' ? target : undefined,
       type,
@@ -55,6 +57,10 @@
   <h2>{habit.title}</h2>
   <div class="form-grid">
     <label>Title <input bind:value={title} /></label>
+
+    <label>Description (supports Markdown)
+      <textarea bind:value={description} class="desc-input" placeholder="Add details about this habit..."></textarea>
+    </label>
 
     <label>Type
       <select bind:value={type}>
@@ -105,7 +111,7 @@
     color: var(--text-primary, #222);
     display: block;
   }
-  input, select {
+  input, select, .desc-input {
     width: 100%;
     padding: 0.5rem;
     border: 1px solid var(--card-border, #ccc);
@@ -115,6 +121,12 @@
     margin-top: 0.25rem;
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
+  }
+  .desc-input {
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+    min-height: 4rem;
+    resize: vertical;
   }
   .field-label {
     display: block;
