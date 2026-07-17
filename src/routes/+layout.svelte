@@ -18,6 +18,7 @@
   <a href="/history">History</a>
   {#if userHasFeature(roles, 'stats')}<a href="/stats">Stats</a>{/if}
   {#if userHasPermission(roles, 'access_admin')}<a href="/admin">Admin</a>{/if}
+  <a href="/settings">Settings</a>
   <div class="spacer"></div>
   {#if currentUser}
     {#if currentUser.user_metadata?.avatar_url}
