@@ -100,9 +100,10 @@
     if (!fromId || fromId === targetId) return;
     const allIds = habits.map(h => h.id);
     const baseOrder = customOrder.length > 0 ? customOrder.filter(id => allIds.includes(id)) : [...allIds];
-    const fromIdx = baseOrder.indexOf(fromId);
-    const toIdx = baseOrder.indexOf(targetId);
-    if (fromIdx === -1 || toIdx === -1) return;
+    let fromIdx = baseOrder.indexOf(fromId);
+    let toIdx = baseOrder.indexOf(targetId);
+    if (fromIdx === -1) { baseOrder.push(fromId); fromIdx = baseOrder.length - 1; }
+    if (toIdx === -1) { baseOrder.push(targetId); toIdx = baseOrder.length - 1; }
     baseOrder.splice(fromIdx, 1);
     baseOrder.splice(toIdx, 0, fromId);
     saveCustomOrder(baseOrder);
