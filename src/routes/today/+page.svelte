@@ -151,6 +151,7 @@
     e.stopPropagation();
     touchDragFromId = habitId;
     touchDragTargetId = null;
+    document.body.style.overflow = 'hidden';
     const el = (e.currentTarget as HTMLElement).closest<HTMLElement>('.habit-wrapper');
     if (el) el.classList.add('dragging');
   }
@@ -177,6 +178,7 @@
     if (!touchDragFromId) return;
     e.preventDefault();
     e.stopPropagation();
+    document.body.style.overflow = '';
     document.querySelectorAll('.habit-wrapper.dragging').forEach(n => n.classList.remove('dragging'));
     clearDropTargets();
     if (touchDragTargetId) {
