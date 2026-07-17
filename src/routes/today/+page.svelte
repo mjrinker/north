@@ -160,6 +160,10 @@
     if (!wrapper) return;
     const rect = wrapper.getBoundingClientRect();
     const ghost = wrapper.cloneNode(true) as HTMLElement;
+    const ghostSlider = ghost.querySelector<HTMLElement>('.habit-slider');
+    if (ghostSlider) ghostSlider.style.transform = '';
+    const ghostActions = ghost.querySelector<HTMLElement>('.swipe-actions');
+    if (ghostActions) ghostActions.style.transform = '';
     ghost.style.position = 'fixed';
     ghost.style.left = rect.left + 'px';
     ghost.style.top = rect.top + 'px';
