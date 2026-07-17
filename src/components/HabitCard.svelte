@@ -209,11 +209,7 @@
     <div class="title-row">
       <h3>{habit.title}</h3>
       {#if habit.dependsOn && habit.dependsOn.habitIds.length > 0}
-        <span class="dep-badge">
-          {#each habit.dependsOn.habitIds as hid, i}
-            {#if i > 0} {habit.dependsOn!.mode} {/if}{allHabits.find(h => h.id === hid)?.title ?? hid}
-          {/each}
-        </span>
+        <span class="dep-badge">conditional</span>
       {/if}
     </div>
     <p class="streak">Streak: {streak} {habit.schedule.daysPerWeek ? 'weeks' : 'days'}</p>
