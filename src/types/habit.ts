@@ -30,10 +30,6 @@ export interface Habit {
 	identityId?: string;
 	tags: string[];
 	
-	// Smart suggestions
-	suggestedTimeSlot?: TimeSlot;
-	suggestedPlaceId?: string;
-	
 	status: HabitStatus;
 	createdAt: Date;
 	updatedAt: Date;

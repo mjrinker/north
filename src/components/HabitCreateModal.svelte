@@ -1,11 +1,10 @@
 <script lang="ts">
-  import type { Habit, DependsOn, TimeSlot } from '../types';
+  import type { Habit, DependsOn } from '../types';
   import { addHabit } from '../stores/habits';
   import Modal from './Modal.svelte';
   import TagInput from './TagInput.svelte';
   import DependencyPicker from './DependencyPicker.svelte';
   import ModalActions from './ModalActions.svelte';
-  import { loadPlaces } from '../lib/places';
 
   let {
     habits,
@@ -26,9 +25,6 @@
   let habitTags = $state<string[]>([]);
   let showStandard = $derived(type !== 'binary');
   let existingTags = $derived(Array.from(new Set(habits.flatMap(h => h.tags))));
-  let suggestedTimeSlot = $state<TimeSlot | ''>('');
-  let suggestedPlaceId = $state('');
-  let places = $state(loadPlaces());
 
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
@@ -60,8 +56,6 @@
       dependsOn,
       identityId: undefined,
       tags: habitTags,
-      suggestedTimeSlot: suggestedTimeSlot || undefined,
-      suggestedPlaceId: suggestedPlaceId || undefined,
       status: 'active',
       createdAt: new Date(),
       updatedAt: new Date()
@@ -117,24 +111,6 @@
     <span class="field-label">Tags</span>
     <TagInput bind:tags={habitTags} allTags={existingTags} />
 
-    <span class="field-label">Suggest when</span>
-    <div class="suggestion-row">
-      <select bind:value={suggestedTimeSlot}>
-        <option value="">Anytime</option>
-        <option value="morning">Morning</option>
-        <option value="afternoon">Afternoon</option>
-        <option value="evening">Evening</option>
-      </select>
-      {#if places.length > 0}
-        <select bind:value={suggestedPlaceId}>
-          <option value="">Anywhere</option>
-          {#each places as place}
-            <option value={place.id}>{place.label}</option>
-          {/each}
-        </select>
-      {/if}
-    </div>
-
     <ModalActions onCancel={onClose} saveType="submit" saveLabel="Create" />
   </form>
 </Modal>
@@ -167,10 +143,4 @@
     font-weight: 500;
     color: var(--text-primary, #222);
   }
-  .suggestion-row {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-  }
-  .suggestion-row select { flex: 1; }
 </style>

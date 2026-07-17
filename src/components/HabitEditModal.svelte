@@ -1,11 +1,10 @@
 <script lang="ts">
-  import type { Habit, TimeSlot } from '../types';
+  import type { Habit } from '../types';
   import { updateHabit, removeHabit } from '../stores/habits';
   import Modal from './Modal.svelte';
   import TagInput from './TagInput.svelte';
   import DependencyPicker from './DependencyPicker.svelte';
   import ModalActions from './ModalActions.svelte';
-  import { loadPlaces } from '../lib/places';
 
   let {
     habit,
@@ -29,9 +28,6 @@
   let existingTags = $derived(Array.from(new Set(allHabits.flatMap(h => h.tags))));
   let showStandard = $derived(type !== 'binary');
   let showDeps = $derived(type === 'binary' && allHabits.filter(h => h.id !== habit.id).length > 0);
-  let suggestedTimeSlot = $state<TimeSlot | ''>(habit.suggestedTimeSlot ?? '');
-  let suggestedPlaceId = $state(habit.suggestedPlaceId ?? '');
-  let places = $state(loadPlaces());
 
   function handleSave() {
     const dependsOn = depIds.length > 0 ? { habitIds: depIds, mode: depMode } : undefined;
@@ -43,8 +39,6 @@
       type,
       dependsOn,
       tags: habitTags,
-      suggestedTimeSlot: suggestedTimeSlot || undefined,
-      suggestedPlaceId: suggestedPlaceId || undefined,
       schedule: { ...habit.schedule, frequency: frequency as 'daily' | 'weekly' | 'monthly' | 'custom' | 'days_per_week', interval, daysPerWeek: frequency === 'days_per_week' ? interval : undefined }
     };
     updateHabit(updated);
@@ -99,24 +93,6 @@
     <span class="field-label">Tags</span>
     <TagInput bind:tags={habitTags} allTags={existingTags} />
 
-    <span class="field-label">Suggest when</span>
-    <div class="suggestion-row">
-      <select bind:value={suggestedTimeSlot}>
-        <option value="">Anytime</option>
-        <option value="morning">Morning</option>
-        <option value="afternoon">Afternoon</option>
-        <option value="evening">Evening</option>
-      </select>
-      {#if places.length > 0}
-        <select bind:value={suggestedPlaceId}>
-          <option value="">Anywhere</option>
-          {#each places as place}
-            <option value={place.id}>{place.label}</option>
-          {/each}
-        </select>
-      {/if}
-    </div>
-
     <ModalActions onSave={handleSave} onCancel={onClose} onDelete={handleDelete} />
   </div>
 </Modal>
@@ -145,9 +121,4 @@
     font-weight: 500;
     color: var(--text-primary, #222);
   }
-  .suggestion-row {
-    display: flex;
-    gap: 0.5rem;
-  }
-  .suggestion-row select { flex: 1; }
 </style>

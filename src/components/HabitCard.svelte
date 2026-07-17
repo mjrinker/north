@@ -10,6 +10,7 @@
   import { entriesStore } from '../stores/entries';
   import { onDestroy } from 'svelte';
   import Icon from '@iconify/svelte';
+  import { addLog } from '../lib/completionLog';
   let { habit, onEdit }: { habit: Habit; onEdit?: () => void } = $props();
 
   let allHabits = $state<Habit[]>([]);
@@ -108,6 +109,7 @@
     setTimerState(habit.id, { running: true, paused: false, elapsed: initial, pausedElapsed: initial, startedAt: Date.now() });
     startTimerInterval();
     manualMinutes = '';
+    addLog(habit.id, 'start');
   }
 
   function pauseTimer() {
@@ -122,6 +124,7 @@
     if (!s) return;
     setTimerState(habit.id, { ...s, paused: false, startedAt: Date.now() });
     startTimerInterval();
+    addLog(habit.id, 'resume');
   }
 
   async function doneTimer() {
@@ -129,6 +132,7 @@
     if (!s) return;
     clearTimerInterval();
     await logAndRefresh(s.elapsed / 60);
+    await addLog(habit.id, 'complete');
     clearTimerState(habit.id);
   }
 
@@ -190,17 +194,21 @@
       await uncheckDependencies(habit, today, allHabits, getEntryFn);
     }
     await logAndRefresh(value);
+    if (value === 1) addLog(habit.id, 'complete');
   }
 
   async function handleQuantityDelta(delta: number) {
     if (!habit) return;
     const current = todayEntry?.value ?? 0;
     await logAndRefresh(Math.max(0, current + delta));
+    if (delta > 0) addLog(habit.id, 'increment');
+    else addLog(habit.id, 'decrement');
   }
 
   async function handleQuantitySet(value: number) {
     if (!habit) return;
     await logAndRefresh(value);
+    addLog(habit.id, 'complete');
   }
 </script>
 

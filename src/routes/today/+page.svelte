@@ -9,7 +9,7 @@
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import Icon from '@iconify/svelte';
-  import { loadPlaces, getCurrentTimeSlot, getCurrentLocation, isAtPlace } from '../../lib/places';
+  import { computeSuggestions, getCurrentTimeSlot, getCurrentLocation } from '../../lib/completionLog';
   import type { SuggestedPlace } from '../../types';
 
   let allHabits = $state<Habit[]>([]);
@@ -46,9 +46,7 @@
     return groups;
   });
 
-  // Smart suggestions
-  let places = $state<SuggestedPlace[]>(loadPlaces());
-  let currentTimeSlot = $derived(getCurrentTimeSlot());
+  // Smart suggestions — weighted by past time + location
   let currentLocation = $state<GeolocationPosition | null>(null);
   let locationChecked = $state(false);
 
@@ -56,13 +54,8 @@
     getCurrentLocation().then(pos => { currentLocation = pos; locationChecked = true; });
   });
 
-  let suggestedHabits = $derived(habits.filter(h => {
-    const matchTime = h.suggestedTimeSlot && h.suggestedTimeSlot === currentTimeSlot;
-    const matchPlace = h.suggestedPlaceId && currentLocation
-      ? places.some(p => p.id === h.suggestedPlaceId && isAtPlace(currentLocation, p))
-      : false;
-    return matchTime || matchPlace;
-  }));
+  let suggestedHabits = $derived(computeSuggestions(habits, undefined, currentLocation));
+  let currentTimeSlot = $derived(getCurrentTimeSlot());
 
   function loadSortMode(): 'tag' | 'name' | 'type' | 'custom' {
     try {
