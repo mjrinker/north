@@ -44,6 +44,6 @@
     transition: box-shadow 0.15s;
   }
   .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-  .card h2 { margin: 0 0 0.25rem; font-size: 1.1rem; color: var(--accent, #0066cc); }
+  .card h2 { margin: 0 0 0.25rem; font-size: 1.1rem; color: var(--text-primary, #222); }
   .card p { margin: 0; font-size: 0.85rem; color: var(--text-secondary, #666); }
 </style>

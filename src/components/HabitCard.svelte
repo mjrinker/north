@@ -387,8 +387,8 @@
   .btn.small {
     width: 2.4rem;
     font-size: 0.9rem;
-    background: var(--accent, #0066cc);
-    color: white;
+    background: var(--btn-secondary-bg, #eee);
+    color: var(--text-primary, #222);
   }
   .btn:hover { opacity: 0.85; }
   .btn-icon {
@@ -405,7 +405,7 @@
   }
   .btn-icon:hover { opacity: 0.85; }
   .btn-icon :global(svg), .btn-icon :global(.iconify) { font-size: 1.3rem; color: inherit; }
-  .btn-icon.play { background: var(--accent, #0066cc); color: white; }
+  .btn-icon.play { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
   .btn-icon.pause { background: #f59e0b; color: white; }
   .btn-icon.done { background: #2e7d32; color: white; }
   .btn-icon.cancel { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }

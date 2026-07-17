@@ -8,6 +8,7 @@ export interface AppSettings {
   themeMode: ThemeMode;
   oled: boolean;
   accentColor: string;
+  mainColor: string;
   launchScreen: LaunchScreen;
 }
 
@@ -30,6 +31,7 @@ const defaults: AppSettings = {
   themeMode: 'system',
   oled: false,
   accentColor: '',
+  mainColor: '',
   launchScreen: '/today',
 };
 

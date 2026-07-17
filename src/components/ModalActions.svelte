@@ -51,7 +51,7 @@
     box-sizing: border-box;
   }
   .icon-btn :global(svg), .icon-btn :global(.iconify) { font-size: 1.6rem; color: inherit; }
-  .icon-btn.save { background: var(--accent, #0066cc); color: white; }
+  .icon-btn.save { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
   .icon-btn.danger { background: #d32f2f; color: white; }
   .icon-btn.cancel { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
   .icon-btn:hover { opacity: 0.85; }

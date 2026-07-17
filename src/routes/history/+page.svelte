@@ -422,7 +422,7 @@
     line-height: 1.2;
     white-space: nowrap;
   }
-  th.today { color: var(--accent, #0066cc); }
+  th.today { color: var(--text-primary, #222); font-weight: 700; }
   .month-label { font-size: 0.7rem; font-weight: 700; padding: 2px 6px; color: var(--text-primary, #222); text-align: left; }
   .day-name { display: block; }
   .day-num { font-size: 0.6rem; font-weight: 400; }
@@ -484,9 +484,9 @@
     user-select: none;
   }
   .cell-btn:hover {
-    background: var(--accent, #0066cc);
-    color: white;
-    border-color: var(--accent, #0066cc);
+    background: var(--btn-secondary-bg, #eee);
+    color: var(--text-primary, #222);
+    border-color: var(--text-secondary, #888);
   }
 
   .modal-overlay {
@@ -569,7 +569,7 @@
     box-sizing: border-box;
   }
   .modal-actions .icon-btn :global(svg), .modal-actions .icon-btn :global(.iconify) { font-size: 1.3rem; color: inherit; }
-  .modal-actions .icon-btn.save-btn { background: var(--accent, #0066cc); color: white; }
+  .modal-actions .icon-btn.save-btn { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
   .modal-actions .icon-btn.reset-btn { background: #d32f2f; color: white; }
   .modal-actions .icon-btn.cancel-btn { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
   .modal-actions .icon-btn:hover { opacity: 0.85; }

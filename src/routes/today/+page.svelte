@@ -494,7 +494,7 @@
     gap: 0.4rem;
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--accent, #0066cc);
+    color: var(--text-secondary, #666);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 0.75rem;
@@ -513,7 +513,7 @@
     position: relative;
     overflow: hidden;
   }
-  .habit-wrapper.drop-target { outline: 2px dashed var(--accent, #0066cc); outline-offset: -2px; border-radius: 8px; }
+  .habit-wrapper.drop-target { outline: 2px dashed var(--text-secondary, #888); outline-offset: -2px; border-radius: 8px; }
   .drag-ghost { transition: transform 0.05s linear; }
 
   .habit-slider {

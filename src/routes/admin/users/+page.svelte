@@ -106,7 +106,7 @@
   .back-link {
     display: inline-block;
     margin-bottom: 1.25rem;
-    color: var(--accent, #0066cc);
+    color: var(--text-primary, #222);
     font-size: 0.85rem;
     text-decoration: none;
   }

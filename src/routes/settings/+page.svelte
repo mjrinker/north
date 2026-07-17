@@ -69,6 +69,15 @@
       <span class="setting-label">Accent color</span>
       <input type="color" value={s.accentColor || '#0066cc'} oninput={(e) => update({ accentColor: (e.target as HTMLInputElement).value })} class="color-picker" />
     </div>
+    <div class="setting-row">
+      <span class="setting-label">Main color</span>
+      <div class="color-row">
+        <input type="color" value={s.mainColor || '#1a1a2e'} oninput={(e) => update({ mainColor: (e.target as HTMLInputElement).value })} class="color-picker" />
+        {#if s.mainColor}
+          <button class="btn-reset" onclick={() => update({ mainColor: '' })}>Reset</button>
+        {/if}
+      </div>
+    </div>
   </section>
 
   <section class="card">
@@ -137,8 +146,8 @@
     padding: 0.5rem 1rem;
     border: 1px solid var(--card-border, #ccc);
     border-radius: 6px;
-    background: var(--accent, #0066cc);
-    color: white;
+    background: var(--btn-secondary-bg, #eee);
+    color: var(--text-primary, #222);
     cursor: pointer;
     font-size: 0.85rem;
     font-weight: 500;
@@ -178,6 +187,21 @@
     cursor: pointer;
     background: none;
   }
+  .color-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .btn-reset {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #888);
+  }
+  .btn-reset:hover { background: var(--btn-secondary-bg, #eee); }
   .toggle {
     position: relative;
     display: inline-block;
@@ -204,6 +228,6 @@
     border-radius: 50%;
     transition: transform 0.2s;
   }
-  .toggle input:checked + .toggle-slider { background: var(--accent, #0066cc); }
+  .toggle input:checked + .toggle-slider { background: var(--text-secondary, #888); }
   .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
 </style>

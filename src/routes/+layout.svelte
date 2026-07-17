@@ -70,9 +70,14 @@
   }
   nav a {
     text-decoration: none;
-    color: var(--accent, #0066cc);
+    color: var(--text-primary, #222);
     font-weight: 500;
     font-size: 0.9rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: 4px;
+  }
+  nav a:hover {
+    background: var(--btn-secondary-bg, #eee);
   }
   .spacer { flex: 1; }
   .avatar { width: 24px; height: 24px; border-radius: 50%; }
@@ -87,8 +92,7 @@
     color: var(--text-primary, #222);
   }
   .auth-btn:hover {
-    background: var(--accent, #0066cc);
-    color: white;
-    border-color: var(--accent, #0066cc);
+    background: var(--bg);
+    border-color: var(--text-secondary, #555);
   }
 </style>

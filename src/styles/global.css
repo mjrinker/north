@@ -130,8 +130,8 @@ body.oled {
 
 /* Base link style */
 a {
-  color: var(--accent);
-  text-decoration: none;
+  color: var(--text-primary);
+  text-decoration: underline;
 }
 
 a:hover {
