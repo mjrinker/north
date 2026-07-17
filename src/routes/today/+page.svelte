@@ -80,7 +80,6 @@
   }
 
   let dragHabitId = $state<string | null>(null);
-  let touchDragHabitId = $state<string | null>(null);
 
   function loadCustomOrder(): string[] {
     try {
@@ -159,22 +158,30 @@
   function handleTouchDragMove(e: TouchEvent) {
     if (!touchDragFromId) return;
     e.preventDefault();
+    e.stopPropagation();
     const target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
     if (!target) return;
     const el = (target as HTMLElement).closest<HTMLElement>('.habit-wrapper');
-    if (!el || !el.dataset.habitId || el.dataset.habitId === touchDragFromId) return;
-    if (el.dataset.habitId !== touchDragTargetId) {
-      touchDragTargetId = el.dataset.habitId;
-      reorder(touchDragFromId, el.dataset.habitId);
-    }
+    if (!el || !el.dataset.habitId) return;
+    if (el.dataset.habitId === touchDragFromId) return;
+    touchDragTargetId = el.dataset.habitId;
+    clearDropTargets();
+    el.classList.add('drop-target');
+  }
+
+  function clearDropTargets() {
+    document.querySelectorAll('.habit-wrapper.drop-target').forEach(n => n.classList.remove('drop-target'));
   }
 
   function handleTouchDragEnd(e: TouchEvent) {
     if (!touchDragFromId) return;
     e.preventDefault();
-    document.querySelectorAll('.habit-wrapper.dragging').forEach(n => {
-      n.classList.remove('dragging');
-    });
+    e.stopPropagation();
+    document.querySelectorAll('.habit-wrapper.dragging').forEach(n => n.classList.remove('dragging'));
+    clearDropTargets();
+    if (touchDragTargetId) {
+      reorder(touchDragFromId, touchDragTargetId);
+    }
     touchDragTargetId = null;
     touchDragFromId = null;
   }
