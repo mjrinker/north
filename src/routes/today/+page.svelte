@@ -364,6 +364,8 @@
   </div>
 {/each}
 
+<div class="fab-spacer"></div>
+
 <style>
   .page-title {
     font-size: 1.5rem;
@@ -496,6 +498,8 @@
   }
   .swipe-btn.archive { background: #f59e0b; }
   .swipe-btn.delete { background: #d32f2f; }
+
+  .fab-spacer { height: 5.5rem; }
 
   @media (max-width: 600px) {
     .habits-grid { grid-template-columns: 1fr; }

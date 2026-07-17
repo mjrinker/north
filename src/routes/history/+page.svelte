@@ -374,6 +374,8 @@
   </div>
 {/if}
 
+<div class="fab-spacer"></div>
+
 <style>
   h1 {
     font-size: 1.5rem;
@@ -399,6 +401,7 @@
   }
   .fab :global(svg), .fab :global(.iconify) { font-size: 1.75rem; color: inherit; }
   .fab:hover { opacity: 0.9; }
+  .fab-spacer { height: 5.5rem; }
 
   .table-scroll {
     overflow-x: auto;
