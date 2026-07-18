@@ -233,12 +233,12 @@
 </script>
 
 <div class="habit-card" role="button" tabindex="0"
-  on:mousedown={handleLongPressStart}
-  on:mouseup={handleLongPressEnd}
-  on:mouseleave={handleLongPressEnd}
-  on:touchstart|nonpassive={handleLongPressStart}
-  on:touchend={handleLongPressEnd}
-  on:touchmove|nonpassive={handleLongPressCancel}
+  onmousedown={handleLongPressStart}
+  onmouseup={handleLongPressEnd}
+  onmouseleave={handleLongPressEnd}
+  ontouchstart={handleLongPressStart}
+  ontouchend={handleLongPressEnd}
+  ontouchmove={handleLongPressCancel}
   onclick={() => { if (!longPressFired) onEdit?.(); }}
   onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit?.(); } }}>
   <div class="card-top">
