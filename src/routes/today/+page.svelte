@@ -590,6 +590,16 @@
   }
   .habit-wrapper.drop-target { outline: 2px dashed var(--text-secondary, #888); outline-offset: -2px; border-radius: 8px; }
   .drag-ghost { transition: transform 0.05s linear; }
+  .left-reveal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: stretch;
+    z-index: 0;
+    transition: transform 0.2s ease;
+  }
 
   .habit-slider {
     position: relative;
