@@ -447,7 +447,7 @@
   .note-badge {
     position: absolute;
     top: 6px;
-    right: 6px;
+    left: 6px;
     min-width: 18px;
     height: 18px;
     border-radius: 999px;
