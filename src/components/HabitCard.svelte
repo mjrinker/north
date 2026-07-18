@@ -214,20 +214,18 @@
 </script>
 
 <div class="habit-card" role="button" tabindex="0" onclick={() => onEdit?.()} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit?.(); } }}>
-  <div class="card-left">
-    <div class="title-row">
-      <h3>{habit.title}</h3>
-      {#if habit.dependsOn && habit.dependsOn.habitIds.length > 0}
-        <span class="dep-badge">conditional</span>
-      {/if}
+  <div class="card-top">
+    <div class="card-left">
+      <div class="title-row">
+        <h3>{habit.title}</h3>
+        {#if habit.dependsOn && habit.dependsOn.habitIds.length > 0}
+          <span class="dep-badge">conditional</span>
+        {/if}
+      </div>
+      <p class="streak">Streak: {streak} {habit.schedule.daysPerWeek ? 'weeks' : 'days'}</p>
     </div>
-    <p class="streak">Streak: {streak} {habit.schedule.daysPerWeek ? 'weeks' : 'days'}</p>
-    {#if habit.description}
-      <div class="desc">{@html marked.parse(habit.description)}</div>
-    {/if}
-  </div>
-  <div class="card-right">
-    {#if habit.type === 'binary'}
+    <div class="card-right">
+      {#if habit.type === 'binary'}
       <div class="action-control">
         <label class="binary-input-wrap" class:checked={todayEntry?.value === 1} onclick={(e) => e.stopPropagation()}>
           <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} disabled={isAutoCompleted} />
@@ -329,6 +327,10 @@
     {/if}
   </div>
 </div>
+{#if habit.description}
+  <div class="desc">{@html marked.parse(habit.description)}</div>
+{/if}
+</div>
 
 <style>
   .habit-card {
@@ -337,11 +339,16 @@
     border-radius: 8px;
     padding: 0.75rem 1rem;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.75rem;
+    flex-direction: column;
+    gap: 0;
     flex: 1;
     min-width: 0;
+  }
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
   }
   .card-left { flex: 1; min-width: 0; }
   .card-right { flex-shrink: 0; }
@@ -360,7 +367,7 @@
     font-size: 0.8rem;
     color: var(--text-secondary, #666);
     line-height: 1.5;
-    max-height: 4.5em;
+    max-height: 6.75em;
     overflow-y: auto;
     margin-top: 0.35rem;
     word-wrap: break-word;
