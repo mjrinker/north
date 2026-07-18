@@ -12,6 +12,12 @@
   import Icon from '@iconify/svelte';
   import { computeSuggestions, getCurrentTimeSlot, getCurrentLocation } from '../../lib/completionLog';
   import type { SuggestedPlace } from '../../types';
+  import { notesStore } from '../../stores/notes';
+  import { entriesStore } from '../../stores/entries';
+  import { HabitEngine } from '../../services/habitEngine';
+  import { getLocalDateString } from '../../lib/dates';
+
+  let today = getLocalDateString();
 
   let allHabits = $state<Habit[]>([]);
   habitsStore.subscribe(v => allHabits = v);
@@ -56,6 +62,28 @@
   });
 
   let suggestedHabits = $derived(computeSuggestions(habits, undefined, currentLocation));
+
+  let allEntries = $state<import('../../types').HabitEntry[]>([]);
+  entriesStore.subscribe(v => allEntries = v);
+  let completedHabitIds = $derived.by(() => {
+    const ids = new Set<string>();
+    for (const e of allEntries) {
+      if (e.date === today && e.standardMet) ids.add(e.habitId);
+    }
+    return ids;
+  });
+  let filteredSuggested = $derived(suggestedHabits.filter(h => !completedHabitIds.has(h.id)));
+  let suggestedCollapsed = $state(false);
+
+  let allNotes = $state<import('../../types').HabitNote[]>([]);
+  notesStore.subscribe(v => allNotes = v);
+  let notesCountMap = $derived.by(() => {
+    const map = new Map<string, number>();
+    for (const n of allNotes) {
+      if (n.date === today) map.set(n.habitId, (map.get(n.habitId) ?? 0) + 1);
+    }
+    return map;
+  });
   let currentTimeSlot = $derived(getCurrentTimeSlot());
 
   function loadSortMode(): 'tag' | 'name' | 'type' | 'custom' {
@@ -238,11 +266,14 @@
   let touchStartY = $state(0);
   let touchDx = $state(0);
   let swipedHabitId = $state<string | null>(null);
-  let swipingHabitId = $state<string | null>(null);
+  let swipedRightHabitId = $state<string | null>(null);
 
   function handleTouchStart(e: TouchEvent, habitId: string) {
     if (swipedHabitId && swipedHabitId !== habitId) {
       swipedHabitId = null;
+    }
+    if (swipedRightHabitId && swipedRightHabitId !== habitId) {
+      swipedRightHabitId = null;
     }
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
@@ -260,21 +291,33 @@
     if (swipingHabitId !== habitId) return;
     swipingHabitId = null;
     const dy = e.changedTouches[0].clientY - touchStartY;
-    if (touchDx < -SWIPE_THRESHOLD / 2 && Math.abs(touchDx) > Math.abs(dy) * 3) {
-      swipedHabitId = habitId;
+    if (Math.abs(touchDx) > Math.abs(dy) * 3) {
+      if (touchDx < -SWIPE_THRESHOLD / 2) {
+        swipedHabitId = habitId;
+        swipedRightHabitId = null;
+      } else if (touchDx > SWIPE_THRESHOLD / 2) {
+        swipedRightHabitId = habitId;
+        swipedHabitId = null;
+      } else {
+        swipedHabitId = null;
+        swipedRightHabitId = null;
+      }
     } else {
       swipedHabitId = null;
+      swipedRightHabitId = null;
     }
     touchDx = 0;
   }
 
   function openEdit(habit: Habit) {
     swipedHabitId = null;
+    swipedRightHabitId = null;
     editingHabit = habit;
   }
 
   async function archiveHabit(habit: Habit) {
     swipedHabitId = null;
+    swipedRightHabitId = null;
     const updated = { ...habit, status: 'archived' as const, updatedAt: new Date() };
     updateHabit(updated);
     if (get(user)) {
@@ -284,12 +327,18 @@
 
   function deleteHabit(habit: Habit) {
     swipedHabitId = null;
+    swipedRightHabitId = null;
     removeHabit(habit.id);
   }
 
   function sliderTransform(habitId: string): string {
-    const offset = swipedHabitId === habitId ? -SWIPE_THRESHOLD : (swipingHabitId === habitId && touchDx < 0 ? Math.max(touchDx, -SWIPE_THRESHOLD) : 0);
-    return `translateX(${offset}px)`;
+    if (swipedRightHabitId === habitId) return `translateX(${SWIPE_THRESHOLD}px)`;
+    if (swipedHabitId === habitId) return `translateX(${-SWIPE_THRESHOLD}px)`;
+    if (swipingHabitId === habitId) {
+      if (touchDx > 0) return `translateX(${Math.min(touchDx, SWIPE_THRESHOLD)}px)`;
+      if (touchDx < 0) return `translateX(${Math.max(touchDx, -SWIPE_THRESHOLD)}px)`;
+    }
+    return 'translateX(0)';
   }
 
   function actionsTransform(habitId: string): string {
@@ -299,6 +348,15 @@
       return `translateX(${(1 - reveal) * 100}%)`;
     }
     return 'translateX(100%)';
+  }
+
+  function leftRevealTransform(habitId: string): string {
+    if (swipedRightHabitId === habitId) return 'translateX(0)';
+    if (swipingHabitId === habitId && touchDx > 0) {
+      const reveal = Math.min(touchDx / SWIPE_THRESHOLD, 1);
+      return `translateX(${-(1 - reveal) * 100}%)`;
+    }
+    return 'translateX(-100%)';
   }
 </script>
 
@@ -330,17 +388,19 @@
   <NotesModal habitId={notesHabitId} onClose={() => notesHabitId = null} />
 {/if}
 
-{#if suggestedHabits.length > 0}
+{#if filteredSuggested.length > 0}
   <section class="suggested-section">
-    <div class="suggested-header">
+    <button class="suggested-header" on:click={() => suggestedCollapsed = !suggestedCollapsed}>
+      <span class="collapse-arrow">{suggestedCollapsed ? '▶' : '▼'}</span>
       <span class="suggested-icon">💡</span>
       Suggested
       {#if currentTimeSlot}
         <span class="suggested-time">{currentTimeSlot}</span>
       {/if}
-    </div>
+    </button>
+    {#if !suggestedCollapsed}
     <div class="habits-grid">
-      {#each suggestedHabits as habit (habit.id)}
+      {#each filteredSuggested as habit (habit.id)}
         <div>
           <div class="habit-wrapper" data-habit-id={habit.id}>
             <div class="habit-slider" style="transform: {sliderTransform(habit.id)}"
@@ -348,12 +408,13 @@
               on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
               on:touchend={(e) => handleTouchEnd(e, habit.id)}
             >
-              <HabitCard {habit} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} />
+              <HabitCard {habit} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} />
             </div>
           </div>
         </div>
       {/each}
     </div>
+    {/if}
   </section>
 {/if}
 
@@ -372,13 +433,7 @@
       {#each group.habits as habit (habit.id)}
         <div animate:flip={{ duration: 200 }}>
           <div class="habit-wrapper" data-habit-id={habit.id}>
-            <div
-              class="habit-slider"
-              style="transform: {sliderTransform(habit.id)}"
-              on:touchstart|nonpassive={(e) => handleTouchStart(e, habit.id)}
-              on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
-              on:touchend={(e) => handleTouchEnd(e, habit.id)}
-            >
+            <div class="left-reveal" style="transform: {leftRevealTransform(habit.id)}">
               {#if sortMode === 'custom'}
                 <span
                   class="drag-handle"
@@ -389,7 +444,15 @@
                   on:touchend={(e) => handleTouchDragEnd(e)}
                 ><Icon icon="mdi:drag" /></span>
               {/if}
-              <HabitCard {habit} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} />
+            </div>
+            <div
+              class="habit-slider"
+              style="transform: {sliderTransform(habit.id)}"
+              on:touchstart|nonpassive={(e) => handleTouchStart(e, habit.id)}
+              on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
+              on:touchend={(e) => handleTouchEnd(e, habit.id)}
+            >
+              <HabitCard {habit} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} />
             </div>
             <div
               class="swipe-actions"
@@ -504,6 +567,12 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 0.75rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    width: 100%;
+    text-align: left;
   }
   .suggested-icon { font-size: 1rem; }
   .suggested-time {

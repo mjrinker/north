@@ -12,7 +12,7 @@
   import Icon from '@iconify/svelte';
   import { addLog } from '../lib/completionLog';
   import { marked } from 'marked';
-  let { habit, onEdit, onNotes }: { habit: Habit; onEdit?: () => void; onNotes?: () => void } = $props();
+  let { habit, onEdit, onNotes, notesCount }: { habit: Habit; onEdit?: () => void; onNotes?: () => void; notesCount?: number } = $props();
   let showNotes = $state(false);
 
   let allHabits = $state<Habit[]>([]);
@@ -228,6 +228,9 @@
     <div class="card-right">
       <button onclick={(e) => { e.stopPropagation(); onNotes?.(); }} class="btn-icon notes" aria-label="Notes">
         <Icon icon="mdi:note-text-outline" style="color: inherit" />
+        {#if notesCount && notesCount > 0}
+          <span class="note-badge">{notesCount}</span>
+        {/if}
       </button>
       {#if habit.type === 'binary'}
       <div class="action-control">
@@ -442,8 +445,25 @@
   .btn-icon.pause { background: #f59e0b; color: white; }
   .btn-icon.done { background: #2e7d32; color: white; }
   .btn-icon.cancel { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
-  .btn-icon.notes { background: transparent; color: var(--text-secondary, #888); border: 1px solid var(--card-border, #ccc); font-size: 0.9rem; }
+  .btn-icon.notes { background: transparent; color: var(--text-secondary, #888); border: 1px solid var(--card-border, #ccc); font-size: 0.9rem; position: relative; }
   .btn-icon.notes:hover { color: var(--accent, #0066cc); border-color: var(--accent, #0066cc); }
+  .note-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: var(--accent, #0066cc);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    line-height: 1;
+  }
   .btn-icon.restart { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
   .qty-input-wrap {
     display: flex;
