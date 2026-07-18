@@ -226,12 +226,6 @@
       <p class="streak">Streak: {streak} {habit.schedule.daysPerWeek ? 'weeks' : 'days'}</p>
     </div>
     <div class="card-right">
-      <button onclick={(e) => { e.stopPropagation(); onNotes?.(); }} class="btn-icon notes" aria-label="Notes">
-        <Icon icon="mdi:note-text-outline" style="color: inherit" />
-        {#if notesCount && notesCount > 0}
-          <span class="note-badge">{notesCount}</span>
-        {/if}
-      </button>
       {#if habit.type === 'binary'}
       <div class="action-control">
         <label class="binary-input-wrap" class:checked={todayEntry?.value === 1} onclick={(e) => e.stopPropagation()}>
@@ -339,8 +333,13 @@
 {/if}
 </div>
 
+{#if notesCount && notesCount > 0}
+  <span class="note-badge">{notesCount}</span>
+{/if}
+
 <style>
   .habit-card {
+    position: relative;
     background: var(--card-bg);
     border: 1px solid var(--card-border, #e0e0e0);
     border-radius: 8px;
@@ -445,23 +444,24 @@
   .btn-icon.pause { background: #f59e0b; color: white; }
   .btn-icon.done { background: #2e7d32; color: white; }
   .btn-icon.cancel { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
-  .btn-icon.notes { background: transparent; color: var(--text-secondary, #888); border: 1px solid var(--card-border, #ccc); font-size: 0.9rem; position: relative; }
-  .btn-icon.notes:hover { color: var(--accent, #0066cc); border-color: var(--accent, #0066cc); }
   .note-badge {
     position: absolute;
-    top: -4px;
-    right: -4px;
-    min-width: 16px;
-    height: 16px;
+    top: 6px;
+    right: 6px;
+    min-width: 18px;
+    height: 18px;
     border-radius: 999px;
     background: var(--accent, #0066cc);
     color: #fff;
-    font-size: 0.6rem;
+    font-size: 0.65rem;
     font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 4px;
+    padding: 0 5px;
+    box-sizing: border-box;
+    z-index: 5;
+    pointer-events: none;
     line-height: 1;
   }
   .btn-icon.restart { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
