@@ -459,9 +459,6 @@
               class="swipe-actions"
               style="transform: {actionsTransform(habit.id)}"
             >
-              <button class="swipe-btn notes" on:click={() => { notesHabitId = habit.id; }} aria-label="Notes">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-              </button>
               <button class="swipe-btn archive" on:click={() => archiveHabit(habit)} aria-label="Archive">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
               </button>
@@ -651,7 +648,6 @@
     height: 22px;
   }
   .swipe-btn.archive { background: #f59e0b; }
-  .swipe-btn.notes { background: var(--accent, #0066cc); }
   .swipe-btn.delete { background: #d32f2f; }
 
   .fab-spacer { height: 5.5rem; }

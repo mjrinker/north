@@ -14,6 +14,24 @@
   import { marked } from 'marked';
   let { habit, onEdit, onNotes, notesCount }: { habit: Habit; onEdit?: () => void; onNotes?: () => void; notesCount?: number } = $props();
   let showNotes = $state(false);
+  let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  let longPressFired = $state(false);
+
+  function handleLongPressStart(e: Event) {
+    longPressFired = false;
+    longPressTimer = setTimeout(() => {
+      longPressFired = true;
+      onNotes?.();
+    }, 500);
+  }
+
+  function handleLongPressEnd() {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  }
+
+  function handleLongPressCancel() {
+    handleLongPressEnd();
+  }
 
   let allHabits = $state<Habit[]>([]);
   habitsStore.subscribe(v => allHabits = v);
@@ -214,7 +232,15 @@
   }
 </script>
 
-<div class="habit-card" role="button" tabindex="0" onclick={() => onEdit?.()} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit?.(); } }}>
+<div class="habit-card" role="button" tabindex="0"
+  on:mousedown={handleLongPressStart}
+  on:mouseup={handleLongPressEnd}
+  on:mouseleave={handleLongPressEnd}
+  on:touchstart|nonpassive={handleLongPressStart}
+  on:touchend={handleLongPressEnd}
+  on:touchmove|nonpassive={handleLongPressCancel}
+  onclick={() => { if (!longPressFired) onEdit?.(); }}
+  onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit?.(); } }}>
   <div class="card-top">
     <div class="card-left">
       <div class="title-row">
