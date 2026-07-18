@@ -12,8 +12,7 @@
   import Icon from '@iconify/svelte';
   import { addLog } from '../lib/completionLog';
   import { marked } from 'marked';
-  import NotesModal from './NotesModal.svelte';
-  let { habit, onEdit }: { habit: Habit; onEdit?: () => void } = $props();
+  let { habit, onEdit, onNotes }: { habit: Habit; onEdit?: () => void; onNotes?: () => void } = $props();
   let showNotes = $state(false);
 
   let allHabits = $state<Habit[]>([]);
@@ -227,7 +226,7 @@
       <p class="streak">Streak: {streak} {habit.schedule.daysPerWeek ? 'weeks' : 'days'}</p>
     </div>
     <div class="card-right">
-      <button onclick={(e) => { e.stopPropagation(); showNotes = true; }} class="btn-icon notes" aria-label="Notes">
+      <button onclick={(e) => { e.stopPropagation(); onNotes?.(); }} class="btn-icon notes" aria-label="Notes">
         <Icon icon="mdi:note-text-outline" style="color: inherit" />
       </button>
       {#if habit.type === 'binary'}
@@ -336,10 +335,6 @@
   <div class="desc">{@html marked.parse(habit.description)}</div>
 {/if}
 </div>
-
-{#if showNotes}
-  <NotesModal habitId={habit.id} onClose={() => showNotes = false} />
-{/if}
 
 <style>
   .habit-card {

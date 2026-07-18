@@ -8,6 +8,7 @@
   import HabitCard from '../../components/HabitCard.svelte';
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
+  import NotesModal from '../../components/NotesModal.svelte';
   import Icon from '@iconify/svelte';
   import { computeSuggestions, getCurrentTimeSlot, getCurrentLocation } from '../../lib/completionLog';
   import type { SuggestedPlace } from '../../types';
@@ -230,6 +231,7 @@
 
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
+  let notesHabitId = $state<string | null>(null);
 
   const SWIPE_THRESHOLD = 80;
   let touchStartX = $state(0);
@@ -324,6 +326,10 @@
   <HabitEditModal habit={editingHabit} allHabits={habits} onClose={() => editingHabit = null} />
 {/if}
 
+{#if notesHabitId}
+  <NotesModal habitId={notesHabitId} onClose={() => notesHabitId = null} />
+{/if}
+
 {#if suggestedHabits.length > 0}
   <section class="suggested-section">
     <div class="suggested-header">
@@ -342,7 +348,7 @@
               on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
               on:touchend={(e) => handleTouchEnd(e, habit.id)}
             >
-              <HabitCard {habit} onEdit={() => openEdit(habit)} />
+              <HabitCard {habit} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} />
             </div>
           </div>
         </div>
@@ -383,7 +389,7 @@
                   on:touchend={(e) => handleTouchDragEnd(e)}
                 ><Icon icon="mdi:drag" /></span>
               {/if}
-              <HabitCard {habit} onEdit={() => openEdit(habit)} />
+              <HabitCard {habit} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} />
             </div>
             <div
               class="swipe-actions"
