@@ -267,6 +267,7 @@
   let touchDx = $state(0);
   let swipedHabitId = $state<string | null>(null);
   let swipedRightHabitId = $state<string | null>(null);
+  let swipingHabitId = $state<string | null>(null);
 
   function handleTouchStart(e: TouchEvent, habitId: string) {
     if (swipedHabitId && swipedHabitId !== habitId) {
