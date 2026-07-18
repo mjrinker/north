@@ -10,7 +10,7 @@
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import NotesModal from '../../components/NotesModal.svelte';
   import Icon from '@iconify/svelte';
-  import { computeSuggestions, getCurrentTimeSlot, getCurrentLocation } from '../../lib/completionLog';
+  import { computeSuggestions, getCurrentLocation } from '../../lib/completionLog';
   import type { SuggestedPlace } from '../../types';
   import { notesStore } from '../../stores/notes';
   import { entriesStore } from '../../stores/entries';
@@ -84,7 +84,6 @@
     }
     return map;
   });
-  let currentTimeSlot = $derived(getCurrentTimeSlot());
 
   function loadSortMode(): 'tag' | 'name' | 'type' | 'custom' {
     try {
@@ -395,9 +394,6 @@
       <span class="collapse-arrow">{suggestedCollapsed ? '▶' : '▼'}</span>
       <span class="suggested-icon">💡</span>
       Suggested
-      {#if currentTimeSlot}
-        <span class="suggested-time">{currentTimeSlot}</span>
-      {/if}
     </button>
     {#if !suggestedCollapsed}
     <div class="habits-grid">

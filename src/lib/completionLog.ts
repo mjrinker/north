@@ -63,32 +63,33 @@ export function haversine(lat1: number, lon1: number, lat2: number, lon2: number
 }
 
 export function computeSuggestions(habits: Habit[], time?: Date, position?: GeolocationPosition | null, maxAgeDays = 30): Habit[] {
+  if (!position) return [];
   const now = time ?? new Date();
   const cutoff = new Date(now.getTime() - maxAgeDays * 86400000);
   const logs = loadLogs().filter(l => new Date(l.timestamp) >= cutoff);
   const scores = new Map<string, number>();
 
   for (const habit of habits) {
-    let score = 0;
+    let bestScore = 0;
     const habitLogs = logs.filter(l => l.habitId === habit.id);
 
     for (const log of habitLogs) {
+      if (log.latitude == null || log.longitude == null) continue;
+
       const logTime = new Date(log.timestamp);
       const diffMin = Math.abs((now.getTime() - logTime.getTime()) / 60000);
+      if (diffMin > 60) continue;
 
-      if (diffMin <= 30) {
-        score += Math.max(0, 10 * (1 - diffMin / 30));
-      }
+      const dist = haversine(position.coords.latitude, position.coords.longitude, log.latitude, log.longitude);
+      if (dist > 100) continue;
 
-      if (position && log.latitude != null && log.longitude != null) {
-        const dist = haversine(position.coords.latitude, position.coords.longitude, log.latitude, log.longitude);
-        if (dist <= 100) {
-          score += Math.max(0, 15 * (1 - dist / 100));
-        }
-      }
+      const timeScore = Math.max(0, 10 * (1 - diffMin / 60));
+      const distScore = Math.max(0, 15 * (1 - dist / 100));
+      const entryScore = timeScore + distScore;
+      if (entryScore > bestScore) bestScore = entryScore;
     }
 
-    if (score > 0) scores.set(habit.id, score);
+    if (bestScore > 0) scores.set(habit.id, bestScore);
   }
 
   return [...scores.entries()]
