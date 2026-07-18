@@ -12,7 +12,9 @@
   import Icon from '@iconify/svelte';
   import { addLog } from '../lib/completionLog';
   import { marked } from 'marked';
+  import NotesModal from './NotesModal.svelte';
   let { habit, onEdit }: { habit: Habit; onEdit?: () => void } = $props();
+  let showNotes = $state(false);
 
   let allHabits = $state<Habit[]>([]);
   habitsStore.subscribe(v => allHabits = v);
@@ -225,6 +227,9 @@
       <p class="streak">Streak: {streak} {habit.schedule.daysPerWeek ? 'weeks' : 'days'}</p>
     </div>
     <div class="card-right">
+      <button onclick={(e) => { e.stopPropagation(); showNotes = true; }} class="btn-icon notes" aria-label="Notes">
+        <Icon icon="mdi:note-text-outline" style="color: inherit" />
+      </button>
       {#if habit.type === 'binary'}
       <div class="action-control">
         <label class="binary-input-wrap" class:checked={todayEntry?.value === 1} onclick={(e) => e.stopPropagation()}>
@@ -332,6 +337,10 @@
 {/if}
 </div>
 
+{#if showNotes}
+  <NotesModal habitId={habit.id} onClose={() => showNotes = false} />
+{/if}
+
 <style>
   .habit-card {
     background: var(--card-bg);
@@ -438,6 +447,8 @@
   .btn-icon.pause { background: #f59e0b; color: white; }
   .btn-icon.done { background: #2e7d32; color: white; }
   .btn-icon.cancel { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
+  .btn-icon.notes { background: transparent; color: var(--text-secondary, #888); border: 1px solid var(--card-border, #ccc); font-size: 0.9rem; }
+  .btn-icon.notes:hover { color: var(--accent, #0066cc); border-color: var(--accent, #0066cc); }
   .btn-icon.restart { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
   .qty-input-wrap {
     display: flex;

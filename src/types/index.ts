@@ -7,3 +7,4 @@ export * from './sync';
 export * from './completion';
 export * from './completionLog';
 export * from './auth';
+export * from './note';

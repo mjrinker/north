@@ -1,9 +1,9 @@
 // src/services/storage.ts
 import { openDB, type IDBPDatabase } from 'idb';
-import type { Habit, HabitEntry, Identity } from '../types';
+import type { Habit, HabitEntry, Identity, HabitNote } from '../types';
 
 const DB_NAME = 'north_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 // Check if we are in a browser environment with indexedDB support
 const isBrowser = typeof window !== 'undefined' && window.indexedDB;
@@ -22,6 +22,9 @@ async function getDB(): Promise<IDBPDatabase> {
       }
       if (!db.objectStoreNames.contains('identities')) {
         db.createObjectStore('identities', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('notes')) {
+        db.createObjectStore('notes', { keyPath: 'id' });
       }
     },
   });
@@ -119,4 +122,26 @@ export async function getAllIdentities(): Promise<Identity[]> {
 
 export async function deleteIdentity(id: string): Promise<void> {
   await idbDelete('identities', id);
+}
+
+// --- Note methods ---
+export async function saveNote(note: HabitNote): Promise<void> {
+  await idbPut('notes', note);
+}
+
+export async function getNotesByHabitDate(habitId: string, date: string): Promise<HabitNote[]> {
+  if (!isBrowser) return [];
+  const db = await getDB();
+  const tx = db.transaction('notes', 'readonly');
+  const store = tx.objectStore('notes');
+  const all = await store.getAll();
+  return all.filter(n => n.habitId === habitId && n.date === date).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+}
+
+export async function getAllNotes(): Promise<HabitNote[]> {
+  return await idbGetAll<HabitNote>('notes');
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  await idbDelete('notes', id);
 }
