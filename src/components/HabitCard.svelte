@@ -47,37 +47,29 @@
   let isTargetMet = $derived(todayEntry && habit.target != null ? todayEntry.value >= habit.target : false);
   let depResults = $state<{ hid: string; met: boolean }[]>([]);
   let showDepPopover = $state(false);
-  let depBadgeRef = $state<HTMLButtonElement | null>(null);
-  let depPopoverStyle = $state<{ top: string; left: string }>({ top: '0', left: '0' });
+  let depPopoverStyle = $state<string>('');
 
   function openDepPopover(e: Event) {
     e.stopPropagation();
-    if (depBadgeRef) {
-      const rect = depBadgeRef.getBoundingClientRect();
-      depPopoverStyle = {
-        top: `${rect.bottom + 6}px`,
-        left: `${rect.left}px`,
-      };
-    }
+    const btn = e.currentTarget as HTMLElement;
+    const rect = btn.getBoundingClientRect();
+    depPopoverStyle = `top:${rect.bottom + 6}px; left:${rect.left}px;`;
     showDepPopover = !showDepPopover;
   }
-  let depPopoverRef = $state<HTMLDivElement | null>(null);
 
   function onDocumentClick(e: MouseEvent) {
-    if (showDepPopover && depPopoverRef && !depPopoverRef.contains(e.target as Node)) {
+    const target = e.target as Node;
+    if (!showDepPopover) return;
+    const popover = document.getElementById('dep-popover-' + habit.id);
+    if (popover && !popover.contains(target)) {
       showDepPopover = false;
     }
   }
 
-  onDestroy(() => {
-    document.removeEventListener('click', onDocumentClick);
-  });
-
   $effect(() => {
     if (showDepPopover) {
       document.addEventListener('click', onDocumentClick);
-    } else {
-      document.removeEventListener('click', onDocumentClick);
+      return () => document.removeEventListener('click', onDocumentClick);
     }
   });
 
@@ -284,14 +276,14 @@
         <h3>{habit.title}</h3>
         {#if habit.dependsOn && habit.dependsOn.habitIds.length > 0}
           <div class="dep-wrap">
-            <button class="dep-badge" bind:this={depBadgeRef} onclick={openDepPopover} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDepPopover(e); }}}>
+            <button class="dep-badge" onclick={openDepPopover} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDepPopover(e); }}}>
               <span class="dep-badge-label">conditional</span>
               <span class="dep-badge-sep">|</span>
               <span class="dep-badge-count">✓ {depResults.filter(r => r.met).length}/{depResults.length}</span>
             </button>
             {#if showDepPopover}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <div class="dep-popover" style="top: {depPopoverStyle.top}; left: {depPopoverStyle.left};" bind:this={depPopoverRef} onclick={(e) => e.stopPropagation()} role="listbox">
+              <div class="dep-popover" id="dep-popover-{habit.id}" style={depPopoverStyle} onclick={(e) => e.stopPropagation()} role="listbox">
                 <div class="dep-popover-header">
                   {habit.dependsOn.mode === 'and' ? 'All required' : 'Any one required'}
                 </div>
