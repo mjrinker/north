@@ -122,16 +122,12 @@ class SupabaseSyncProvider implements SyncProvider {
 
       if (error) throw new Error(error.message)
 
-      if (!data || data.length === 0) {
-        return { lastSynced: start, status: 'success', conflicts: [] }
-      }
-
       const habits: any[] = []
       const entries: any[] = []
       const identities: any[] = []
       const notes: any[] = []
 
-      for (const row of data) {
+      for (const row of data || []) {
         if (row.collection === 'habits') habits.push(row.data)
         else if (row.collection === 'entries') entries.push(row.data)
         else if (row.collection === 'identities') identities.push(row.data)
@@ -141,26 +137,21 @@ class SupabaseSyncProvider implements SyncProvider {
         }
       }
 
-      if (habits.length > 0) {
-        await clearAllHabits()
-        for (const h of habits) await saveHabit(h)
-        habitsStore.set(habits)
-      }
-      if (entries.length > 0) {
-        await clearAllEntries()
-        for (const e of entries) await saveEntry(e)
-        entriesStore.set(entries)
-      }
-      if (identities.length > 0) {
-        await clearAllIdentities()
-        for (const i of identities) await saveIdentity(i)
-        identitiesStore.set(identities)
-      }
-      if (notes.length > 0) {
-        await clearAllNotes()
-        for (const n of notes) await saveNote(n)
-        notesStore.set(notes)
-      }
+      await clearAllHabits()
+      for (const h of habits) await saveHabit(h)
+      habitsStore.set(habits)
+
+      await clearAllEntries()
+      for (const e of entries) await saveEntry(e)
+      entriesStore.set(entries)
+
+      await clearAllIdentities()
+      for (const i of identities) await saveIdentity(i)
+      identitiesStore.set(identities)
+
+      await clearAllNotes()
+      for (const n of notes) await saveNote(n)
+      notesStore.set(notes)
 
       return { lastSynced: start, status: 'success', conflicts: [] }
     } catch (e: any) {
