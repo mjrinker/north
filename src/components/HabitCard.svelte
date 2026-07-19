@@ -45,6 +45,23 @@
   let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + getLocalDateString()) : false);
   let isStandardMet = $derived(todayEntry ? todayEntry.value >= habit.standard : false);
   let isTargetMet = $derived(todayEntry && habit.target != null ? todayEntry.value >= habit.target : false);
+  let depResults = $state<{ hid: string; met: boolean }[]>([]);
+  let showDepPopover = $state(false);
+  let depPopoverRef = $state<HTMLDivElement | null>(null);
+
+  function onDocumentClick(e: MouseEvent) {
+    if (showDepPopover && depPopoverRef && !depPopoverRef.contains(e.target as Node)) {
+      showDepPopover = false;
+    }
+  }
+
+  $effect(() => {
+    if (showDepPopover) {
+      setTimeout(() => document.addEventListener('click', onDocumentClick), 0);
+      return () => document.removeEventListener('click', onDocumentClick);
+    }
+  });
+
   $effect(() => {
     if (!habit) return;
     const _ = trigger;
@@ -59,17 +76,18 @@
         autoCompleted.delete(key);
       }
       if (habit.type === 'binary' && habit.dependsOn) {
-        const depResults = await Promise.all(
+        const results = await Promise.all(
           habit.dependsOn!.habitIds.map(async hid => {
             const e = await getEntry(hid, today);
             const dep = allHabits.find(h => h.id === hid);
             return { hid, met: e && dep ? e.value >= dep.standard : false };
           })
         );
+        depResults = results;
         if (_gen !== gen) return;
         const satisfied = habit.dependsOn!.mode === 'and'
-          ? depResults.every(r => r.met)
-          : depResults.some(r => r.met);
+          ? results.every(r => r.met)
+          : results.some(r => r.met);
         const value = todayEntry?.value ?? 0;
         if (satisfied && value === 0) {
           for (const r of depResults) {
@@ -246,7 +264,25 @@
       <div class="title-row">
         <h3>{habit.title}</h3>
         {#if habit.dependsOn && habit.dependsOn.habitIds.length > 0}
-          <span class="dep-badge">conditional</span>
+          <div class="dep-wrap">
+            <button class="dep-badge" onclick={(e) => { e.stopPropagation(); showDepPopover = !showDepPopover; }} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showDepPopover = !showDepPopover; }}}>
+              conditional
+            </button>
+            {#if showDepPopover}
+              <div class="dep-popover" bind:this={depPopoverRef} onclick={(e) => e.stopPropagation()} role="listbox">
+                <div class="dep-popover-header">
+                  {habit.dependsOn.mode === 'and' ? 'All required' : 'Any one required'}
+                </div>
+                {#each depResults as r}
+                  {@const dep = allHabits.find(h => h.id === r.hid)}
+                  <div class="dep-row" role="option" aria-selected={r.met}>
+                    <span class="dep-indicator" class:met={r.met}>{r.met ? '✓' : '○'}</span>
+                    <span class="dep-name">{dep?.title ?? 'Unknown'}</span>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
         {/if}
       </div>
       <p class="streak">Streak: {streak} {habit.schedule.daysPerWeek ? 'weeks' : 'days'}</p>
@@ -415,6 +451,10 @@
   .desc :global(blockquote) { margin: 0.4em 0; padding-left: 0.6em; border-left: 3px solid var(--card-border, #ccc); color: var(--text-secondary, #888); }
   .desc :global(a) { color: var(--text-secondary, #666); text-decoration: underline; }
   .desc :global(img) { max-width: 100%; height: auto; border-radius: 4px; }
+  .dep-wrap {
+    position: relative;
+    display: inline-flex;
+  }
   .dep-badge {
     font-size: 0.65rem;
     padding: 2px 10px;
@@ -425,6 +465,59 @@
     font-weight: 600;
     letter-spacing: 0.02em;
     line-height: 1.4;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .dep-badge:hover {
+    opacity: 0.85;
+  }
+  .dep-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 100;
+    min-width: 160px;
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--card-border, #e0e0e0);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    padding: 0.4rem 0;
+    font-size: 0.8rem;
+  }
+  .dep-popover-header {
+    padding: 0.3rem 0.75rem 0.2rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .dep-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    cursor: default;
+  }
+  .dep-row:hover {
+    background: var(--btn-secondary-bg, #f5f5f5);
+  }
+  .dep-indicator {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #aaa);
+    width: 1em;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .dep-indicator.met {
+    color: #2e7d32;
+  }
+  .dep-name {
+    color: var(--text-primary, #222);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .streak {
     margin: 2px 0 0 0;
