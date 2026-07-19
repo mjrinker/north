@@ -17,6 +17,7 @@ export interface SyncProvider {
 	// Atomic operations for individual records
 	saveRecord(collection: string, id: string, data: any): Promise<void>;
 	getRecord(collection: string, id: string): Promise<any>;
+	deleteRecord(collection: string, id: string): Promise<void>;
 	
 	// Bulk operations for synchronization
 	uploadAll(): Promise<SyncResult>;

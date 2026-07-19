@@ -1,4 +1,5 @@
 import { writable, type Writable } from 'svelte/store';
+import { pushRecord } from '../services/sync';
 
 export type ThemeMode = 'light' | 'dark' | 'system' | 'adaptive';
 export type LaunchScreen = '/today' | '/history' | '/stats' | '/settings';
@@ -43,7 +44,10 @@ function createSettingsStore(): Writable<AppSettings> & { init: () => void } {
     init() {
       if (initialized) return;
       initialized = true;
-      store.subscribe(v => save(v));
+      store.subscribe(v => {
+        save(v);
+        pushRecord('settings', 'app_settings', v);
+      });
     },
   };
 }

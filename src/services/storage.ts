@@ -54,9 +54,19 @@ async function idbDelete(storeName: string, id: string): Promise<void> {
   await db.delete(storeName, id);
 }
 
+async function idbClear(storeName: string): Promise<void> {
+  if (!isBrowser) return;
+  const db = await getDB();
+  await db.clear(storeName);
+}
+
 // --- Habit methods ---
 export async function saveHabit(habit: Habit): Promise<void> {
   await idbPut('habits', habit);
+}
+
+export async function clearAllHabits(): Promise<void> {
+  await idbClear('habits');
 }
 
 export async function getHabit(id: string): Promise<Habit | undefined> {
@@ -74,6 +84,10 @@ export async function deleteHabit(id: string): Promise<void> {
 // --- Entry methods ---
 export async function saveEntry(entry: HabitEntry): Promise<void> {
   await idbPut('entries', entry);
+}
+
+export async function clearAllEntries(): Promise<void> {
+  await idbClear('entries');
 }
 
 export async function getEntry(habitId: string, date: string): Promise<HabitEntry | undefined> {
@@ -112,6 +126,10 @@ export async function saveIdentity(identity: Identity): Promise<void> {
   await idbPut('identities', identity);
 }
 
+export async function clearAllIdentities(): Promise<void> {
+  await idbClear('identities');
+}
+
 export async function getIdentity(id: string): Promise<Identity | undefined> {
   return await idbGet<Identity>('identities', id);
 }
@@ -127,6 +145,10 @@ export async function deleteIdentity(id: string): Promise<void> {
 // --- Note methods ---
 export async function saveNote(note: HabitNote): Promise<void> {
   await idbPut('notes', note);
+}
+
+export async function clearAllNotes(): Promise<void> {
+  await idbClear('notes');
 }
 
 export async function getNotesByHabitDate(habitId: string, date: string): Promise<HabitNote[]> {

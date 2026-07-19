@@ -1,6 +1,7 @@
 import type { Habit } from '../types';
 import { getAllHabits, saveHabit, deleteHabit as deleteHabitFromDB } from '../services/storage';
 import { createStore } from '../lib/storeFactory';
+import { pushRecord, removeRecord } from '../services/sync';
 
 function cloneHabit(h: Habit): Habit {
   return {
@@ -18,14 +19,17 @@ export const habitsStore = createStore<Habit>(getAllHabits, saveHabit, deleteHab
 
 export function addHabit(habit: Habit) {
   habitsStore.add(cloneHabit(habit));
+  pushRecord('habits', habit.id, habit);
 }
 
 export function updateHabit(habit: Habit) {
   const cloned = cloneHabit(habit);
   cloned.updatedAt = new Date();
   habitsStore.updateItem(cloned);
+  pushRecord('habits', cloned.id, cloned);
 }
 
 export function removeHabit(id: string) {
   habitsStore.remove(id);
+  removeRecord('habits', id);
 }

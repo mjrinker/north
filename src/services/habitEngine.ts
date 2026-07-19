@@ -1,8 +1,9 @@
 import type { Habit, HabitEntry, CompletionResult } from '../types';
-import { getAllEntries, saveEntry, getEntry } from './storage';
+import { getAllEntries, saveEntry, getEntry, clearAllEntries } from './storage';
 import { getLocalDateString, getWeekStart } from '../lib/dates';
 import { computeDailyStreak } from '../lib/streakUtils';
 import { entriesStore } from '../stores/entries';
+import { pushRecord } from './sync';
 
 export class HabitEngine {
   constructor(private habit: Habit) {}
@@ -45,6 +46,7 @@ export class HabitEngine {
       }
       return [...list, entry];
     });
+    pushRecord('entries', entry.id, entry);
   }
 
   async logCompletion(date: string, value: number, notes?: string): Promise<void> {

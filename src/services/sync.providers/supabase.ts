@@ -1,9 +1,13 @@
-// src/services/sync.providers/supabase.ts
-
 import type { SyncProvider, SyncResult } from '../../types'
-import { habitsStore, addHabit } from '../../stores/habits'
-import { entriesStore, addEntry } from '../../stores/entries'
-import { identitiesStore, addIdentity } from '../../stores/identities'
+import { habitsStore } from '../../stores/habits'
+import { entriesStore } from '../../stores/entries'
+import { identitiesStore } from '../../stores/identities'
+import { notesStore } from '../../stores/notes'
+import { appSettings } from '../../lib/settings'
+import { clearAllHabits, saveHabit } from '../storage'
+import { clearAllEntries, saveEntry } from '../storage'
+import { clearAllIdentities, saveIdentity } from '../storage'
+import { clearAllNotes, saveNote } from '../storage'
 import { get } from 'svelte/store'
 import { supabase } from '../../lib/supabase'
 import { user } from '../../stores/auth'
@@ -49,6 +53,20 @@ class SupabaseSyncProvider implements SyncProvider {
     return data.data
   }
 
+  async deleteRecord(collection: string, id: string): Promise<void> {
+    const uid = this.getUserId()
+    if (!uid) throw new Error('Not signed in')
+
+    const { error } = await supabase
+      .from('user_sync_data')
+      .delete()
+      .eq('user_id', uid)
+      .eq('collection', collection)
+      .eq('record_id', id)
+
+    if (error) throw new Error(`Delete failed: ${error.message}`)
+  }
+
   async uploadAll(): Promise<SyncResult> {
     const start = new Date()
     try {
@@ -58,6 +76,7 @@ class SupabaseSyncProvider implements SyncProvider {
       const habits = get(habitsStore)
       const entries = get(entriesStore)
       const identities = get(identitiesStore)
+      const notes = get(notesStore)
 
       const rows: any[] = []
 
@@ -70,6 +89,12 @@ class SupabaseSyncProvider implements SyncProvider {
       for (const i of identities) {
         rows.push({ user_id: uid, collection: 'identities', record_id: i.id, data: i, updated_at: new Date().toISOString() })
       }
+      for (const n of notes) {
+        rows.push({ user_id: uid, collection: 'notes', record_id: n.id, data: n, updated_at: new Date().toISOString() })
+      }
+
+      const settings = get(appSettings)
+      rows.push({ user_id: uid, collection: 'settings', record_id: 'app_settings', data: settings, updated_at: new Date().toISOString() })
 
       if (rows.length > 0) {
         const { error } = await supabase.from('user_sync_data').upsert(rows, {
@@ -101,18 +126,40 @@ class SupabaseSyncProvider implements SyncProvider {
         return { lastSynced: start, status: 'success', conflicts: [] }
       }
 
-      const existingHabits = new Set(get(habitsStore).map(h => h.id))
-      const existingEntries = new Set(get(entriesStore).map(e => e.id))
-      const existingIdentities = new Set(get(identitiesStore).map(i => i.id))
+      const habits: any[] = []
+      const entries: any[] = []
+      const identities: any[] = []
+      const notes: any[] = []
 
       for (const row of data) {
-        if (row.collection === 'habits' && !existingHabits.has(row.record_id)) {
-          addHabit(row.data)
-        } else if (row.collection === 'entries' && !existingEntries.has(row.record_id)) {
-          addEntry(row.data)
-        } else if (row.collection === 'identities' && !existingIdentities.has(row.record_id)) {
-          addIdentity(row.data)
+        if (row.collection === 'habits') habits.push(row.data)
+        else if (row.collection === 'entries') entries.push(row.data)
+        else if (row.collection === 'identities') identities.push(row.data)
+        else if (row.collection === 'notes') notes.push(row.data)
+        else if (row.collection === 'settings' && row.record_id === 'app_settings') {
+          appSettings.set(row.data)
         }
+      }
+
+      if (habits.length > 0) {
+        await clearAllHabits()
+        for (const h of habits) await saveHabit(h)
+        habitsStore.set(habits)
+      }
+      if (entries.length > 0) {
+        await clearAllEntries()
+        for (const e of entries) await saveEntry(e)
+        entriesStore.set(entries)
+      }
+      if (identities.length > 0) {
+        await clearAllIdentities()
+        for (const i of identities) await saveIdentity(i)
+        identitiesStore.set(identities)
+      }
+      if (notes.length > 0) {
+        await clearAllNotes()
+        for (const n of notes) await saveNote(n)
+        notesStore.set(notes)
       }
 
       return { lastSynced: start, status: 'success', conflicts: [] }
@@ -127,3 +174,5 @@ class SupabaseSyncProvider implements SyncProvider {
 }
 
 export const supabaseSyncProvider = new SupabaseSyncProvider()
+
+export type { SyncProvider }

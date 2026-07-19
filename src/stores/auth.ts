@@ -16,17 +16,19 @@ supabase.auth.onAuthStateChange((event, sessionData) => {
       const { habitsStore } = await import('./habits')
       const { entriesStore } = await import('./entries')
       const { identitiesStore } = await import('./identities')
+      const { notesStore } = await import('./notes')
       const { supabaseSyncProvider } = await import('../services/sync.providers/supabase')
 
       const hasLocal = get(habitsStore).length > 0
         || get(entriesStore).length > 0
         || get(identitiesStore).length > 0
+        || get(notesStore).length > 0
 
       if (hasLocal) {
-        supabaseSyncProvider.uploadAll()
-      } else {
-        supabaseSyncProvider.downloadAll()
+        const uploadResult = await supabaseSyncProvider.uploadAll()
+        if (uploadResult.status !== 'success') return
       }
+      await supabaseSyncProvider.downloadAll()
     }, 1500)
   }
 })
