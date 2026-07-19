@@ -53,6 +53,7 @@
     const btn = e.currentTarget as HTMLElement;
     const rect = btn.getBoundingClientRect();
     onDepPopover?.({
+      habitId: habit.id,
       style: `top:${rect.bottom + 6 + window.scrollY}px; left:${rect.left + window.scrollX}px;`,
       mode: habit.dependsOn!.mode,
       deps: depResults.map(r => ({

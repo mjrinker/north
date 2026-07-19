@@ -266,15 +266,16 @@
   }
 
   function handleDepPopover(state: DepPopoverState) {
-    depPopover = state;
+    if (depPopover?.habitId === state.habitId) {
+      depPopover = null;
+    } else {
+      depPopover = state;
+    }
   }
 
   $effect(() => {
     if (depPopover) {
-      const handler = (e: MouseEvent) => {
-        const el = document.getElementById('page-dep-popover');
-        if (el && !el.contains(e.target as Node)) depPopover = null;
-      };
+      const handler = () => { depPopover = null; };
       setTimeout(() => document.addEventListener('click', handler), 0);
       return () => document.removeEventListener('click', handler);
     }
@@ -410,7 +411,7 @@
 
 {#if depPopover}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <div class="dep-popover" id="page-dep-popover" style={depPopover.style} on:click|stopPropagation role="listbox">
+  <div class="dep-popover" id="page-dep-popover" style={depPopover.style} role="listbox">
     <div class="dep-popover-header">
       {depPopover.mode === 'and' ? 'All required' : 'Any one required'}
     </div>
