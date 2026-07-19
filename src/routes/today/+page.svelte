@@ -371,7 +371,50 @@
     }
     return 'translateX(-100%)';
   }
+
+  let pullRefreshDistance = $state(0);
+  let pullRefreshStartY = $state(0);
+  let pullRefreshTriggered = $state(false);
+  const PULL_THRESHOLD = 80;
+
+  function handlePullStart(e: TouchEvent) {
+    if (window.scrollY > 0) return;
+    pullRefreshDistance = 0;
+    pullRefreshStartY = e.touches[0].clientY;
+    pullRefreshTriggered = false;
+  }
+
+  function handlePullMove(e: TouchEvent) {
+    if (pullRefreshStartY === 0) return;
+    const dy = e.touches[0].clientY - pullRefreshStartY;
+    if (dy > 0) {
+      pullRefreshDistance = Math.min(dy, PULL_THRESHOLD * 1.5);
+    }
+  }
+
+  function handlePullEnd() {
+    if (pullRefreshDistance >= PULL_THRESHOLD) {
+      pullRefreshTriggered = true;
+      window.location.reload();
+    }
+    pullRefreshDistance = 0;
+    pullRefreshStartY = 0;
+  }
 </script>
+
+<div class="page-outer"
+  on:touchstart={handlePullStart}
+  on:touchmove={handlePullMove}
+  on:touchend={handlePullEnd}
+  on:touchcancel={handlePullEnd}
+>
+<div class="pull-indicator" style="transform: translateY({Math.min(pullRefreshDistance - 50, 0)}px); opacity: {Math.min(pullRefreshDistance / PULL_THRESHOLD, 1)};">
+  {#if pullRefreshDistance >= PULL_THRESHOLD}
+    <span class="pull-icon">↻</span>
+  {:else}
+    <span class="pull-icon">↓</span>
+  {/if}
+</div>
 
 <h1 class="page-title">Today</h1>
 
@@ -498,6 +541,8 @@
     {/if}
   </div>
 {/each}
+
+</div>
 
 <div class="fab-spacer"></div>
 
@@ -731,5 +776,28 @@
 
   @media (max-width: 600px) {
     .habits-grid { grid-template-columns: 1fr; }
+  }
+
+  .page-outer {
+    touch-action: pan-y;
+    position: relative;
+  }
+  .pull-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    pointer-events: none;
+    color: var(--text-secondary, #888);
+    font-size: 1.5rem;
+  }
+  .pull-icon {
+    display: inline-block;
+    transition: transform 0.15s;
   }
 </style>
