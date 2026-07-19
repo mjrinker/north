@@ -9,6 +9,7 @@
   import { autoCompleteDependencies, uncheckDependencies } from '../lib/dependencyEngine';
   import { entriesStore } from '../stores/entries';
   import { onDestroy } from 'svelte';
+  import { tick as svelteTick } from 'svelte';
   import Icon from '@iconify/svelte';
   import { addLog } from '../lib/completionLog';
   import { marked } from 'marked';
@@ -223,6 +224,7 @@
 
   async function handleBinaryChange() {
     if (!habit) return;
+    const savedScrollY = window.scrollY;
     const today = getLocalDateString();
     const wasChecked = todayEntry?.value === 1;
     const value = wasChecked ? 0 : 1;
@@ -234,6 +236,8 @@
       await uncheckDependencies(habit, today, allHabits, getEntryFn);
     }
     await logAndRefresh(value);
+    await svelteTick();
+    window.scrollTo(0, savedScrollY);
     if (value === 1) addLog(habit.id, 'complete');
   }
 

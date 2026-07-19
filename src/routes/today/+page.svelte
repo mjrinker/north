@@ -658,6 +658,7 @@
   .habit-wrapper {
     position: relative;
     overflow: hidden;
+    overflow-anchor: none;
   }
   .habit-wrapper.drop-target { outline: 2px dashed var(--text-secondary, #888); outline-offset: -2px; border-radius: 8px; }
   .drag-ghost { transition: transform 0.05s linear; }
@@ -781,6 +782,7 @@
   .page-outer {
     touch-action: pan-y;
     position: relative;
+    overflow-anchor: none;
   }
   .pull-indicator {
     position: fixed;
