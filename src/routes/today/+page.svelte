@@ -684,7 +684,7 @@
   .fab-spacer { height: 5.5rem; }
 
   .dep-popover {
-    position: fixed;
+    position: absolute;
     z-index: 10000;
     min-width: 160px;
     background: var(--dep-popover-bg, #f0f0f0);
