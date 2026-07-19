@@ -8,3 +8,4 @@ export * from './completion';
 export * from './completionLog';
 export * from './auth';
 export * from './note';
+export * from './depPopover';

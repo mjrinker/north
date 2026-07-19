@@ -12,7 +12,8 @@
   import Icon from '@iconify/svelte';
   import { addLog } from '../lib/completionLog';
   import { marked } from 'marked';
-  let { habit, onEdit, onNotes, notesCount }: { habit: Habit; onEdit?: () => void; onNotes?: () => void; notesCount?: number } = $props();
+  import type { DepPopoverState } from '../types';
+  let { habit, onEdit, onNotes, notesCount, onDepPopover }: { habit: Habit; onEdit?: () => void; onNotes?: () => void; notesCount?: number; onDepPopover?: (state: DepPopoverState) => void } = $props();
   let showNotes = $state(false);
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
   let longPressFired = $state(false);
@@ -46,32 +47,21 @@
   let isStandardMet = $derived(todayEntry ? todayEntry.value >= habit.standard : false);
   let isTargetMet = $derived(todayEntry && habit.target != null ? todayEntry.value >= habit.target : false);
   let depResults = $state<{ hid: string; met: boolean }[]>([]);
-  let showDepPopover = $state(false);
-  let depPopoverStyle = $state<string>('');
 
   function openDepPopover(e: Event) {
     e.stopPropagation();
     const btn = e.currentTarget as HTMLElement;
     const rect = btn.getBoundingClientRect();
-    depPopoverStyle = `top:${rect.bottom + 6}px; left:${rect.left}px;`;
-    showDepPopover = !showDepPopover;
+    onDepPopover?.({
+      style: `top:${rect.bottom + 6}px; left:${rect.left}px;`,
+      mode: habit.dependsOn!.mode,
+      deps: depResults.map(r => ({
+        hid: r.hid,
+        name: allHabits.find(h => h.id === r.hid)?.title ?? 'Unknown',
+        met: r.met,
+      })),
+    });
   }
-
-  function onDocumentClick(e: MouseEvent) {
-    const target = e.target as Node;
-    if (!showDepPopover) return;
-    const popover = document.getElementById('dep-popover-' + habit.id);
-    if (popover && !popover.contains(target)) {
-      showDepPopover = false;
-    }
-  }
-
-  $effect(() => {
-    if (showDepPopover) {
-      document.addEventListener('click', onDocumentClick);
-      return () => document.removeEventListener('click', onDocumentClick);
-    }
-  });
 
   $effect(() => {
     if (!habit) return;
@@ -281,21 +271,6 @@
               <span class="dep-badge-sep">|</span>
               <span class="dep-badge-count">✓ {depResults.filter(r => r.met).length}/{depResults.length}</span>
             </button>
-            {#if showDepPopover}
-              <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <div class="dep-popover" id="dep-popover-{habit.id}" style={depPopoverStyle} onclick={(e) => e.stopPropagation()} role="listbox">
-                <div class="dep-popover-header">
-                  {habit.dependsOn.mode === 'and' ? 'All required' : 'Any one required'}
-                </div>
-                {#each depResults as r}
-                  {@const dep = allHabits.find(h => h.id === r.hid)}
-                  <div class="dep-row" role="option" aria-selected={r.met}>
-                    <span class="dep-indicator" class:met={r.met}>{r.met ? '✓' : '○'}</span>
-                    <span class="dep-name">{dep?.title ?? 'Unknown'}</span>
-                  </div>
-                {/each}
-              </div>
-            {/if}
           </div>
         {/if}
       </div>
@@ -496,52 +471,6 @@
   }
   .dep-badge:hover {
     opacity: 0.85;
-  }
-  .dep-popover {
-    position: fixed;
-    z-index: 1000;
-    min-width: 160px;
-    background: var(--dep-popover-bg, #f0f0f0);
-    border: 1px solid var(--dep-popover-border, #ccc);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-    padding: 0.4rem 0;
-    font-size: 0.8rem;
-    color: var(--dep-popover-text, #222);
-  }
-  .dep-popover-header {
-    padding: 0.3rem 0.75rem 0.2rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--dep-popover-muted, #888);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  .dep-row {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.3rem 0.75rem;
-    cursor: default;
-  }
-  .dep-row:hover {
-    background: var(--btn-secondary-bg, #f5f5f5);
-  }
-  .dep-indicator {
-    font-size: 0.75rem;
-    color: var(--text-secondary, #aaa);
-    width: 1em;
-    text-align: center;
-    flex-shrink: 0;
-  }
-  .dep-indicator.met {
-    color: #2e7d32;
-  }
-  .dep-name {
-    color: var(--text-primary, #222);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
   .streak {
     margin: 2px 0 0 0;

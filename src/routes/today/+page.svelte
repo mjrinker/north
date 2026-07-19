@@ -11,7 +11,7 @@
   import NotesModal from '../../components/NotesModal.svelte';
   import Icon from '@iconify/svelte';
   import { computeSuggestions, getCurrentLocation } from '../../lib/completionLog';
-  import type { SuggestedPlace } from '../../types';
+  import type { SuggestedPlace, DepPopoverState } from '../../types';
   import { notesStore } from '../../stores/notes';
   import { entriesStore } from '../../stores/entries';
   import { HabitEngine } from '../../services/habitEngine';
@@ -259,6 +259,26 @@
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
   let notesHabitId = $state<string | null>(null);
+  let depPopover = $state<DepPopoverState | null>(null);
+
+  function closeDepPopover() {
+    depPopover = null;
+  }
+
+  function handleDepPopover(state: DepPopoverState) {
+    depPopover = state;
+  }
+
+  $effect(() => {
+    if (depPopover) {
+      const handler = (e: MouseEvent) => {
+        const el = document.getElementById('page-dep-popover');
+        if (el && !el.contains(e.target as Node)) depPopover = null;
+      };
+      setTimeout(() => document.addEventListener('click', handler), 0);
+      return () => document.removeEventListener('click', handler);
+    }
+  });
 
   const SWIPE_THRESHOLD = 80;
   let touchStartX = $state(0);
@@ -388,6 +408,21 @@
   <NotesModal habitId={notesHabitId} onClose={() => notesHabitId = null} />
 {/if}
 
+{#if depPopover}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class="dep-popover" id="page-dep-popover" style={depPopover.style} on:click|stopPropagation role="listbox">
+    <div class="dep-popover-header">
+      {depPopover.mode === 'and' ? 'All required' : 'Any one required'}
+    </div>
+    {#each depPopover.deps as r}
+      <div class="dep-row" role="option" aria-selected={r.met}>
+        <span class="dep-indicator" class:met={r.met}>{r.met ? '✓' : '○'}</span>
+        <span class="dep-name">{r.name}</span>
+      </div>
+    {/each}
+  </div>
+{/if}
+
 {#if filteredSuggested.length > 0}
   <section class="suggested-section">
     <button class="suggested-header" on:click={() => suggestedCollapsed = !suggestedCollapsed}>
@@ -405,7 +440,7 @@
               on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
               on:touchend={(e) => handleTouchEnd(e, habit.id)}
             >
-              <HabitCard {habit} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} />
+              <HabitCard {habit} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} />
             </div>
           </div>
         </div>
@@ -449,7 +484,7 @@
               on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
               on:touchend={(e) => handleTouchEnd(e, habit.id)}
             >
-              <HabitCard {habit} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} />
+              <HabitCard {habit} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} />
             </div>
             <div
               class="swipe-actions"
@@ -647,6 +682,53 @@
   .swipe-btn.delete { background: #d32f2f; }
 
   .fab-spacer { height: 5.5rem; }
+
+  .dep-popover {
+    position: fixed;
+    z-index: 10000;
+    min-width: 160px;
+    background: var(--dep-popover-bg, #f0f0f0);
+    border: 1px solid var(--dep-popover-border, #ccc);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    padding: 0.4rem 0;
+    font-size: 0.8rem;
+    color: var(--dep-popover-text, #222);
+  }
+  .dep-popover-header {
+    padding: 0.3rem 0.75rem 0.2rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--dep-popover-muted, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .dep-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    cursor: default;
+  }
+  .dep-row:hover {
+    background: var(--btn-secondary-bg, #f5f5f5);
+  }
+  .dep-indicator {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #aaa);
+    width: 1em;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .dep-indicator.met {
+    color: #2e7d32;
+  }
+  .dep-name {
+    color: var(--text-primary, #222);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   @media (max-width: 600px) {
     .habits-grid { grid-template-columns: 1fr; }
