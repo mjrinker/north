@@ -286,8 +286,8 @@
     <div class="card-right">
       {#if habit.type === 'binary'}
       <div class="action-control">
-        <label class="binary-input-wrap" class:checked={todayEntry?.value === 1} onclick={(e) => { e.stopPropagation(); e.preventDefault(); handleBinaryChange(); }}>
-          <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} disabled={isAutoCompleted} />
+        <label class="binary-input-wrap" class:checked={todayEntry?.value === 1} onclick={(e) => e.stopPropagation()}>
+          <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} disabled={isAutoCompleted} onmousedown={(e) => e.preventDefault()} />
           {#if todayEntry?.value === 1}
             <Icon icon="mdi:check" class="check-icon" />
           {/if}
