@@ -69,10 +69,15 @@
     }
   }
 
+  onDestroy(() => {
+    document.removeEventListener('click', onDocumentClick);
+  });
+
   $effect(() => {
     if (showDepPopover) {
-      setTimeout(() => document.addEventListener('click', onDocumentClick), 0);
-      return () => document.removeEventListener('click', onDocumentClick);
+      document.addEventListener('click', onDocumentClick);
+    } else {
+      document.removeEventListener('click', onDocumentClick);
     }
   });
 
