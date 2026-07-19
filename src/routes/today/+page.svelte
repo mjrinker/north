@@ -273,11 +273,13 @@
     }
   }
 
+  let depPopoverHandler = (() => {}) as () => void;
+
   $effect(() => {
+    depPopoverHandler = () => { depPopover = null; };
     if (depPopover) {
-      const handler = () => { depPopover = null; };
-      setTimeout(() => document.addEventListener('click', handler), 0);
-      return () => document.removeEventListener('click', handler);
+      document.addEventListener('click', depPopoverHandler, true);
+      return () => document.removeEventListener('click', depPopoverHandler, true);
     }
   });
 
