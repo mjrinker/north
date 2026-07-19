@@ -1,6 +1,6 @@
 <script lang="ts">
   import { marked } from 'marked';
-  import { notesStore, addNote, removeNote } from '../stores/notes';
+  import { notesStore, addNote, removeNote, updateNote } from '../stores/notes';
   import type { HabitNote } from '../types';
   import { getLocalDateString } from '../lib/dates';
   import Modal from './Modal.svelte';
@@ -19,8 +19,10 @@
 
   let notes = $derived(allNotes.filter(n => n.habitId === habitId && n.date === today));
   let expandedId = $state<string | null>(null);
+  let editingId = $state<string | null>(null);
   let adding = $state(false);
   let newContent = $state('');
+  let editContent = $state('');
 
   function handleAdd() {
     if (!newContent.trim()) return;
@@ -36,8 +38,21 @@
     adding = false;
   }
 
-  function toggleExpand(id: string) {
-    expandedId = expandedId === id ? null : id;
+  function startEdit(note: HabitNote) {
+    editingId = note.id;
+    editContent = note.content;
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    editContent = '';
+  }
+
+  function saveEdit() {
+    if (!editContent.trim() || !editingId) return;
+    updateNote(editingId, editContent.trim());
+    editingId = null;
+    editContent = '';
   }
 </script>
 
@@ -59,17 +74,37 @@
 
   <div class="note-list">
     {#each notes as note (note.id)}
-      <div class="note-card" class:expanded={expandedId === note.id} onclick={() => toggleExpand(note.id)}>
-        <div class="note-content" class:truncated={expandedId !== note.id}>
-          {@html marked.parse(note.content)}
+      {#if editingId === note.id}
+        <div class="note-card">
+          <textarea bind:value={editContent} class="note-input edit-input"></textarea>
+          <div class="note-meta">
+            <span class="note-time">{note.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <div class="actions">
+              <button class="btn" onclick={saveEdit}>Save</button>
+              <button class="btn btn-outline" onclick={cancelEdit}>Cancel</button>
+            </div>
+          </div>
         </div>
-        <div class="note-meta">
-          <span class="note-time">{note.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          <button class="del-btn" onclick={(e) => { e.stopPropagation(); removeNote(note.id); }} aria-label="Delete note">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"/></svg>
-          </button>
+      {:else}
+        <div class="note-card" class:expanded={expandedId === note.id} onclick={() => expandedId = expandedId === note.id ? null : note.id}>
+          <div class="note-content" class:truncated={expandedId !== note.id}>
+            {@html marked.parse(note.content)}
+          </div>
+          <div class="note-meta">
+            <span class="note-time">{note.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <div class="actions">
+              <button class="action-btn" onclick={(e) => { e.stopPropagation(); startEdit(note); }} aria-label="Edit note">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg>
+              </button>
+              {#if expandedId === note.id}
+                <button class="action-btn del" onclick={(e) => { e.stopPropagation(); removeNote(note.id); }} aria-label="Delete note">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"/></svg>
+                </button>
+              {/if}
+            </div>
+          </div>
         </div>
-      </div>
+      {/if}
     {:else}
       <p class="empty">No notes for today.</p>
     {/each}
@@ -114,6 +149,7 @@
     min-height: 4rem;
     resize: vertical;
   }
+  .edit-input { min-height: 5rem; }
   .add-actions {
     display: flex;
     gap: 0.5rem;
@@ -184,7 +220,12 @@
     margin-top: 0.3rem;
   }
   .note-time { font-size: 0.7rem; color: var(--text-secondary, #999); }
-  .del-btn {
+
+  .actions {
+    display: flex;
+    gap: 0.25rem;
+  }
+  .action-btn {
     background: none;
     border: none;
     cursor: pointer;
@@ -193,7 +234,8 @@
     border-radius: 4px;
     display: flex;
   }
-  .del-btn:hover { color: #d32f2f; background: rgba(211,47,47,0.08); }
+  .action-btn:hover { color: var(--accent, #0066cc); background: rgba(0,102,204,0.06); }
+  .action-btn.del:hover { color: #d32f2f; background: rgba(211,47,47,0.08); }
 
   .empty { text-align: center; color: var(--text-secondary, #999); font-size: 0.85rem; padding: 2rem 0; }
 </style>

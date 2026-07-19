@@ -250,6 +250,12 @@
         {/if}
       </div>
       <p class="streak">Streak: {streak} {habit.schedule.daysPerWeek ? 'weeks' : 'days'}</p>
+      {#if notesCount && notesCount > 0}
+        <button class="note-pill" onclick={(e) => { e.stopPropagation(); longPressFired = true; onNotes?.(); }} aria-label="Notes">
+          <Icon icon="mdi:note-text-outline" style="color: inherit; font-size: 0.8rem;" />
+          <span>{notesCount}</span>
+        </button>
+      {/if}
     </div>
     <div class="card-right">
       {#if habit.type === 'binary'}
@@ -359,10 +365,6 @@
 {/if}
 </div>
 
-{#if notesCount && notesCount > 0}
-  <span class="note-badge">{notesCount}</span>
-{/if}
-
 <style>
   .habit-card {
     position: relative;
@@ -470,25 +472,24 @@
   .btn-icon.pause { background: #f59e0b; color: white; }
   .btn-icon.done { background: #2e7d32; color: white; }
   .btn-icon.cancel { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
-  .note-badge {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    min-width: 18px;
-    height: 18px;
-    border-radius: 999px;
-    background: var(--accent, #0066cc);
-    color: #fff;
-    font-size: 0.65rem;
-    font-weight: 700;
-    display: flex;
+  .note-pill {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    padding: 0 5px;
-    box-sizing: border-box;
-    z-index: 5;
-    pointer-events: none;
-    line-height: 1;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary, #888);
+    background: transparent;
+    border: 1px solid var(--card-border, #e0e0e0);
+    border-radius: 999px;
+    padding: 1px 8px 1px 4px;
+    cursor: pointer;
+    margin-top: 0.25rem;
+    line-height: 1.4;
+  }
+  .note-pill:hover {
+    color: var(--accent, #0066cc);
+    border-color: var(--accent, #0066cc);
   }
   .btn-icon.restart { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
   .qty-input-wrap {
