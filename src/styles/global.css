@@ -37,6 +37,10 @@ body.light {
   --btn-secondary-bg: #eee;
   --slide-track: #e0e0e0;
   --slide-thumb: #fff;
+  --dep-popover-bg: #ffffff;
+  --dep-popover-text: #222;
+  --dep-popover-border: #ccc;
+  --dep-popover-muted: #888;
   background: var(--bg);
   color: var(--text);
 }
@@ -58,6 +62,10 @@ body.dark {
   --btn-secondary-bg: #2a3a5e;
   --slide-track: #2a3a5e;
   --slide-thumb: #1a1a2e;
+  --dep-popover-bg: #0a0a0a;
+  --dep-popover-text: #e0e0e0;
+  --dep-popover-border: #1a1a1a;
+  --dep-popover-muted: #888;
   background: var(--bg);
   color: var(--text);
 }
@@ -79,6 +87,10 @@ body.oled {
   --btn-secondary-bg: #1a1a1a;
   --slide-track: #1a1a1a;
   --slide-thumb: #0d0d0d;
+  --dep-popover-bg: #000000;
+  --dep-popover-text: #e0e0e0;
+  --dep-popover-border: #1a1a1a;
+  --dep-popover-muted: #888;
   background: var(--bg);
   color: var(--text);
 }
@@ -101,6 +113,10 @@ body.oled {
     --btn-secondary-bg: #2a3a5e;
     --slide-track: #2a3a5e;
     --slide-thumb: #1a1a2e;
+    --dep-popover-bg: #0a0a0a;
+    --dep-popover-text: #e0e0e0;
+    --dep-popover-border: #1a1a1a;
+    --dep-popover-muted: #888;
     background: var(--bg);
     color: var(--text);
   }
@@ -123,6 +139,10 @@ body.oled {
     --btn-secondary-bg: #eee;
     --slide-track: #e0e0e0;
     --slide-thumb: #fff;
+    --dep-popover-bg: #ffffff;
+    --dep-popover-text: #222;
+    --dep-popover-border: #ccc;
+    --dep-popover-muted: #888;
     background: var(--bg);
     color: var(--text);
   }

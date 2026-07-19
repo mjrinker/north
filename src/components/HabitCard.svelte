@@ -47,6 +47,20 @@
   let isTargetMet = $derived(todayEntry && habit.target != null ? todayEntry.value >= habit.target : false);
   let depResults = $state<{ hid: string; met: boolean }[]>([]);
   let showDepPopover = $state(false);
+  let depBadgeRef = $state<HTMLButtonElement | null>(null);
+  let depPopoverStyle = $state<{ top: string; left: string }>({ top: '0', left: '0' });
+
+  function openDepPopover(e: Event) {
+    e.stopPropagation();
+    if (depBadgeRef) {
+      const rect = depBadgeRef.getBoundingClientRect();
+      depPopoverStyle = {
+        top: `${rect.bottom + 6}px`,
+        left: `${rect.left}px`,
+      };
+    }
+    showDepPopover = !showDepPopover;
+  }
   let depPopoverRef = $state<HTMLDivElement | null>(null);
 
   function onDocumentClick(e: MouseEvent) {
@@ -265,13 +279,14 @@
         <h3>{habit.title}</h3>
         {#if habit.dependsOn && habit.dependsOn.habitIds.length > 0}
           <div class="dep-wrap">
-            <button class="dep-badge" onclick={(e) => { e.stopPropagation(); showDepPopover = !showDepPopover; }} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showDepPopover = !showDepPopover; }}}>
+            <button class="dep-badge" bind:this={depBadgeRef} onclick={openDepPopover} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDepPopover(e); }}}>
               <span class="dep-badge-label">conditional</span>
               <span class="dep-badge-sep">|</span>
               <span class="dep-badge-count">✓ {depResults.filter(r => r.met).length}/{depResults.length}</span>
             </button>
             {#if showDepPopover}
-              <div class="dep-popover" bind:this={depPopoverRef} onclick={(e) => e.stopPropagation()} role="listbox">
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <div class="dep-popover" style="top: {depPopoverStyle.top}; left: {depPopoverStyle.left};" bind:this={depPopoverRef} onclick={(e) => e.stopPropagation()} role="listbox">
                 <div class="dep-popover-header">
                   {habit.dependsOn.mode === 'and' ? 'All required' : 'Any one required'}
                 </div>
@@ -486,23 +501,22 @@
     opacity: 0.85;
   }
   .dep-popover {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    z-index: 100;
+    position: fixed;
+    z-index: 1000;
     min-width: 160px;
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #e0e0e0);
+    background: var(--dep-popover-bg, #f0f0f0);
+    border: 1px solid var(--dep-popover-border, #ccc);
     border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
     padding: 0.4rem 0;
     font-size: 0.8rem;
+    color: var(--dep-popover-text, #222);
   }
   .dep-popover-header {
     padding: 0.3rem 0.75rem 0.2rem;
     font-size: 0.7rem;
     font-weight: 600;
-    color: var(--text-secondary, #888);
+    color: var(--dep-popover-muted, #888);
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }

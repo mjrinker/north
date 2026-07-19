@@ -54,6 +54,10 @@ function applyPalette(hue: number, isDark: boolean) {
     body.style.setProperty('--btn-secondary-bg', `hsl(${hue}, 30%, 22%)`);
     body.style.setProperty('--slide-track', `hsl(${hue}, 30%, 25%)`);
     body.style.setProperty('--slide-thumb', `hsl(${hue}, 40%, 15%)`);
+    body.style.setProperty('--dep-popover-bg', `hsl(${hue}, 40%, 8%)`);
+    body.style.setProperty('--dep-popover-text', `hsl(${hue}, 15%, 90%)`);
+    body.style.setProperty('--dep-popover-border', `hsl(${hue}, 30%, 18%)`);
+    body.style.setProperty('--dep-popover-muted', `hsl(${hue}, 10%, 55%)`);
   } else {
     body.style.setProperty('--bg', `hsl(${hue}, 35%, 92%)`);
     body.style.setProperty('--text', `hsl(${hue}, 25%, 18%)`);
@@ -68,6 +72,10 @@ function applyPalette(hue: number, isDark: boolean) {
     body.style.setProperty('--btn-secondary-bg', `hsl(${hue}, 20%, 84%)`);
     body.style.setProperty('--slide-track', `hsl(${hue}, 20%, 78%)`);
     body.style.setProperty('--slide-thumb', `#ffffff`);
+    body.style.setProperty('--dep-popover-bg', `#ffffff`);
+    body.style.setProperty('--dep-popover-text', `hsl(${hue}, 25%, 18%)`);
+    body.style.setProperty('--dep-popover-border', `hsl(${hue}, 15%, 70%)`);
+    body.style.setProperty('--dep-popover-muted', `hsl(${hue}, 20%, 45%)`);
   }
 }
 
@@ -78,6 +86,7 @@ function clearPalette() {
     '--nav-bg', '--nav-border', '--card-bg', '--card-border',
     '--input-bg', '--input-border', '--btn-secondary-bg',
     '--slide-track', '--slide-thumb',
+    '--dep-popover-bg', '--dep-popover-text', '--dep-popover-border', '--dep-popover-muted',
   ];
   for (const p of props) body.style.removeProperty(p);
 }
