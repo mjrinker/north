@@ -273,16 +273,6 @@
     }
   }
 
-  let depPopoverHandler = (() => {}) as () => void;
-
-  $effect(() => {
-    depPopoverHandler = () => { depPopover = null; };
-    if (depPopover) {
-      document.addEventListener('click', depPopoverHandler, true);
-      return () => document.removeEventListener('click', depPopoverHandler, true);
-    }
-  });
-
   const SWIPE_THRESHOLD = 80;
   let touchStartX = $state(0);
   let touchStartY = $state(0);
@@ -413,7 +403,8 @@
 
 {#if depPopover}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <div class="dep-popover" id="page-dep-popover" style={depPopover.style} role="listbox">
+  <div class="dep-popover-backdrop" on:click={() => depPopover = null}></div>
+  <div class="dep-popover" id="page-dep-popover" style={depPopover.style} on:click|stopPropagation role="listbox">
     <div class="dep-popover-header">
       {depPopover.mode === 'and' ? 'All required' : 'Any one required'}
     </div>
@@ -686,6 +677,11 @@
 
   .fab-spacer { height: 5.5rem; }
 
+  .dep-popover-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+  }
   .dep-popover {
     position: absolute;
     z-index: 10000;
