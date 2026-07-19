@@ -266,7 +266,9 @@
         {#if habit.dependsOn && habit.dependsOn.habitIds.length > 0}
           <div class="dep-wrap">
             <button class="dep-badge" onclick={(e) => { e.stopPropagation(); showDepPopover = !showDepPopover; }} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showDepPopover = !showDepPopover; }}}>
-              conditional
+              <span class="dep-badge-label">conditional</span>
+              <span class="dep-badge-sep">|</span>
+              <span class="dep-badge-count">✓ {depResults.filter(r => r.met).length}/{depResults.length}</span>
             </button>
             {#if showDepPopover}
               <div class="dep-popover" bind:this={depPopoverRef} onclick={(e) => e.stopPropagation()} role="listbox">
@@ -468,6 +470,17 @@
     border: none;
     cursor: pointer;
     font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .dep-badge-label { white-space: nowrap; }
+  .dep-badge-sep { opacity: 0.5; }
+  .dep-badge-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.1rem;
+    white-space: nowrap;
   }
   .dep-badge:hover {
     opacity: 0.85;
