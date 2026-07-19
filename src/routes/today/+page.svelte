@@ -338,7 +338,7 @@
       if (touchDx > 0) return `translateX(${Math.min(touchDx, SWIPE_THRESHOLD)}px)`;
       if (touchDx < 0) return `translateX(${Math.max(touchDx, -SWIPE_THRESHOLD)}px)`;
     }
-    return 'translateX(0)';
+    return '';
   }
 
   function actionsTransform(habitId: string): string {
