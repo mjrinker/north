@@ -17,6 +17,7 @@
   import { getEntriesByDateRange } from '../../services/storage';
   import { HabitEngine } from '../../services/habitEngine';
   import { getLocalDateString } from '../../lib/dates';
+  import { appSettings, updateSettings } from '../../lib/settings';
 
   let today = getLocalDateString();
 
@@ -134,18 +135,12 @@
 
   let dragHabitId = $state<string | null>(null);
 
-  function loadCustomOrder(): string[] {
-    try {
-      const stored = localStorage.getItem('habitOrder');
-      return stored ? JSON.parse(stored) : [];
-    } catch { return []; }
-  }
-
-  let customOrder = $state<string[]>(loadCustomOrder());
+  let customOrder = $state<string[]>([]);
+  appSettings.subscribe(v => customOrder = v.habitOrder);
 
   function saveCustomOrder(order: string[]) {
     customOrder = order;
-    localStorage.setItem('habitOrder', JSON.stringify(order));
+    updateSettings({ habitOrder: order });
   }
 
   function reorder(fromId: string, targetId: string) {
