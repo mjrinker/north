@@ -12,11 +12,15 @@ async function triggerSync() {
   if (syncScheduled) return
   syncScheduled = true
 
+  const { supabaseSyncProvider } = await import('../services/sync.providers/supabase')
+
+  // download first so remote data (likely more complete) populates local state
+  await supabaseSyncProvider.downloadAll()
+
   const { habitsStore } = await import('./habits')
   const { entriesStore } = await import('./entries')
   const { identitiesStore } = await import('./identities')
   const { notesStore } = await import('./notes')
-  const { supabaseSyncProvider } = await import('../services/sync.providers/supabase')
 
   const hasLocal = get(habitsStore).length > 0
     || get(entriesStore).length > 0
@@ -24,10 +28,8 @@ async function triggerSync() {
     || get(notesStore).length > 0
 
   if (hasLocal) {
-    const uploadResult = await supabaseSyncProvider.uploadAll()
-    if (uploadResult.status !== 'success') return
+    await supabaseSyncProvider.uploadAll()
   }
-  await supabaseSyncProvider.downloadAll()
 }
 
 supabase.auth.onAuthStateChange((event, sessionData) => {
