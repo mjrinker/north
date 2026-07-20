@@ -34,11 +34,21 @@
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
   let scrollContainer = $state<HTMLDivElement | null>(null);
+  let hasScrolled = $state(false);
   let windowStart = $state(89);
 
   const WINDOW_SIZE = 90;
 
   const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  $effect(() => {
+    if (allEntries.length > 0 && scrollContainer && !hasScrolled) {
+      requestAnimationFrame(() => {
+        scrollContainer!.scrollLeft = scrollContainer!.scrollWidth;
+        hasScrolled = true;
+      });
+    }
+  });
 
   function getDates(): string[] {
     const today = new Date();
@@ -53,7 +63,6 @@
   }
 
   let dateColumns = $derived(getDates());
-  let displayDates = $derived(dateColumns.toReversed());
 
   function onScroll() {
   }
@@ -208,7 +217,7 @@
     let currentMonth = '';
     let currentYear = '';
     let span: { label: string; count: number } | null = null;
-    for (const date of displayDates) {
+    for (const date of dateColumns) {
       const month = date.slice(0, 7);
       if (month !== currentMonth) {
         if (span) spans.push(span);
