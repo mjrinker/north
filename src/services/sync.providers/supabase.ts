@@ -113,19 +113,32 @@ class SupabaseSyncProvider implements SyncProvider {
 
       console.log('[sync] downloadAll: querying user_sync_data for', uid)
 
-      const { data, error } = await supabase
-        .from('user_sync_data')
-        .select('*')
-        .eq('user_id', uid)
+      let allRows: any[] = []
+      const pageSize = 1000
+      let rangeStart = 0
 
-      if (error) {
-        console.error('[sync] downloadAll: query error', error)
-        throw new Error(error.message)
+      while (true) {
+        const { data, error } = await supabase
+          .from('user_sync_data')
+          .select('*')
+          .eq('user_id', uid)
+          .range(rangeStart, rangeStart + pageSize - 1)
+
+        if (error) {
+          console.error('[sync] downloadAll: query error', error)
+          throw new Error(error.message)
+        }
+
+        if (!data || data.length === 0) break
+
+        allRows = allRows.concat(data)
+        if (data.length < pageSize) break
+        rangeStart += pageSize
       }
 
-      console.log('[sync] downloadAll: got', data?.length ?? 0, 'rows')
+      console.log('[sync] downloadAll: got', allRows.length, 'rows total across pages')
 
-      if (!data || data.length === 0) {
+      if (allRows.length === 0) {
         console.log('[sync] downloadAll: no rows, nothing to do')
         return { lastSynced: start, status: 'success', conflicts: [] }
       }
@@ -140,7 +153,7 @@ class SupabaseSyncProvider implements SyncProvider {
       let settingsCount = 0
       let skipCount = 0
 
-      for (const row of data) {
+      for (const row of allRows) {
         try {
           if (row.collection === 'habits') {
             const { addHabit, updateHabit } = await import('../../stores/habits')
