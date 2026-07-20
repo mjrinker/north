@@ -11,11 +11,13 @@ let syncScheduled = false
 async function triggerSync() {
   if (syncScheduled) return
   syncScheduled = true
+  console.log('[sync] triggerSync started')
 
   const { supabaseSyncProvider } = await import('../services/sync.providers/supabase')
 
   // download first so remote data (likely more complete) populates local state
-  await supabaseSyncProvider.downloadAll()
+  const downloadResult = await supabaseSyncProvider.downloadAll()
+  console.log('[sync] downloadAll result:', downloadResult)
 
   const { habitsStore } = await import('./habits')
   const { entriesStore } = await import('./entries')
@@ -38,8 +40,10 @@ supabase.auth.onAuthStateChange((event, sessionData) => {
   if (event !== 'INITIAL_SESSION') isLoading.set(false)
 
   if (event === 'SIGNED_IN') {
+    console.log('[sync] SIGNED_IN — scheduling sync in 1500ms')
     setTimeout(triggerSync, 1500)
   } else if (event === 'INITIAL_SESSION' && sessionData?.user) {
+    console.log('[sync] INITIAL_SESSION with user — scheduling sync in 1500ms')
     setTimeout(triggerSync, 1500)
   }
 })
