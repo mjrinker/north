@@ -126,36 +126,40 @@ class SupabaseSyncProvider implements SyncProvider {
       setSyncEnabled(false)
 
       for (const row of data) {
-        if (row.collection === 'habits') {
-          const { addHabit, updateHabit } = await import('../../stores/habits')
-          if (get(habitsStore).some(h => h.id === row.record_id)) {
-            updateHabit(row.data)
-          } else {
-            addHabit(row.data)
+        try {
+          if (row.collection === 'habits') {
+            const { addHabit, updateHabit } = await import('../../stores/habits')
+            if (get(habitsStore).some(h => h.id === row.record_id)) {
+              updateHabit(row.data)
+            } else {
+              addHabit(row.data)
+            }
+          } else if (row.collection === 'entries') {
+            const { addEntry } = await import('../../stores/entries')
+            if (get(entriesStore).some(e => e.id === row.record_id)) {
+              entriesStore.updateItem(row.data)
+            } else {
+              addEntry(row.data)
+            }
+          } else if (row.collection === 'identities') {
+            const { addIdentity, updateIdentity } = await import('../../stores/identities')
+            if (get(identitiesStore).some(i => i.id === row.record_id)) {
+              updateIdentity(row.data)
+            } else {
+              addIdentity(row.data)
+            }
+          } else if (row.collection === 'notes') {
+            const { addNote } = await import('../../stores/notes')
+            if (get(notesStore).some(n => n.id === row.record_id)) {
+              notesStore.updateItem(row.data)
+            } else {
+              addNote(row.data)
+            }
+          } else if (row.collection === 'settings' && row.record_id === 'app_settings') {
+            appSettings.set(row.data)
           }
-        } else if (row.collection === 'entries') {
-          const { addEntry } = await import('../../stores/entries')
-          if (get(entriesStore).some(e => e.id === row.record_id)) {
-            entriesStore.updateItem(row.data)
-          } else {
-            addEntry(row.data)
-          }
-        } else if (row.collection === 'identities') {
-          const { addIdentity, updateIdentity } = await import('../../stores/identities')
-          if (get(identitiesStore).some(i => i.id === row.record_id)) {
-            updateIdentity(row.data)
-          } else {
-            addIdentity(row.data)
-          }
-        } else if (row.collection === 'notes') {
-          const { addNote } = await import('../../stores/notes')
-          if (get(notesStore).some(n => n.id === row.record_id)) {
-            notesStore.updateItem(row.data)
-          } else {
-            addNote(row.data)
-          }
-        } else if (row.collection === 'settings' && row.record_id === 'app_settings') {
-          appSettings.set(row.data)
+        } catch (e: any) {
+          console.error(`downloadAll: skipping bad ${row.collection} ${row.record_id}`, e)
         }
       }
 
