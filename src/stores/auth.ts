@@ -6,30 +6,39 @@ export const user = writable<User | null>(null)
 export const session = writable<any>(null)
 export const isLoading = writable(true)
 
+let syncScheduled = false
+
+async function triggerSync() {
+  if (syncScheduled) return
+  syncScheduled = true
+
+  const { habitsStore } = await import('./habits')
+  const { entriesStore } = await import('./entries')
+  const { identitiesStore } = await import('./identities')
+  const { notesStore } = await import('./notes')
+  const { supabaseSyncProvider } = await import('../services/sync.providers/supabase')
+
+  const hasLocal = get(habitsStore).length > 0
+    || get(entriesStore).length > 0
+    || get(identitiesStore).length > 0
+    || get(notesStore).length > 0
+
+  if (hasLocal) {
+    const uploadResult = await supabaseSyncProvider.uploadAll()
+    if (uploadResult.status !== 'success') return
+  }
+  await supabaseSyncProvider.downloadAll()
+}
+
 supabase.auth.onAuthStateChange((event, sessionData) => {
   user.set(sessionData?.user ?? null)
   session.set(sessionData)
   if (event !== 'INITIAL_SESSION') isLoading.set(false)
 
   if (event === 'SIGNED_IN') {
-    setTimeout(async () => {
-      const { habitsStore } = await import('./habits')
-      const { entriesStore } = await import('./entries')
-      const { identitiesStore } = await import('./identities')
-      const { notesStore } = await import('./notes')
-      const { supabaseSyncProvider } = await import('../services/sync.providers/supabase')
-
-      const hasLocal = get(habitsStore).length > 0
-        || get(entriesStore).length > 0
-        || get(identitiesStore).length > 0
-        || get(notesStore).length > 0
-
-      if (hasLocal) {
-        const uploadResult = await supabaseSyncProvider.uploadAll()
-        if (uploadResult.status !== 'success') return
-      }
-      await supabaseSyncProvider.downloadAll()
-    }, 1500)
+    setTimeout(triggerSync, 1500)
+  } else if (event === 'INITIAL_SESSION' && sessionData?.user) {
+    setTimeout(triggerSync, 1500)
   }
 })
 
