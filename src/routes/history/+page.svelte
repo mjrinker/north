@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Habit, HabitEntry } from '../../types';
   import { habitsStore } from '../../stores/habits';
-  import { getAllEntries } from '../../services/storage';
+  import { entriesStore } from '../../stores/entries';
   import { HabitEngine } from '../../services/habitEngine';
   import { getLocalDateString, parseLocalDate, isToday } from '../../lib/dates';
   import { autoCompleteDependencies, uncheckDependencies, cascadeCheck, cascadeUncheck } from '../../lib/dependencyEngine';
@@ -21,9 +21,7 @@
   habitsStore.subscribe(v => (habits = v.filter(h => h.status === 'active')));
 
   let allEntries = $state<HabitEntry[]>([]);
-  $effect(() => {
-    getAllEntries().then(e => allEntries = e);
-  });
+  entriesStore.subscribe(v => allEntries = v);
 
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
