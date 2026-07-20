@@ -36,7 +36,7 @@
   let editingHabit = $state<Habit | null>(null);
   let scrollContainer = $state<HTMLDivElement | null>(null);
   let hasScrolled = $state(false);
-  let windowStart = $state(0);
+  let windowStart = $state(89);
   let shifting = $state(false);
 
   const WINDOW_SIZE = 90;
