@@ -14,6 +14,7 @@
   import type { SuggestedPlace, DepPopoverState } from '../../types';
   import { notesStore } from '../../stores/notes';
   import { entriesStore } from '../../stores/entries';
+  import { getEntriesByDateRange } from '../../services/storage';
   import { HabitEngine } from '../../services/habitEngine';
   import { getLocalDateString } from '../../lib/dates';
 
@@ -64,7 +65,17 @@
   let suggestedHabits = $derived(computeSuggestions(habits, undefined, currentLocation));
 
   let allEntries = $state<import('../../types').HabitEntry[]>([]);
-  entriesStore.subscribe(v => allEntries = v);
+
+  let dataVersion = $state(0);
+  entriesStore.subscribe(() => dataVersion++);
+
+  $effect(() => {
+    dataVersion;
+    const td = today;
+    getEntriesByDateRange(td, td).then(e => {
+      allEntries = e;
+    });
+  });
   let completedHabitIds = $derived.by(() => {
     const ids = new Set<string>();
     for (const e of allEntries) {

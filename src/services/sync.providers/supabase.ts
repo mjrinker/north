@@ -111,8 +111,6 @@ class SupabaseSyncProvider implements SyncProvider {
       const uid = this.getUserId()
       if (!uid) throw new Error('Not signed in')
 
-      console.log('[sync] downloadAll: querying user_sync_data for', uid)
-
       let allRows: any[] = []
       const pageSize = 1000
       let rangeStart = 0
@@ -124,10 +122,7 @@ class SupabaseSyncProvider implements SyncProvider {
           .eq('user_id', uid)
           .range(rangeStart, rangeStart + pageSize - 1)
 
-        if (error) {
-          console.error('[sync] downloadAll: query error', error)
-          throw new Error(error.message)
-        }
+        if (error) throw new Error(error.message)
 
         if (!data || data.length === 0) break
 
@@ -136,22 +131,12 @@ class SupabaseSyncProvider implements SyncProvider {
         rangeStart += pageSize
       }
 
-      console.log('[sync] downloadAll: got', allRows.length, 'rows total across pages')
-
       if (allRows.length === 0) {
-        console.log('[sync] downloadAll: no rows, nothing to do')
         return { lastSynced: start, status: 'success', conflicts: [] }
       }
 
       const { setSyncEnabled } = await import('../sync')
       setSyncEnabled(false)
-
-      let habitCount = 0
-      let entryCount = 0
-      let identityCount = 0
-      let noteCount = 0
-      let settingsCount = 0
-      let skipCount = 0
 
       for (const row of allRows) {
         try {
@@ -162,7 +147,6 @@ class SupabaseSyncProvider implements SyncProvider {
             } else {
               addHabit(row.data)
             }
-            habitCount++
           } else if (row.collection === 'entries') {
             const { addEntry } = await import('../../stores/entries')
             if (get(entriesStore).some(e => e.id === row.record_id)) {
@@ -170,7 +154,6 @@ class SupabaseSyncProvider implements SyncProvider {
             } else {
               addEntry(row.data)
             }
-            entryCount++
           } else if (row.collection === 'identities') {
             const { addIdentity, updateIdentity } = await import('../../stores/identities')
             if (get(identitiesStore).some(i => i.id === row.record_id)) {
@@ -178,7 +161,6 @@ class SupabaseSyncProvider implements SyncProvider {
             } else {
               addIdentity(row.data)
             }
-            identityCount++
           } else if (row.collection === 'notes') {
             const { addNote } = await import('../../stores/notes')
             if (get(notesStore).some(n => n.id === row.record_id)) {
@@ -186,25 +168,18 @@ class SupabaseSyncProvider implements SyncProvider {
             } else {
               addNote(row.data)
             }
-            noteCount++
           } else if (row.collection === 'settings' && row.record_id === 'app_settings') {
             appSettings.set(row.data)
-            settingsCount++
-          } else {
-            skipCount++
           }
-        } catch (e: any) {
-          console.error(`[sync] downloadAll: skipping bad ${row.collection}/${row.record_id}`, e)
-          skipCount++
+        } catch {
+          // skip bad record
         }
       }
 
       setSyncEnabled(true)
 
-      console.log(`[sync] downloadAll: processed ${habitCount} habits, ${entryCount} entries, ${identityCount} identities, ${noteCount} notes, ${settingsCount} settings, ${skipCount} skipped/unknown`)
-
       return { lastSynced: start, status: 'success', conflicts: [] }
-    } catch (e: any) {
+    } catch {
       return { lastSynced: start, status: 'error', conflicts: [] }
     }
   }

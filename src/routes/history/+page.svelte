@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Habit, HabitEntry } from '../../types';
   import { habitsStore } from '../../stores/habits';
-  import { entriesStore } from '../../stores/entries';
+  import { getEntriesByDateRange } from '../../services/storage';
   import { HabitEngine } from '../../services/habitEngine';
   import { getLocalDateString, parseLocalDate, isToday } from '../../lib/dates';
   import { autoCompleteDependencies, uncheckDependencies, cascadeCheck, cascadeUncheck } from '../../lib/dependencyEngine';
@@ -21,27 +21,27 @@
   habitsStore.subscribe(v => (habits = v.filter(h => h.status === 'active')));
 
   let allEntries = $state<HabitEntry[]>([]);
-  entriesStore.subscribe(v => allEntries = v);
+
+  $effect(() => {
+    const ws = windowStart;
+    const dates = getDates();
+    const startDate = dates[0];
+    const endDate = dates[WINDOW_SIZE - 1];
+    getEntriesByDateRange(startDate, endDate).then(e => {
+      allEntries = e;
+    });
+  });
 
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
   let scrollContainer = $state<HTMLDivElement | null>(null);
   let hasScrolled = $state(false);
-  let windowStart = $state(89);
+  let windowStart = $state(0);
   let shifting = $state(false);
 
   const WINDOW_SIZE = 90;
   const SHIFT_SIZE = 45;
   const COL_WIDTH = 44;
-
-  $effect(() => {
-    if (allEntries.length > 0 && scrollContainer && !hasScrolled) {
-      requestAnimationFrame(() => {
-        scrollContainer!.scrollLeft = scrollContainer!.scrollWidth;
-        hasScrolled = true;
-      });
-    }
-  });
 
   const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -58,6 +58,7 @@
   }
 
   let dateColumns = $derived(getDates());
+  let displayDates = $derived(dateColumns.toReversed());
 
   function canShiftLeft(): boolean {
     return true;
@@ -247,7 +248,7 @@
     let currentMonth = '';
     let currentYear = '';
     let span: { label: string; count: number } | null = null;
-    for (const date of dateColumns) {
+    for (const date of displayDates) {
       const month = date.slice(0, 7);
       if (month !== currentMonth) {
         if (span) spans.push(span);
@@ -298,7 +299,7 @@
         <th class="name-col"></th>
       </tr>
       <tr>
-        {#each dateColumns as date, i}
+        {#each displayDates as date, i}
           <th class:today={isToday(date)} data-date={date}>
             <span class="day-name">{getDayName(date)}</span>
             <span class="day-num">{date.slice(8)}</span>
@@ -310,7 +311,7 @@
     <tbody>
       {#each habits as habit (habit.id)}
         <tr onclick={() => editingHabit = habit}>
-          {#each dateColumns as date}
+          {#each displayDates as date}
             {@const entry = getDayEntry(habit.id, date)}
             <td class="day-cell {cellClass(entry)}" class:today={isToday(date)}>
               {#if habit.type === 'binary'}

@@ -6,25 +6,15 @@ export const user = writable<User | null>(null)
 export const session = writable<any>(null)
 export const isLoading = writable(true)
 
-if (typeof window !== 'undefined') {
-  import('./habits').then(m => (window as any).__habits = () => get(m.habitsStore))
-  import('./entries').then(m => (window as any).__entries = () => get(m.entriesStore))
-  import('./identities').then(m => (window as any).__identities = () => get(m.identitiesStore))
-  import('./notes').then(m => (window as any).__notes = () => get(m.notesStore))
-}
-
 let syncScheduled = false
 
 async function triggerSync() {
   if (syncScheduled) return
   syncScheduled = true
-  console.log('[sync] triggerSync started')
 
   const { supabaseSyncProvider } = await import('../services/sync.providers/supabase')
 
-  // download first so remote data (likely more complete) populates local state
-  const downloadResult = await supabaseSyncProvider.downloadAll()
-  console.log('[sync] downloadAll result:', downloadResult)
+  await supabaseSyncProvider.downloadAll()
 
   const { habitsStore } = await import('./habits')
   const { entriesStore } = await import('./entries')
@@ -47,10 +37,8 @@ supabase.auth.onAuthStateChange((event, sessionData) => {
   if (event !== 'INITIAL_SESSION') isLoading.set(false)
 
   if (event === 'SIGNED_IN') {
-    console.log('[sync] SIGNED_IN — scheduling sync in 1500ms')
     setTimeout(triggerSync, 1500)
   } else if (event === 'INITIAL_SESSION' && sessionData?.user) {
-    console.log('[sync] INITIAL_SESSION with user — scheduling sync in 1500ms')
     setTimeout(triggerSync, 1500)
   }
 })
