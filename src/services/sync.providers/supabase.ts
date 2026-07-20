@@ -122,28 +122,44 @@ class SupabaseSyncProvider implements SyncProvider {
         return { lastSynced: start, status: 'success', conflicts: [] }
       }
 
-      const existingHabits = new Set(get(habitsStore).map(h => h.id))
-      const existingEntries = new Set(get(entriesStore).map(e => e.id))
-      const existingIdentities = new Set(get(identitiesStore).map(i => i.id))
-      const existingNotes = new Set(get(notesStore).map(n => n.id))
+      const { setSyncEnabled } = await import('../sync')
+      setSyncEnabled(false)
 
       for (const row of data) {
-        if (row.collection === 'habits' && !existingHabits.has(row.record_id)) {
-          const { addHabit } = await import('../../stores/habits')
-          addHabit(row.data)
-        } else if (row.collection === 'entries' && !existingEntries.has(row.record_id)) {
+        if (row.collection === 'habits') {
+          const { addHabit, updateHabit } = await import('../../stores/habits')
+          if (get(habitsStore).some(h => h.id === row.record_id)) {
+            updateHabit(row.data)
+          } else {
+            addHabit(row.data)
+          }
+        } else if (row.collection === 'entries') {
           const { addEntry } = await import('../../stores/entries')
-          addEntry(row.data)
-        } else if (row.collection === 'identities' && !existingIdentities.has(row.record_id)) {
-          const { addIdentity } = await import('../../stores/identities')
-          addIdentity(row.data)
-        } else if (row.collection === 'notes' && !existingNotes.has(row.record_id)) {
+          if (get(entriesStore).some(e => e.id === row.record_id)) {
+            entriesStore.updateItem(row.data)
+          } else {
+            addEntry(row.data)
+          }
+        } else if (row.collection === 'identities') {
+          const { addIdentity, updateIdentity } = await import('../../stores/identities')
+          if (get(identitiesStore).some(i => i.id === row.record_id)) {
+            updateIdentity(row.data)
+          } else {
+            addIdentity(row.data)
+          }
+        } else if (row.collection === 'notes') {
           const { addNote } = await import('../../stores/notes')
-          addNote(row.data)
+          if (get(notesStore).some(n => n.id === row.record_id)) {
+            notesStore.updateItem(row.data)
+          } else {
+            addNote(row.data)
+          }
         } else if (row.collection === 'settings' && row.record_id === 'app_settings') {
           appSettings.set(row.data)
         }
       }
+
+      setSyncEnabled(true)
 
       return { lastSynced: start, status: 'success', conflicts: [] }
     } catch (e: any) {
