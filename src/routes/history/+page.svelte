@@ -34,21 +34,11 @@
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
   let scrollContainer = $state<HTMLDivElement | null>(null);
-  let hasScrolled = $state(false);
   let windowStart = $state(89);
 
   const WINDOW_SIZE = 90;
 
   const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-  $effect(() => {
-    if (allEntries.length > 0 && scrollContainer && !hasScrolled) {
-      requestAnimationFrame(() => {
-        scrollContainer!.scrollLeft = scrollContainer!.scrollWidth;
-        hasScrolled = true;
-      });
-    }
-  });
 
   function getDates(): string[] {
     const today = new Date();
@@ -63,6 +53,7 @@
   }
 
   let dateColumns = $derived(getDates());
+  let displayDates = $derived(dateColumns.toReversed());
 
   function onScroll() {
   }
@@ -217,7 +208,7 @@
     let currentMonth = '';
     let currentYear = '';
     let span: { label: string; count: number } | null = null;
-    for (const date of dateColumns) {
+    for (const date of displayDates) {
       const month = date.slice(0, 7);
       if (month !== currentMonth) {
         if (span) spans.push(span);
@@ -268,7 +259,7 @@
         <th class="name-col"></th>
       </tr>
       <tr>
-        {#each dateColumns as date, i}
+        {#each displayDates as date, i}
           <th class:today={isToday(date)} data-date={date}>
             <span class="day-name">{getDayName(date)}</span>
             <span class="day-num">{date.slice(8)}</span>
@@ -280,7 +271,7 @@
     <tbody>
       {#each habits as habit (habit.id)}
         <tr onclick={() => editingHabit = habit}>
-          {#each dateColumns as date}
+          {#each displayDates as date}
             {@const entry = getDayEntry(habit.id, date)}
             <td class="day-cell {cellClass(entry)}" class:today={isToday(date)}>
               {#if habit.type === 'binary'}
