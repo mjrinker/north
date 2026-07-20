@@ -8,7 +8,6 @@
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import Icon from '@iconify/svelte';
-  import { tick } from 'svelte';
 
   $effect(() => {
     if (editTarget) {
@@ -35,13 +34,9 @@
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
   let scrollContainer = $state<HTMLDivElement | null>(null);
-  let hasScrolled = $state(false);
   let windowStart = $state(89);
-  let shifting = $state(false);
 
   const WINDOW_SIZE = 90;
-  const SHIFT_SIZE = 45;
-  const COL_WIDTH = 44;
 
   const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -60,42 +55,7 @@
   let dateColumns = $derived(getDates());
   let displayDates = $derived(dateColumns.toReversed());
 
-  function canShiftLeft(): boolean {
-    return true;
-  }
-
-  function canShiftRight(): boolean {
-    return dateColumns[WINDOW_SIZE - 1] < getLocalDateString();
-  }
-
   function onScroll() {
-    if (!scrollContainer || shifting) return;
-    const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
-    if (scrollLeft < COL_WIDTH * 3 && canShiftLeft()) {
-      shiftLeft();
-    } else if (scrollLeft + clientWidth > scrollWidth - COL_WIDTH * 3 && canShiftRight()) {
-      shiftRight();
-    }
-  }
-
-  async function shiftLeft() {
-    shifting = true;
-    windowStart += SHIFT_SIZE;
-    await tick();
-    if (scrollContainer) {
-      scrollContainer.scrollLeft += SHIFT_SIZE * COL_WIDTH;
-    }
-    shifting = false;
-  }
-
-  async function shiftRight() {
-    shifting = true;
-    windowStart -= SHIFT_SIZE;
-    await tick();
-    if (scrollContainer) {
-      scrollContainer.scrollLeft -= SHIFT_SIZE * COL_WIDTH;
-    }
-    shifting = false;
   }
 
   let entryMap = $derived.by(() => {
