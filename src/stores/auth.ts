@@ -6,6 +6,11 @@ export const user = writable<User | null>(null)
 export const session = writable<any>(null)
 export const isLoading = writable(true)
 
+if (typeof window !== 'undefined') {
+  import('./habits').then(m => (window as any).__habitsStore = m.habitsStore)
+  import('./entries').then(m => (window as any).__entriesStore = m.entriesStore)
+}
+
 let syncScheduled = false
 
 async function triggerSync() {
