@@ -1,7 +1,7 @@
 <script lang="ts">
   import { user, signInWithGoogle, signOut } from '../../stores/auth'
   import { supabaseSyncProvider } from '../../services/sync.providers/supabase'
-  import { appSettings, type AppSettings, type ThemeMode, type LaunchScreen } from '../../lib/settings'
+  import { appSettings, updateSettings, type AppSettings, type ThemeMode, type LaunchScreen } from '../../lib/settings'
 
   let currentUser = $state<any>(null)
   let syncing = $state(false)
@@ -16,7 +16,7 @@
   })
 
   function update(partial: Partial<AppSettings>) {
-    appSettings.update(v => ({ ...v, ...partial }))
+    updateSettings(partial)
   }
 
   user.subscribe(async (u) => {

@@ -1,4 +1,4 @@
-import { writable, type Writable } from 'svelte/store';
+import { writable, get, type Writable } from 'svelte/store';
 import { pushRecord } from '../services/sync';
 
 export type ThemeMode = 'light' | 'dark' | 'system' | 'adaptive';
@@ -40,16 +40,20 @@ function createSettingsStore(): Writable<AppSettings> & { init: () => void } {
   const store = writable<AppSettings>(load());
   let initialized = false;
   return {
-    ...store,
+    subscribe: store.subscribe,
+    set: store.set,
+    update: store.update,
     init() {
       if (initialized) return;
       initialized = true;
-      store.subscribe(v => {
-        save(v);
-        pushRecord('settings', 'app_settings', v);
-      });
+      store.subscribe(v => save(v));
     },
   };
 }
 
 export const appSettings = createSettingsStore();
+
+export function updateSettings(partial: Partial<AppSettings>) {
+  appSettings.update(v => ({ ...v, ...partial }));
+  pushRecord('settings', 'app_settings', get(appSettings));
+}
