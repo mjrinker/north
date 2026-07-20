@@ -7,8 +7,10 @@ export const session = writable<any>(null)
 export const isLoading = writable(true)
 
 if (typeof window !== 'undefined') {
-  import('./habits').then(m => (window as any).__habitsStore = m.habitsStore)
-  import('./entries').then(m => (window as any).__entriesStore = m.entriesStore)
+  import('./habits').then(m => (window as any).__habits = () => get(m.habitsStore))
+  import('./entries').then(m => (window as any).__entries = () => get(m.entriesStore))
+  import('./identities').then(m => (window as any).__identities = () => get(m.identitiesStore))
+  import('./notes').then(m => (window as any).__notes = () => get(m.notesStore))
 }
 
 let syncScheduled = false
