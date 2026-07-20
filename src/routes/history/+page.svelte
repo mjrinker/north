@@ -268,7 +268,7 @@
         <th class="name-col"></th>
       </tr>
       <tr>
-        {#each displayDates as date, i}
+        {#each dateColumns as date, i}
           <th class:today={isToday(date)} data-date={date}>
             <span class="day-name">{getDayName(date)}</span>
             <span class="day-num">{date.slice(8)}</span>
@@ -280,7 +280,7 @@
     <tbody>
       {#each habits as habit (habit.id)}
         <tr onclick={() => editingHabit = habit}>
-          {#each displayDates as date}
+          {#each dateColumns as date}
             {@const entry = getDayEntry(habit.id, date)}
             <td class="day-cell {cellClass(entry)}" class:today={isToday(date)}>
               {#if habit.type === 'binary'}
