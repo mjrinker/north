@@ -8,6 +8,8 @@
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import Icon from '@iconify/svelte';
+  import { onMount } from 'svelte';
+  import { tick } from 'svelte';
 
   $effect(() => {
     if (editTarget) {
@@ -34,20 +36,19 @@
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
   let scrollContainer = $state<HTMLDivElement | null>(null);
-  let hasScrolled = $state(false);
   let windowStart = $state(89);
 
   const WINDOW_SIZE = 90;
 
   const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-  $effect(() => {
-    if (allEntries.length > 0 && scrollContainer && !hasScrolled) {
-      requestAnimationFrame(() => {
-        scrollContainer!.scrollLeft = scrollContainer!.scrollWidth;
-        hasScrolled = true;
-      });
-    }
+  onMount(async () => {
+    await tick();
+    requestAnimationFrame(() => {
+      if (scrollContainer) {
+        scrollContainer.scrollLeft = scrollContainer.scrollWidth;
+      }
+    });
   });
 
   function getDates(): string[] {
