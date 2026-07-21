@@ -7,6 +7,7 @@
   import { userHasFeature, userHasPermission } from '../lib/featureFlags';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  import { getSchema, toggleSchema } from '../lib/schemaToggle';
   let { children }: { children: any } = $props();
   let currentUser = $state<any>(null);
   user.subscribe(v => currentUser = v);
@@ -37,6 +38,12 @@
       }
     }
   });
+
+  let schemaVersion = $state(getSchema());
+  function handleSchemaToggle() {
+    toggleSchema();
+    schemaVersion = getSchema();
+  }
 </script>
 
 <nav>
@@ -56,6 +63,10 @@
     <button class="auth-btn" onclick={signInWithGoogle}>Sign in with Google</button>
   {/if}
 </nav>
+
+<button class="schema-toggle" onclick={handleSchemaToggle} title="Toggle DB schema (old user_sync_data vs new typed tables)">
+  {schemaVersion === 'new' ? 'NEW' : 'OLD'}
+</button>
 
 {@render children()}
 
@@ -95,4 +106,25 @@
     background: var(--bg);
     border-color: var(--text-secondary, #555);
   }
+  .schema-toggle {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 50%;
+    background: var(--schema-toggle-bg, #6b7280);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    z-index: 50;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .schema-toggle:hover { opacity: 0.9; }
 </style>
