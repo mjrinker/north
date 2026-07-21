@@ -48,9 +48,7 @@
       if (!scrollContainer) return;
       const todayHeader = scrollContainer.querySelector<HTMLElement>('th.today');
       if (todayHeader) {
-        scrollContainer.scrollLeft = todayHeader.offsetLeft - scrollContainer.clientWidth + todayHeader.offsetWidth;
-      } else {
-        scrollContainer.scrollLeft = scrollContainer.scrollWidth;
+        todayHeader.scrollIntoView({ inline: 'end', block: 'nearest' });
       }
     });
   });
