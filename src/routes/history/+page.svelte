@@ -28,10 +28,10 @@
     const dates = getDates();
     const startDate = dates[0];
     const endDate = dates[WINDOW_SIZE - 1];
-    getEntriesByDateRange(startDate, endDate).then(e => {
-      allEntries = e;
-      entriesReady = true;
-    });
+    getEntriesByDateRange(startDate, endDate)
+      .then(e => { allEntries = e; })
+      .catch(err => console.error('load entries error:', err))
+      .finally(() => { entriesReady = true; });
   });
 
   let showCreate = $state(false);
