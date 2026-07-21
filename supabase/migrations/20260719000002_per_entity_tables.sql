@@ -129,30 +129,42 @@ WHERE collection = 'habits'
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO entries (id, user_id, habit_id, date, value, standard_met, target_met, notes, updated_at)
-SELECT DISTINCT ON ((data->>'habitId')::UUID, (data->>'date')::DATE)
-  (data->>'id')::UUID,
-  user_id,
-  (data->>'habitId')::UUID,
-  (data->>'date')::DATE,
-  (data->>'value')::REAL,
-  COALESCE((data->>'standardMet')::BOOLEAN, false),
-  COALESCE((data->>'targetMet')::BOOLEAN, false),
-  data->>'notes',
-  COALESCE((data->>'updatedAt')::TIMESTAMPTZ, now())
-FROM user_sync_data
-WHERE collection = 'entries'
-ORDER BY (data->>'habitId')::UUID, (data->>'date')::DATE, (data->>'updatedAt')::TIMESTAMPTZ DESC;
+SELECT DISTINCT ON ((usd.data->>'habitId')::UUID, (usd.data->>'date')::DATE)
+  (usd.data->>'id')::UUID,
+  usd.user_id,
+  (usd.data->>'habitId')::UUID,
+  (usd.data->>'date')::DATE,
+  (usd.data->>'value')::REAL,
+  COALESCE((usd.data->>'standardMet')::BOOLEAN, false),
+  COALESCE((usd.data->>'targetMet')::BOOLEAN, false),
+  usd.data->>'notes',
+  COALESCE((usd.data->>'updatedAt')::TIMESTAMPTZ, now())
+FROM user_sync_data usd
+WHERE usd.collection = 'entries'
+  AND EXISTS (
+    SELECT 1 FROM user_sync_data h
+    WHERE h.collection = 'habits'
+      AND (h.data->>'id')::UUID = (usd.data->>'habitId')::UUID
+      AND h.user_id = usd.user_id
+  )
+ORDER BY (usd.data->>'habitId')::UUID, (usd.data->>'date')::DATE, (usd.data->>'updatedAt')::TIMESTAMPTZ DESC;
 
 INSERT INTO notes (id, user_id, habit_id, date, content, created_at)
 SELECT
-  (data->>'id')::UUID,
-  user_id,
-  (data->>'habitId')::UUID,
-  (data->>'date')::DATE,
-  data->>'content',
-  COALESCE((data->>'createdAt')::TIMESTAMPTZ, now())
-FROM user_sync_data
-WHERE collection = 'notes'
+  (usd.data->>'id')::UUID,
+  usd.user_id,
+  (usd.data->>'habitId')::UUID,
+  (usd.data->>'date')::DATE,
+  usd.data->>'content',
+  COALESCE((usd.data->>'createdAt')::TIMESTAMPTZ, now())
+FROM user_sync_data usd
+WHERE usd.collection = 'notes'
+  AND EXISTS (
+    SELECT 1 FROM user_sync_data h
+    WHERE h.collection = 'habits'
+      AND (h.data->>'id')::UUID = (usd.data->>'habitId')::UUID
+      AND h.user_id = usd.user_id
+  )
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO identities (id, user_id, name, description, goals, created_at)
