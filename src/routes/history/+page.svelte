@@ -47,11 +47,15 @@
     requestAnimationFrame(() => {
       if (!scrollContainer) return;
       const todayHeader = scrollContainer.querySelector<HTMLElement>('th.today');
-      if (todayHeader) {
-        const nameCol = scrollContainer.querySelector<HTMLElement>('th.name-col');
-        const nameWidth = nameCol ? nameCol.offsetWidth : 0;
-        scrollContainer.scrollLeft = todayHeader.offsetLeft + todayHeader.offsetWidth - scrollContainer.clientWidth + nameWidth;
-      }
+      if (!todayHeader) return;
+      const scroller = scrollContainer;
+      const nameCol = scroller.querySelector<HTMLElement>('td.name-col, th.name-col');
+      const scrollRect = scroller.getBoundingClientRect();
+      const todayRect = todayHeader.getBoundingClientRect();
+      const nameWidth = nameCol ? nameCol.getBoundingClientRect().width : 0;
+      const todayRightInContainer = todayRect.right - scrollRect.left;
+      const targetRight = scrollRect.width - nameWidth;
+      scroller.scrollLeft = todayRightInContainer - targetRight;
     });
   });
 
