@@ -260,21 +260,21 @@
 </script>
 
 <div class="habit-card" role="button" tabindex="0"
-  onmousedown={handleLongPressStart}
-  onmouseup={handleLongPressEnd}
-  onmouseleave={handleLongPressEnd}
-  ontouchstart={handleLongPressStart}
-  ontouchend={handleLongPressEnd}
-  ontouchmove={handleLongPressCancel}
-  onclick={() => { if (!longPressFired) onEdit?.(); }}
-  onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit?.(); } }}>
+  on:mousedown={handleLongPressStart}
+  on:mouseup={handleLongPressEnd}
+  on:mouseleave={handleLongPressEnd}
+  on:touchstart={handleLongPressStart}
+  on:touchend={handleLongPressEnd}
+  on:touchmove={handleLongPressCancel}
+  on:click={() => { if (!longPressFired) onEdit?.(); }}
+  on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit?.(); } }}>
   <div class="card-top">
     <div class="card-left">
       <div class="title-row">
         <h3>{habit.title}</h3>
         {#if habit.dependsOn && habit.dependsOn.habitIds.length > 0}
           <div class="dep-wrap">
-            <button class="dep-badge" onclick={openDepPopover} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDepPopover(e); }}}>
+            <button class="dep-badge" on:click={openDepPopover} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDepPopover(e); }}}>
               <span class="dep-badge-label">conditional</span>
               <span class="dep-badge-sep">|</span>
               <span class="dep-badge-count">✓ {depResults.filter(r => r.met).length}/{depResults.length}</span>
@@ -284,7 +284,7 @@
       </div>
       <p class="streak">Streak: {streak} {habit.schedule.daysPerWeek ? 'weeks' : 'days'}</p>
       {#if notesCount && notesCount > 0}
-        <button class="note-pill" onclick={(e) => { e.stopPropagation(); longPressFired = true; onNotes?.(); }} aria-label="Notes">
+        <button class="note-pill" on:click={(e) => { e.stopPropagation(); longPressFired = true; onNotes?.(); }} aria-label="Notes">
           <Icon icon="mdi:note-text-outline" style="color: inherit; font-size: 0.8rem;" />
           <span>{notesCount}</span>
         </button>
@@ -293,8 +293,8 @@
     <div class="card-right">
       {#if habit.type === 'binary'}
       <div class="action-control">
-        <label class="binary-input-wrap" class:checked={todayEntry?.value === 1} onclick={(e) => e.stopPropagation()}>
-          <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} disabled={isAutoCompleted} onmousedown={(e) => e.preventDefault()} />
+        <label class="binary-input-wrap" class:checked={todayEntry?.value === 1} on:click={(e) => e.stopPropagation()}>
+          <input type="checkbox" checked={todayEntry?.value === 1} on:change={handleBinaryChange} disabled={isAutoCompleted} on:mousedown={(e) => e.preventDefault()} />
           {#if todayEntry?.value === 1}
             <Icon icon="mdi:check" class="check-icon" />
           {/if}
@@ -302,8 +302,8 @@
       </div>
     {:else if habit.type === 'quantity'}
       <div class="action-control">
-        <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(-1); }} class="btn small">−</button>
-        <div class="qty-input-wrap" onclick={(e) => e.stopPropagation()}>
+        <button on:click={(e) => { e.stopPropagation(); handleQuantityDelta(-1); }} class="btn small">−</button>
+        <div class="qty-input-wrap" on:click={(e) => e.stopPropagation()}>
           <input
             type="number"
             value={todayEntry?.value ?? 0}
@@ -311,12 +311,12 @@
             class="qty-input"
             class:standard-met={isStandardMet}
             class:target-met={isTargetMet}
-            onfocus={(e) => {
+            on:focus={(e) => {
               const target = e.currentTarget as HTMLInputElement;
               const len = target.value.length;
               target.setSelectionRange(len, len);
             }}
-            onkeydown={(e) => {
+            on:keydown={(e) => {
               if (e.key === 'Enter') {
                 const target = e.currentTarget as HTMLInputElement;
                 const val = parseInt(target.value);
@@ -326,7 +326,7 @@
                 target.blur();
               }
             }}
-            onblur={(e) => {
+            on:blur={(e) => {
               const target = e.currentTarget as HTMLInputElement;
               const val = parseInt(target.value);
               if (!isNaN(val) && val >= 0) {
@@ -335,25 +335,25 @@
             }}
           />
         </div>
-        <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(1); }} class="btn small">+</button>
+        <button on:click={(e) => { e.stopPropagation(); handleQuantityDelta(1); }} class="btn small">+</button>
       </div>
     {:else if habit.type === 'duration'}
       <div class="action-control">
         {#if timerState.running}
           {#if timerState.paused}
-            <button onclick={(e) => { e.stopPropagation(); resumeTimer(); }} class="btn-icon play" aria-label="Resume"><Icon icon="mdi:play" style="color: inherit" /></button>
+            <button on:click={(e) => { e.stopPropagation(); resumeTimer(); }} class="btn-icon play" aria-label="Resume"><Icon icon="mdi:play" style="color: inherit" /></button>
           {:else}
-            <button onclick={(e) => { e.stopPropagation(); pauseTimer(); }} class="btn-icon pause" aria-label="Pause"><Icon icon="mdi:pause" style="color: inherit" /></button>
+            <button on:click={(e) => { e.stopPropagation(); pauseTimer(); }} class="btn-icon pause" aria-label="Pause"><Icon icon="mdi:pause" style="color: inherit" /></button>
           {/if}
-          <button onclick={(e) => { e.stopPropagation(); doneTimer(); }} class="btn-icon done" aria-label="Done"><Icon icon="mdi:check" style="color: inherit" /></button>
-          <button onclick={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn-icon cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: inherit" /></button>
+          <button on:click={(e) => { e.stopPropagation(); doneTimer(); }} class="btn-icon done" aria-label="Done"><Icon icon="mdi:check" style="color: inherit" /></button>
+          <button on:click={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn-icon cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: inherit" /></button>
         {:else}
-          <button onclick={(e) => { e.stopPropagation(); startTimer(); }} class="btn-icon play" aria-label="Start"><Icon icon="mdi:play" style="color: inherit" /></button>
+          <button on:click={(e) => { e.stopPropagation(); startTimer(); }} class="btn-icon play" aria-label="Start"><Icon icon="mdi:play" style="color: inherit" /></button>
         {/if}
         {#if todayEntry && todayEntry.value > 0 && !timerState.running}
-          <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn-icon restart" aria-label="Reset"><Icon icon="mdi:restart" style="color: inherit" /></button>
+          <button on:click={(e) => { e.stopPropagation(); handleReset(); }} class="btn-icon restart" aria-label="Reset"><Icon icon="mdi:restart" style="color: inherit" /></button>
         {/if}
-        <div class="dur-input-wrap" class:running={timerState.running} style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
+        <div class="dur-input-wrap" class:running={timerState.running} style:--sep-color={timerState.running ? '#888' : undefined} on:click={(e) => e.stopPropagation()}>
           {#if (timerState.running ? timerHrs : durHours) > 0}
             <input
               type="text"
@@ -361,9 +361,9 @@
               value={timerState.running ? timerHrs : durHours}
               class="dur-input"
               disabled={timerState.running}
-              onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
-              onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
-              onblur={saveDurInputs}
+              on:focus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
+              on:keydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
+              on:blur={saveDurInputs}
             />
             <span class="dur-sep">:</span>
           {/if}
@@ -373,9 +373,9 @@
             value={String(timerState.running ? timerMins : durMinutes).padStart(2, '0')}
             class="dur-input"
             disabled={timerState.running}
-            onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
-            onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
-            onblur={saveDurInputs}
+            on:focus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
+            on:keydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
+            on:blur={saveDurInputs}
           />
           <span class="dur-sep">:</span>
           <input
@@ -384,9 +384,9 @@
             value={String(timerState.running ? timerSecs : durSeconds).padStart(2, '0')}
             class="dur-input"
             disabled={timerState.running}
-            onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
-            onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
-            onblur={saveDurInputs}
+            on:focus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
+            on:keydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
+            on:blur={saveDurInputs}
           />
         </div>
       </div>
