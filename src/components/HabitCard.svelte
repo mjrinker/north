@@ -232,7 +232,6 @@
         _v: ++entryVersion,
       };
     }
-    console.log('logAndRefresh done', habit.id, value, 'todayEntry=', todayEntry);
   }
 
   function clearTimerInterval() {
