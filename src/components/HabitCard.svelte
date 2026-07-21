@@ -209,8 +209,11 @@
   async function logAndRefresh(value: number) {
     const today = getLocalDateString();
     await HabitEngine.logCompletion(habit, today, value);
-    const entry = await getEntry(habit.id, today);
-    todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
+    todayEntry = {
+      value,
+      standardMet: value >= habit.standard,
+      targetMet: habit.target != null && value >= habit.target,
+    };
   }
 
   function clearTimerInterval() {

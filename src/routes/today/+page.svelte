@@ -71,7 +71,7 @@
   entriesStore.subscribe(() => dataVersion++);
 
   $effect(() => {
-    dataVersion;
+    const _dv = dataVersion;
     const td = today;
     getEntriesByDateRange(td, td).then(e => {
       allEntries = e;
