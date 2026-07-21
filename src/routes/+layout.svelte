@@ -40,11 +40,11 @@
 </script>
 
 <nav>
-  <a href="/today">Today</a>
-  <a href="/history">History</a>
-  {#if userHasFeature(roles, 'stats')}<a href="/stats">Stats</a>{/if}
-  {#if userHasPermission(roles, 'access_admin')}<a href="/admin">Admin</a>{/if}
-  <a href="/settings">Settings</a>
+  <a href="/today" onclick={(e) => { e.preventDefault(); goto('/today'); }}>Today</a>
+  <a href="/history" onclick={(e) => { e.preventDefault(); goto('/history'); }}>History</a>
+  {#if userHasFeature(roles, 'stats')}<a href="/stats" onclick={(e) => { e.preventDefault(); goto('/stats'); }}>Stats</a>{/if}
+  {#if userHasPermission(roles, 'access_admin')}<a href="/admin" onclick={(e) => { e.preventDefault(); goto('/admin'); }}>Admin</a>{/if}
+  <a href="/settings" onclick={(e) => { e.preventDefault(); goto('/settings'); }}>Settings</a>
   <div class="spacer"></div>
   {#if currentUser}
     {#if currentUser.user_metadata?.avatar_url}

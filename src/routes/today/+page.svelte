@@ -271,7 +271,6 @@
     depPopover = null;
   }
 
-  function logClick(node: HTMLElement) { node.addEventListener('click', () => console.log('DIAG native addEventListener works')); }
   function handleDepPopover(state: DepPopoverState) {
     if (depPopover?.habitId === state.habitId) {
       depPopover = null;
@@ -425,9 +424,6 @@
 
 <h1 class="page-title">Today</h1>
 
-<!-- DIAGNOSTIC: test if JS is running -->
-<button use:logClick style="position:fixed;bottom:80px;right:1.5rem;z-index:9999;background:red;color:white;border:none;padding:4px 8px;font-size:10px;border-radius:4px">DIAG</button>
-<button on:click={() => console.log('SVELTE ON:CLICK WORKS')} style="position:fixed;bottom:110px;right:1.5rem;z-index:9999;background:blue;color:white;border:none;padding:4px 8px;font-size:10px;border-radius:4px">SV5</button>
 
 <div class="toolbar">
   <label class="sort-label">
