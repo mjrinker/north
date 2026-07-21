@@ -219,12 +219,20 @@
   async function logAndRefresh(value: number) {
     const today = getLocalDateString();
     await HabitEngine.logCompletion(habit, today, value);
-    todayEntry = {
-      value,
-      standardMet: value >= habit.standard,
-      targetMet: habit.target != null && value >= habit.target,
-      _v: ++entryVersion,
-    };
+    if (todayEntry) {
+      todayEntry.value = value;
+      todayEntry.standardMet = value >= habit.standard;
+      todayEntry.targetMet = habit.target != null && value >= habit.target;
+      todayEntry._v = ++entryVersion;
+    } else {
+      todayEntry = {
+        value,
+        standardMet: value >= habit.standard,
+        targetMet: habit.target != null && value >= habit.target,
+        _v: ++entryVersion,
+      };
+    }
+    console.log('logAndRefresh done', habit.id, value, 'todayEntry=', todayEntry);
   }
 
   function clearTimerInterval() {
