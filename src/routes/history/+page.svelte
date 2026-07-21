@@ -48,7 +48,9 @@
       if (!scrollContainer) return;
       const todayHeader = scrollContainer.querySelector<HTMLElement>('th.today');
       if (todayHeader) {
-        todayHeader.scrollIntoView({ inline: 'end', block: 'nearest' });
+        const nameCol = scrollContainer.querySelector<HTMLElement>('th.name-col');
+        const nameWidth = nameCol ? nameCol.offsetWidth : 0;
+        scrollContainer.scrollLeft = todayHeader.offsetLeft + todayHeader.offsetWidth - scrollContainer.clientWidth + nameWidth;
       }
     });
   });
@@ -377,6 +379,7 @@
   .table-scroll {
     overflow-x: auto;
     max-width: 100%;
+    position: relative;
   }
   table {
     border-collapse: collapse;
