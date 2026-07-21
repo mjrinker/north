@@ -14,8 +14,6 @@ async function triggerSync() {
 
   const { supabaseSyncProvider } = await import('../services/sync.providers/supabase')
 
-  await supabaseSyncProvider.downloadAll()
-
   const { habitsStore } = await import('./habits')
   const { entriesStore } = await import('./entries')
   const { identitiesStore } = await import('./identities')
@@ -29,6 +27,8 @@ async function triggerSync() {
   if (hasLocal) {
     await supabaseSyncProvider.uploadAll()
   }
+
+  await supabaseSyncProvider.downloadAll()
 }
 
 supabase.auth.onAuthStateChange((event, sessionData) => {

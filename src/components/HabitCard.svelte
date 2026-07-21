@@ -1,4 +1,5 @@
 <script lang="ts">
+  console.log('HabitCard module init');
   import type { Habit } from '../types';
   import { HabitEngine } from '../services/habitEngine';
   import { getEntry } from '../services/storage';
@@ -15,6 +16,7 @@
   import { marked } from 'marked';
   import type { DepPopoverState } from '../types';
   let { habit, onEdit, onNotes, notesCount, onDepPopover }: { habit: Habit; onEdit?: () => void; onNotes?: () => void; notesCount?: number; onDepPopover?: (state: DepPopoverState) => void } = $props();
+  console.log('HabitCard instance created', habit?.id);
   let showNotes = $state(false);
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
   let longPressFired = $state(false);
@@ -145,6 +147,7 @@
   }
 
   function startTimer() {
+    console.log('HabitCard.startTimer', habit.id);
     const mins = manualMinutes ? parseInt(manualMinutes) : (todayEntry?.value ?? 0);
     const initial = (isNaN(mins) ? 0 : mins) * 60;
     setTimerState(habit.id, { running: true, paused: false, elapsed: initial, pausedElapsed: initial, startedAt: Date.now() });
@@ -193,6 +196,7 @@
   let durSeconds = $derived(durTotalSec % 60);
 
   function saveDurInputs(e: Event) {
+    console.log('HabitCard.saveDurInputs', habit.id);
     const wrap = (e.currentTarget as HTMLElement).closest('.dur-input-wrap')!;
     const inputs = wrap.querySelectorAll<HTMLInputElement>('.dur-input');
     const vals = [...inputs].map(i => parseInt(i.value) || 0);
@@ -226,6 +230,7 @@
   }
 
   async function handleBinaryChange() {
+    console.log('HabitCard.handleBinaryChange called', habit.id, habit.title);
     if (!habit) return;
     const savedScrollY = window.scrollY;
     const today = getLocalDateString();
@@ -245,6 +250,7 @@
   }
 
   async function handleQuantityDelta(delta: number) {
+    console.log('HabitCard.handleQuantityDelta', delta, habit.id);
     if (!habit) return;
     const current = todayEntry?.value ?? 0;
     await logAndRefresh(Math.max(0, current + delta));
