@@ -21,6 +21,7 @@
   habitsStore.subscribe(v => (habits = v.filter(h => h.status === 'active')));
 
   let allEntries = $state<HabitEntry[]>([]);
+  let entriesReady = $state(false);
 
   $effect(() => {
     const ws = windowStart;
@@ -29,6 +30,7 @@
     const endDate = dates[WINDOW_SIZE - 1];
     getEntriesByDateRange(startDate, endDate).then(e => {
       allEntries = e;
+      entriesReady = true;
     });
   });
 
@@ -42,13 +44,12 @@
   const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   $effect(() => {
-    if (!scrollContainer) return;
-    const raf = requestAnimationFrame(() => {
+    if (!scrollContainer || !entriesReady) return;
+    requestAnimationFrame(() => {
       if (scrollContainer && scrollContainer.scrollWidth > scrollContainer.clientWidth) {
         scrollContainer.scrollLeft = scrollContainer.scrollWidth;
       }
     });
-    return () => cancelAnimationFrame(raf);
   });
 
   function getDates(): string[] {
