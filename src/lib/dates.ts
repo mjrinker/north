@@ -1,5 +1,5 @@
 export function getLocalDateString(date?: Date): string {
-  const d = date ?? new Date();
+  const d = date ? new Date(date) : new Date();
   const now = date ?? new Date();
   const resetTime = getStoredResetTime();
   if (resetTime) {
