@@ -9,7 +9,7 @@
   import { recordAutoCompletedDep } from '../lib/autoDeps';
   import { autoCompleteDependencies, uncheckDependencies } from '../lib/dependencyEngine';
   import { entriesStore } from '../stores/entries';
-  import { onDestroy } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { tick as svelteTick } from 'svelte';
   import Icon from '@iconify/svelte';
   import { addLog } from '../lib/completionLog';
@@ -41,7 +41,8 @@
   habitsStore.subscribe(v => allHabits = v);
 
   let streak = $state(0);
-  let todayEntry = $state<{ value: number; standardMet: boolean; targetMet: boolean } | null>(null);
+  let todayEntry = $state<{ value: number; standardMet: boolean; targetMet: boolean; _v: number } | null>(null);
+  let entryVersion = $state(0);
   let trigger = $state(0);
   entriesStore.subscribe(() => trigger++);
   let _gen = 0;
@@ -67,6 +68,15 @@
     });
   }
 
+  onMount(async () => {
+    const today = getLocalDateString();
+    const entry = await getEntry(habit.id, today);
+    if (entry) {
+      todayEntry = { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet, _v: 0 };
+    }
+    streak = await HabitEngine.getStreak(habit);
+  });
+
   $effect(() => {
     if (!habit) return;
     const _ = trigger;
@@ -74,13 +84,9 @@
     const today = getLocalDateString();
     const key = habit.id + '|' + today;
     (async () => {
-      const entry = await getEntry(habit.id, today);
-      if (_gen !== gen) return;
-      todayEntry = entry ? { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet } : null;
-      if (!todayEntry || todayEntry.value === 0) {
-        autoCompleted.delete(key);
-      }
       if (habit.type === 'binary' && habit.dependsOn) {
+        const entry = await getEntry(habit.id, today);
+        if (_gen !== gen) return;
         const results = await Promise.all(
           habit.dependsOn!.habitIds.map(async hid => {
             const e = await getEntry(hid, today);
@@ -93,7 +99,7 @@
         const satisfied = habit.dependsOn!.mode === 'and'
           ? results.every(r => r.met)
           : results.some(r => r.met);
-        const value = todayEntry?.value ?? 0;
+        const value = entry?.value ?? 0;
         if (satisfied && value === 0) {
           for (const r of depResults) {
             if (!r.met) continue;
@@ -102,12 +108,12 @@
             recordAutoCompletedDep(habit.id, today, r.hid);
           }
           autoCompleted.add(key);
-            await HabitEngine.logCompletion(habit, today, 1);
-          todayEntry = { value: 1, standardMet: 1 >= habit.standard, targetMet: habit.target != null && 1 >= habit.target };
+          await HabitEngine.logCompletion(habit, today, 1);
+          todayEntry = { value: 1, standardMet: 1 >= habit.standard, targetMet: habit.target != null && 1 >= habit.target, _v: entryVersion++ };
         } else if (!satisfied && value === 1) {
           await HabitEngine.logCompletion(habit, today, 0);
           autoCompleted.delete(key);
-          todayEntry = { value: 0, standardMet: false, targetMet: false };
+          todayEntry = { value: 0, standardMet: false, targetMet: false, _v: entryVersion++ };
         }
         if (todayEntry?.value === 0) {
           autoCompleted.delete(key);
@@ -217,6 +223,7 @@
       value,
       standardMet: value >= habit.standard,
       targetMet: habit.target != null && value >= habit.target,
+      _v: ++entryVersion,
     };
   }
 
