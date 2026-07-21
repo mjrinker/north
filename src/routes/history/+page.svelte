@@ -46,16 +46,15 @@
     await tick();
     requestAnimationFrame(() => {
       if (!scrollContainer) return;
-      const todayHeader = scrollContainer.querySelector<HTMLElement>('th.today');
-      if (!todayHeader) return;
-      const scroller = scrollContainer;
-      const nameCol = scroller.querySelector<HTMLElement>('td.name-col, th.name-col');
-      const scrollRect = scroller.getBoundingClientRect();
-      const todayRect = todayHeader.getBoundingClientRect();
+      const dates = scrollContainer.querySelectorAll<HTMLElement>('th[data-date]');
+      const lastDate = dates[dates.length - 1];
+      if (!lastDate) return;
+      const sr = scrollContainer.getBoundingClientRect();
+      const lr = lastDate.getBoundingClientRect();
+      const nameCol = scrollContainer.querySelector<HTMLElement>('td.name-col, th.name-col');
       const nameWidth = nameCol ? nameCol.getBoundingClientRect().width : 0;
-      const todayRightInContainer = todayRect.right - scrollRect.left;
-      const targetRight = scrollRect.width - nameWidth;
-      scroller.scrollLeft = todayRightInContainer - targetRight;
+      const targetRight = sr.width - nameWidth;
+      scrollContainer.scrollLeft += lr.right - sr.left - targetRight;
     });
   });
 
