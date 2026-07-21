@@ -109,7 +109,7 @@
   .schema-toggle {
     position: fixed;
     bottom: 1.5rem;
-    right: 1.5rem;
+    left: 1.5rem;
     width: 3.25rem;
     height: 3.25rem;
     border-radius: 50%;
