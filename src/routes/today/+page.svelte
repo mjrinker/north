@@ -18,6 +18,7 @@
   import { HabitEngine } from '../../services/habitEngine';
   import { getLocalDateString } from '../../lib/dates';
   import { appSettings, updateSettings } from '../../lib/settings';
+  import { getSchema, toggleSchema } from '../../lib/schemaToggle';
 
   let today = getLocalDateString();
 
@@ -262,6 +263,12 @@
     touchDragFromId = null;
   }
 
+  let schemaVersion = $state(getSchema());
+  function handleSchemaToggle() {
+    toggleSchema();
+    schemaVersion = getSchema();
+  }
+
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);
   let notesHabitId = $state<string | null>(null);
@@ -439,6 +446,10 @@
 
 <button class="fab" on:click={() => showCreate = true} aria-label="Add Habit"><Icon icon="mdi:plus" style="color: inherit" /></button>
 
+<button class="schema-toggle" on:click={handleSchemaToggle} title="Toggle DB schema (old user_sync_data vs new typed tables)">
+  {schemaVersion === 'new' ? 'NEW' : 'OLD'}
+</button>
+
 {#if showCreate}
   <HabitCreateModal {habits} onClose={() => showCreate = false} />
 {/if}
@@ -585,6 +596,27 @@
   }
   .fab :global(svg), .fab :global(.iconify) { font-size: 1.75rem; color: inherit; }
   .fab:hover { opacity: 0.9; }
+  .schema-toggle {
+    position: fixed;
+    bottom: 5.5rem;
+    right: 1.5rem;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 50%;
+    background: var(--schema-toggle-bg, #6b7280);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    z-index: 50;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .schema-toggle:hover { opacity: 0.9; }
   .sort-label {
     display: flex;
     align-items: center;
