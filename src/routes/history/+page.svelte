@@ -45,14 +45,8 @@
   onMount(async () => {
     await tick();
     requestAnimationFrame(() => {
-      if (!scrollContainer) return;
-      const nameCol = scrollContainer.querySelector<HTMLElement>('td.name-col, th.name-col');
-      const nameWidth = nameCol ? nameCol.getBoundingClientRect().width : 0;
-      scrollContainer.style.scrollPaddingInlineEnd = `${nameWidth}px`;
-      const dates = scrollContainer.querySelectorAll<HTMLElement>('th[data-date]');
-      const lastDate = dates[dates.length - 1];
-      if (lastDate) {
-        lastDate.scrollIntoView({ inline: 'end', block: 'nearest' });
+      if (scrollContainer) {
+        scrollContainer.scrollLeft = scrollContainer.scrollWidth;
       }
     });
   });
@@ -381,7 +375,6 @@
   .table-scroll {
     overflow-x: auto;
     max-width: 100%;
-    position: relative;
   }
   table {
     border-collapse: collapse;
