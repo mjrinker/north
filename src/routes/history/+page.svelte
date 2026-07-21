@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Habit, HabitEntry } from '../../types';
   import { habitsStore } from '../../stores/habits';
-  import { getEntriesByDateRange } from '../../services/storage';
+  import { getEntriesByDateRange, getAllEntries } from '../../services/storage';
   import { HabitEngine } from '../../services/habitEngine';
   import { getLocalDateString, parseLocalDate, isToday } from '../../lib/dates';
   import { autoCompleteDependencies, uncheckDependencies, cascadeCheck, cascadeUncheck } from '../../lib/dependencyEngine';
@@ -45,7 +45,11 @@
   onMount(async () => {
     await tick();
     requestAnimationFrame(() => {
-      if (scrollContainer) {
+      if (!scrollContainer) return;
+      const todayHeader = scrollContainer.querySelector<HTMLElement>('th.today');
+      if (todayHeader) {
+        scrollContainer.scrollLeft = todayHeader.offsetLeft - scrollContainer.clientWidth + todayHeader.offsetWidth;
+      } else {
         scrollContainer.scrollLeft = scrollContainer.scrollWidth;
       }
     });
