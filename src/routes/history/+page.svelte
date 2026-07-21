@@ -8,8 +8,7 @@
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import Icon from '@iconify/svelte';
-  import { onMount } from 'svelte';
-  import { tick } from 'svelte';
+
 
   $effect(() => {
     if (editTarget) {
@@ -42,13 +41,14 @@
 
   const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-  onMount(async () => {
-    await tick();
-    requestAnimationFrame(() => {
-      if (scrollContainer) {
+  $effect(() => {
+    if (!scrollContainer) return;
+    const raf = requestAnimationFrame(() => {
+      if (scrollContainer && scrollContainer.scrollWidth > scrollContainer.clientWidth) {
         scrollContainer.scrollLeft = scrollContainer.scrollWidth;
       }
     });
+    return () => cancelAnimationFrame(raf);
   });
 
   function getDates(): string[] {
