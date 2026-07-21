@@ -129,7 +129,7 @@ WHERE collection = 'habits'
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO entries (id, user_id, habit_id, date, value, standard_met, target_met, notes, updated_at)
-SELECT DISTINCT ON (habit_id, date)
+SELECT DISTINCT ON ((data->>'habitId')::UUID, (data->>'date')::DATE)
   (data->>'id')::UUID,
   user_id,
   (data->>'habitId')::UUID,
@@ -141,7 +141,7 @@ SELECT DISTINCT ON (habit_id, date)
   COALESCE((data->>'updatedAt')::TIMESTAMPTZ, now())
 FROM user_sync_data
 WHERE collection = 'entries'
-ORDER BY habit_id, date, (data->>'updatedAt')::TIMESTAMPTZ DESC;
+ORDER BY (data->>'habitId')::UUID, (data->>'date')::DATE, (data->>'updatedAt')::TIMESTAMPTZ DESC;
 
 INSERT INTO notes (id, user_id, habit_id, date, content, created_at)
 SELECT
