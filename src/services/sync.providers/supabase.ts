@@ -159,7 +159,7 @@ class SupabaseSyncProvider implements SyncProvider {
       const table = NEW_TABLES[collection]
       if (!table) throw new Error(`Unknown collection: ${collection}`)
       const row = toNewRow(collection, uid, data)
-      const pk = collection === 'settings' ? 'user_id' : 'id'
+      const pk = collection === 'settings' ? 'user_id' : collection === 'entries' ? 'habit_id,date' : 'id'
       const { error } = await supabase.from(table).upsert(row, { onConflict: pk })
       if (error) throw new Error(`Save failed: ${error.message}`)
     } else {
@@ -238,7 +238,7 @@ class SupabaseSyncProvider implements SyncProvider {
         }
         const entryRows = entries.map(e => toNewRow('entries', uid, e))
         if (entryRows.length > 0) {
-          const { error } = await supabase.from('entries').upsert(entryRows, { onConflict: 'id' })
+          const { error } = await supabase.from('entries').upsert(entryRows, { onConflict: 'habit_id,date' })
           if (error) throw new Error(error.message)
         }
         const identityRows = identities.map(i => toNewRow('identities', uid, i))
