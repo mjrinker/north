@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Habit } from '../types';
-  import { updateHabit, removeHabit } from '../stores/habits';
+  import { updateHabit } from '../stores/habits';
   import Modal from './Modal.svelte';
   import TagInput from './TagInput.svelte';
   import DependencyPicker from './DependencyPicker.svelte';
@@ -48,7 +48,8 @@
   }
 
   function handleDelete() {
-    removeHabit(habit.id);
+    const updated: Habit = { ...habit, status: 'deleted', updatedAt: new Date() };
+    updateHabit(updated);
     onClose();
   }
 </script>

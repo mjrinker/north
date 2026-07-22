@@ -1,7 +1,7 @@
 <script lang="ts">
   import { get } from 'svelte/store';
   import { flip } from 'svelte/animate';
-  import { habitsStore, updateHabit, removeHabit } from '../../stores/habits';
+  import { habitsStore, updateHabit } from '../../stores/habits';
   import { supabaseSyncProvider } from '../../services/sync.providers/supabase';
   import { user } from '../../stores/auth';
   import type { Habit } from '../../types';
@@ -347,7 +347,11 @@
   function deleteHabit(habit: Habit) {
     swipedHabitId = null;
     swipedRightHabitId = null;
-    removeHabit(habit.id);
+    const updated = { ...habit, status: 'deleted' as const, updatedAt: new Date() };
+    updateHabit(updated);
+    if (get(user)) {
+      supabaseSyncProvider.saveRecord('habits', updated.id, updated).catch(console.error);
+    }
   }
 
   function sliderTransform(habitId: string): string {

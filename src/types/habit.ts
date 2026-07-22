@@ -1,7 +1,7 @@
 import type { Schedule } from './schedule';
 
 export type HabitType = 'binary' | 'quantity' | 'duration';
-export type HabitStatus = 'active' | 'paused' | 'archived';
+export type HabitStatus = 'active' | 'paused' | 'archived' | 'deleted';
 export type TimeSlot = 'morning' | 'afternoon' | 'evening';
 
 export interface DependsOn {
