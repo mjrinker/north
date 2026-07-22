@@ -218,7 +218,6 @@
 
   async function logAndRefresh(value: number) {
     const today = getLocalDateString();
-    await HabitEngine.logCompletion(habit, today, value);
     if (todayEntry) {
       todayEntry.value = value;
       todayEntry.standardMet = value >= habit.standard;
@@ -232,6 +231,7 @@
         _v: ++entryVersion,
       };
     }
+    HabitEngine.logCompletion(habit, today, value).catch(e => console.error('logCompletion error:', e));
   }
 
   function clearTimerInterval() {
