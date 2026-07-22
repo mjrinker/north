@@ -1,5 +1,4 @@
 <script lang="ts">
-  console.log('HabitCard module init');
   import type { Habit } from '../types';
   import { HabitEngine } from '../services/habitEngine';
   import { getEntry } from '../services/storage';
@@ -16,7 +15,6 @@
   import { marked } from 'marked';
   import type { DepPopoverState } from '../types';
   let { habit, onEdit, onNotes, notesCount, onDepPopover }: { habit: Habit; onEdit?: () => void; onNotes?: () => void; notesCount?: number; onDepPopover?: (state: DepPopoverState) => void } = $props();
-  console.log('HabitCard instance created', habit?.id);
   let showNotes = $state(false);
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
   let longPressFired = $state(false);
@@ -137,7 +135,6 @@
   }
 
   function startTimer() {
-    console.log('HabitCard.startTimer', habit.id);
     const mins = manualMinutes ? parseInt(manualMinutes) : (todayEntry?.value ?? 0);
     const initial = (isNaN(mins) ? 0 : mins) * 60;
     setTimerState(habit.id, { running: true, paused: false, elapsed: initial, pausedElapsed: initial, startedAt: Date.now() });
@@ -186,7 +183,6 @@
   let durSeconds = $derived(durTotalSec % 60);
 
   function saveDurInputs(e: Event) {
-    console.log('HabitCard.saveDurInputs', habit.id);
     const wrap = (e.currentTarget as HTMLElement).closest('.dur-input-wrap')!;
     const inputs = wrap.querySelectorAll<HTMLInputElement>('.dur-input');
     const vals = [...inputs].map(i => parseInt(i.value) || 0);
@@ -223,26 +219,19 @@
   }
 
   function useNoteClick(node: HTMLElement) {
-    console.log('useNoteClick mounted', habit.id);
     function handler(e: Event) {
-      console.log('useNoteClick handler fired', habit.id);
       e.stopPropagation();
       longPressFired = true;
-      if (!onNotes) console.log('onNotes is undefined!');
       onNotes?.();
     }
     node.addEventListener('click', handler);
-    return { destroy: () => { console.log('useNoteClick destroyed', habit.id); node.removeEventListener('click', handler); } };
+    return { destroy: () => node.removeEventListener('click', handler) };
   }
   function useLongPressStart(node: HTMLElement) {
-    console.log('useLongPressStart mounted', habit.id);
     function onStart() {
-      console.log('useLongPressStart.onStart', habit.id);
       longPressFired = false;
       longPressTimer = setTimeout(() => {
-        console.log('useLongPressStart timer fired', habit.id);
         longPressFired = true;
-        if (!onNotes) console.log('onNotes is undefined!');
         onNotes?.();
       }, 500);
     }
@@ -256,7 +245,14 @@
     node.addEventListener('touchend', onEnd);
     node.addEventListener('touchmove', onEnd);
     return {
-      destroy: () => { node.removeEventListener('mousedown', onStart); node.removeEventListener('mouseup', onEnd); node.removeEventListener('mouseleave', onEnd); node.removeEventListener('touchstart', onStart); node.removeEventListener('touchend', onEnd); node.removeEventListener('touchmove', onEnd); }
+      destroy: () => {
+        node.removeEventListener('mousedown', onStart);
+        node.removeEventListener('mouseup', onEnd);
+        node.removeEventListener('mouseleave', onEnd);
+        node.removeEventListener('touchstart', onStart);
+        node.removeEventListener('touchend', onEnd);
+        node.removeEventListener('touchmove', onEnd);
+      }
     };
   }
 
@@ -266,7 +262,6 @@
   }
 
   async function handleBinaryChange() {
-    console.log('HabitCard.handleBinaryChange called', habit.id, habit.title);
     if (!habit) return;
     const savedScrollY = window.scrollY;
     const today = getLocalDateString();
@@ -286,7 +281,6 @@
   }
 
   async function handleQuantityDelta(delta: number) {
-    console.log('HabitCard.handleQuantityDelta', delta, habit.id);
     if (!habit) return;
     const current = todayEntry?.value ?? 0;
     await logAndRefresh(Math.max(0, current + delta));
