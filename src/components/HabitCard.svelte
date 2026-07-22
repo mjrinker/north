@@ -223,19 +223,26 @@
   }
 
   function useNoteClick(node: HTMLElement) {
+    console.log('useNoteClick mounted', habit.id);
     function handler(e: Event) {
+      console.log('useNoteClick handler fired', habit.id);
       e.stopPropagation();
       longPressFired = true;
+      if (!onNotes) console.log('onNotes is undefined!');
       onNotes?.();
     }
     node.addEventListener('click', handler);
-    return { destroy: () => node.removeEventListener('click', handler) };
+    return { destroy: () => { console.log('useNoteClick destroyed', habit.id); node.removeEventListener('click', handler); } };
   }
   function useLongPressStart(node: HTMLElement) {
+    console.log('useLongPressStart mounted', habit.id);
     function onStart() {
+      console.log('useLongPressStart.onStart', habit.id);
       longPressFired = false;
       longPressTimer = setTimeout(() => {
+        console.log('useLongPressStart timer fired', habit.id);
         longPressFired = true;
+        if (!onNotes) console.log('onNotes is undefined!');
         onNotes?.();
       }, 500);
     }
@@ -249,14 +256,7 @@
     node.addEventListener('touchend', onEnd);
     node.addEventListener('touchmove', onEnd);
     return {
-      destroy: () => {
-        node.removeEventListener('mousedown', onStart);
-        node.removeEventListener('mouseup', onEnd);
-        node.removeEventListener('mouseleave', onEnd);
-        node.removeEventListener('touchstart', onStart);
-        node.removeEventListener('touchend', onEnd);
-        node.removeEventListener('touchmove', onEnd);
-      }
+      destroy: () => { node.removeEventListener('mousedown', onStart); node.removeEventListener('mouseup', onEnd); node.removeEventListener('mouseleave', onEnd); node.removeEventListener('touchstart', onStart); node.removeEventListener('touchend', onEnd); node.removeEventListener('touchmove', onEnd); }
     };
   }
 
