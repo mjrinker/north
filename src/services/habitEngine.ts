@@ -44,7 +44,7 @@ export class HabitEngine {
         updated[idx] = entry;
         return updated;
       }
-      return [...list, entry];
+      return [...list.filter(e => !(e.habitId === entry.habitId && e.date === entry.date)), entry];
     });
     pushRecord('entries', entry.id, entry);
   }

@@ -236,7 +236,15 @@ class SupabaseSyncProvider implements SyncProvider {
           const { error } = await supabase.from('habits').upsert(habitRows, { onConflict: 'id' })
           if (error) throw new Error(error.message)
         }
-        const entryRows = entries.map(e => toNewRow('entries', uid, e))
+        const dedupedEntries = Array.from(
+          entries.reduce((map, e) => {
+            const key = `${e.habitId}|${e.date}`
+            const existing = map.get(key)
+            if (!existing || e.updatedAt > existing.updatedAt) map.set(key, e)
+            return map
+          }, new Map()).values()
+        )
+        const entryRows = dedupedEntries.map(e => toNewRow('entries', uid, e))
         if (entryRows.length > 0) {
           const { error } = await supabase.from('entries').upsert(entryRows, { onConflict: 'habit_id,date' })
           if (error) throw new Error(error.message)

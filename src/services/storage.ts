@@ -83,6 +83,10 @@ export async function deleteHabit(id: string): Promise<void> {
 
 // --- Entry methods ---
 export async function saveEntry(entry: HabitEntry): Promise<void> {
+  const existing = await getEntry(entry.habitId, entry.date);
+  if (existing && existing.id !== entry.id) {
+    await idbDelete('entries', existing.id);
+  }
   await idbPut('entries', entry);
 }
 
