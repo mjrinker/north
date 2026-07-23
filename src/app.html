@@ -12,31 +12,44 @@
 		<script>
 			(function() {
 				'use strict';
+				function sendNow(level, message, stack) {
+					var body = JSON.stringify([{
+						timestamp: new Date().toISOString(),
+						level: level,
+						message: message || '',
+						stack: stack || undefined,
+						url: window.location.href
+					}]);
+					try {
+						if (navigator.sendBeacon) {
+							navigator.sendBeacon('/api/log', body);
+						} else {
+							var x = new XMLHttpRequest();
+							x.open('POST', '/api/log', false);
+							x.setRequestHeader('Content-Type', 'application/json');
+							x.send(body);
+						}
+					} catch(e) {}
+				}
 				var q = window.__earlyErrors = [];
 				var orig = console.error.bind(console);
 				console.error = function() {
 					orig.apply(console, arguments);
-					q.push({ t: Date.now(), m: Array.prototype.map.call(arguments, String).join(' '), s: new Error().stack });
+					var msg = Array.prototype.map.call(arguments, String).join(' ');
+					q.push({ t: Date.now(), m: msg, s: new Error().stack });
+					sendNow('error', msg, new Error().stack);
 				};
 				window.addEventListener('error', function(e) {
-					q.push({ t: Date.now(), m: e.error ? (e.error.message || String(e.error)) : (e.message || 'error'), s: e.error ? e.error.stack : undefined });
+					var msg = e.error ? (e.error.message || String(e.error)) : (e.message || 'error');
+					var st = e.error ? e.error.stack : undefined;
+					sendNow('error', msg, st);
 				});
 				window.addEventListener('unhandledrejection', function(e) {
 					var r = e.reason;
-					q.push({ t: Date.now(), m: r ? (r.message || String(r)) : 'rejection', s: r ? r.stack : undefined });
+					var msg = r ? (r.message || String(r)) : 'rejection';
+					var st = r ? r.stack : undefined;
+					sendNow('error', msg, st);
 				});
-				function flush() {
-					if (!q.length) return;
-					var batch = q.splice(0);
-					try {
-						navigator.sendBeacon && navigator.sendBeacon('/api/log', JSON.stringify(batch.map(function(e) {
-							return { timestamp: new Date(e.t).toISOString(), level: 'error', message: e.m || '', stack: e.s, url: window.location.href };
-						})));
-					} catch(e) {}
-				}
-				if (document.readyState === 'complete') flush();
-				else window.addEventListener('load', flush);
-				window.addEventListener('beforeunload', flush);
 			})();
 		</script>
 		%sveltekit.head%
