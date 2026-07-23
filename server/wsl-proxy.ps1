@@ -13,8 +13,13 @@ if (-not $wslIp) {
 Write-Host "WSL IP: $wslIp" -ForegroundColor Cyan
 
 # Remove any existing proxies for these ports (cleanup from previous runs)
+$existingProxies = netsh interface portproxy show all
 foreach ($port in $ports) {
-    netsh interface portproxy delete v4tov4 listenport=$port listenaddress=0.0.0.0 2>$null
+    $existingProxies | Select-String "\s+(\S+)\s+$port\s+\S+\s+\d+" | ForEach-Object {
+        $listenAddr = $_.Matches.Groups[1].Value
+        netsh interface portproxy delete v4tov4 listenport=$port listenaddress=$listenAddr 2>$null
+        Write-Host "Removed old proxy: $listenAddr`:$port" -ForegroundColor DarkYellow
+    }
 }
 
 # Add port proxies
