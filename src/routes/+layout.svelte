@@ -3,6 +3,8 @@
   import { get } from 'svelte/store';
   import { appSettings, type LaunchScreen } from '../lib/settings';
   import { applyThemeEffect } from '../stores/theme';
+  import { initRemoteLogger } from '../lib/remoteLogger';
+  initRemoteLogger();
   import { user, signInWithGoogle, signOut } from '../stores/auth';
   import { userRoles } from '../stores/roles';
   import { userHasFeature, userHasPermission } from '../lib/featureFlags';
