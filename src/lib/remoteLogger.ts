@@ -102,6 +102,20 @@ export function initRemoteLogger(): void {
   if (initialized) return
   initialized = true
 
+  // Drain early errors captured by inline script in app.html
+  const early = (window as any).__earlyErrors as Array<Record<string, unknown>> | undefined
+  if (early && early.length) {
+    const batch = early.splice(0)
+    const rows = batch.map((e) => ({
+      timestamp: e.t || new Date().toISOString(),
+      level: 'error',
+      message: typeof e.m === 'string' ? e.m : '',
+      stack: typeof e.s === 'string' ? e.s : undefined,
+      url: window.location.href,
+    }))
+    queue.push(...(rows as LogEntry[]))
+  }
+
   const orig = {
     log: console.log.bind(console),
     info: console.info.bind(console),
