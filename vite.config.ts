@@ -11,15 +11,17 @@ export default defineConfig({
 	},
 	plugins: [
 		{
-			name: 'fix-host-header',
+			name: 'fix-request-url',
 			configureServer(vite) {
 				vite.middlewares.use((req, _res, next) => {
-					if (req.url.startsWith('http://') || req.url.startsWith('https://')) {
-						try {
-							const u = new URL(req.url);
-							req.url = u.pathname + u.search;
-						} catch {}
-					}
+					const normalize = (url) => {
+						if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+							try { return new URL(url).pathname + new URL(url).search; } catch {}
+						}
+						return url;
+					};
+					req.url = normalize(req.url) ?? req.url;
+					req.originalUrl = normalize(req.originalUrl) ?? req.originalUrl;
 					if (!req.headers.host) {
 						const addr = req.socket?.localAddress;
 						const port = req.socket?.localPort || 5173;
