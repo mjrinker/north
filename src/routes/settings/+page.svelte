@@ -26,8 +26,10 @@
   async function syncNow() {
     if (!currentUser) return
     syncing = true
-    syncStatus = 'Uploading…'
+    syncStatus = 'Downloading…'
     try {
+      await supabaseSyncProvider.downloadAll()
+      syncStatus = 'Uploading…'
       const result = await supabaseSyncProvider.uploadAll()
       syncStatus = result.status === 'success' ? 'Synced successfully' : `Sync error: ${result.status}`
       lastSynced = new Date().toLocaleTimeString()

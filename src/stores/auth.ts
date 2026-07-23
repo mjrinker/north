@@ -24,11 +24,11 @@ async function triggerSync() {
     || get(identitiesStore).length > 0
     || get(notesStore).length > 0
 
+  await supabaseSyncProvider.downloadAll()
+
   if (hasLocal) {
     await supabaseSyncProvider.uploadAll()
   }
-
-  await supabaseSyncProvider.downloadAll()
 }
 
 supabase.auth.onAuthStateChange((event, sessionData) => {
