@@ -1,5 +1,6 @@
 <script lang="ts">
   import '../styles/global.css';
+  import { get } from 'svelte/store';
   import { appSettings, type LaunchScreen } from '../lib/settings';
   import { applyThemeEffect } from '../stores/theme';
   import { user, signInWithGoogle, signOut } from '../stores/auth';
@@ -24,7 +25,7 @@
   user.subscribe(v => currentUser = v);
   let roles = $state<string[]>([]);
   userRoles.subscribe(v => roles = v);
-  let settings = $state(appSettings);
+  let settings = $state(get(appSettings));
 
   $effect(() => {
     const unsub = appSettings.subscribe(v => settings = v);

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { user, signInWithGoogle, signOut } from '../../stores/auth'
   import { supabaseSyncProvider } from '../../services/sync.providers/supabase'
+  import { get } from 'svelte/store'
   import { appSettings, updateSettings, type AppSettings, type ThemeMode, type LaunchScreen } from '../../lib/settings'
 
   let currentUser = $state<any>(null)
@@ -8,7 +9,7 @@
   let syncStatus = $state('')
   let lastSynced = $state<string | null>(null)
 
-  let s = $state<AppSettings>(appSettings)
+  let s = $state<AppSettings>(get(appSettings))
 
   $effect(() => {
     const unsub = appSettings.subscribe(v => s = v)
