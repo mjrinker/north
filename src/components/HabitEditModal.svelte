@@ -26,7 +26,7 @@
   let frequency = $state(habit.schedule.frequency);
   let interval = $state(habit.schedule.interval);
   let habitTags = $state<string[]>(habit.tags ?? []);
-  let existingTags = $derived(Array.from(new Set(allHabits.flatMap(h => h.tags))));
+  let existingTags = $derived(Array.from(new Set(allHabits.flatMap(h => h.tags ?? []))));
   let showStandard = $derived(type !== 'binary');
   let showDeps = $derived(type === 'binary' && allHabits.filter(h => h.id !== habit.id).length > 0);
 

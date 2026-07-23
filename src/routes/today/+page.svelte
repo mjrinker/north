@@ -27,13 +27,13 @@
 
   let tagGroups = $derived.by(() => {
     const groups: { tag: string; habits: Habit[] }[] = [];
-    const tags = Array.from(new Set(habits.flatMap(h => h.tags))).sort();
+    const tags = Array.from(new Set(habits.flatMap(h => h.tags ?? []))).sort();
     let order: string[] = [];
     if (sortMode === 'custom') {
       order = customOrder.filter(id => habits.some(h => h.id === id));
     }
     for (const tag of tags) {
-      let tagged = habits.filter(h => h.tags.includes(tag));
+      let tagged = habits.filter(h => (h.tags ?? []).includes(tag));
       if (sortMode === 'custom') {
         const ordered = customOrder.filter(id => tagged.some(h => h.id === id)).map(id => tagged.find(h => h.id === id)!).filter(Boolean);
         const remaining = tagged.filter(h => !customOrder.includes(h.id));
@@ -42,7 +42,7 @@
       else if (sortMode === 'type') tagged = tagged.sort((a, b) => a.type.localeCompare(b.type));
       groups.push({ tag, habits: tagged });
     }
-    let untagged = habits.filter(h => h.tags.length === 0);
+    let untagged = habits.filter(h => (h.tags ?? []).length === 0);
     if (untagged.length > 0) {
       if (sortMode === 'custom') {
         const ordered = customOrder.filter(id => untagged.some(h => h.id === id)).map(id => untagged.find(h => h.id === id)!).filter(Boolean);

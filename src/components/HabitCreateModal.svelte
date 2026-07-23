@@ -25,7 +25,7 @@
   let interval = $state(1);
   let habitTags = $state<string[]>([]);
   let showStandard = $derived(type !== 'binary');
-  let existingTags = $derived(Array.from(new Set(habits.flatMap(h => h.tags))));
+  let existingTags = $derived(Array.from(new Set(habits.flatMap(h => h.tags ?? []))));
 
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
