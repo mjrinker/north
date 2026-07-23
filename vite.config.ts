@@ -10,6 +10,22 @@ export default defineConfig({
 		cors: true,
 	},
 	plugins: [
+		{
+			name: 'fix-host-header',
+			configureServer(vite) {
+				vite.middlewares.use((req, _res, next) => {
+					if (!req.headers.host) {
+						const addr = req.socket?.localAddress;
+						const port = req.socket?.localPort || 5173;
+						req.headers.host = addr && addr !== '::1'
+							? `${addr}:${port}`
+							: `localhost:${port}`;
+					}
+					console.log('[fix-host-header]', req.url, 'host:', req.headers.host);
+					next();
+				});
+			}
+		},
 		Icons({ compiler: 'svelte' }),
 		sveltekit({
 			compilerOptions: {
