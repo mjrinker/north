@@ -14,14 +14,26 @@ export default defineConfig({
 			name: 'fix-host-header',
 			configureServer(vite) {
 				vite.middlewares.use((req, _res, next) => {
-					if (!req.headers.host) {
+					const authority = req.headers[':authority'];
+					const host = req.headers.host;
+					const url = req.url;
+					const proto = vite.config.server.https ? 'https' : 'http';
+					const base = `${proto}://${authority || host}`;
+					const full = base + url;
+					console.log('[host]', JSON.stringify({ url, host, authority }));
+					try {
+						new URL(full);
+					} catch (e) {
+						console.log('[host] INVALID URL:', JSON.stringify(full));
+						console.log('[host] host type:', typeof host, 'length:', host?.length);
+					}
+					if (!host && !authority) {
 						const addr = req.socket?.localAddress;
 						const port = req.socket?.localPort || 5173;
 						req.headers.host = addr && addr !== '::1'
 							? `${addr}:${port}`
 							: `localhost:${port}`;
 					}
-					console.log('[fix-host-header]', req.url, 'host:', req.headers.host);
 					next();
 				});
 			}
@@ -38,6 +50,19 @@ export default defineConfig({
 			// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
 			// See https://svelte.dev/docs/kit/adapters for more information about adapters.
 			adapter: adapter()
-		})
+		}),
+		{
+			name: 'catch-url-error',
+			configureServer(vite) {
+				vite.middlewares.use((err, req, res, _next) => {
+					console.log('[catch]', err?.constructor?.name, '-', err?.message);
+					console.log('[catch] url:', req.url, 'host:', req.headers.host);
+					if (!res.headersSent) {
+						res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+						res.end('<!-- bypassed URL error --><script>location.reload()</script>');
+					}
+				});
+			}
+		}
 	]
 });
