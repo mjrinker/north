@@ -66,43 +66,47 @@
     const today = getLocalDateString();
     const key = habit.id + '|' + today;
     (async () => {
-      if (habit.type === 'binary' && habit.dependsOn) {
-        const entry = await getEntry(habit.id, today);
-        if (_gen !== gen) return;
-        const results = await Promise.all(
-          habit.dependsOn!.habitIds.map(async hid => {
-            const e = await getEntry(hid, today);
-            const dep = allHabits.find(h => h.id === hid);
-            return { hid, met: e && dep ? e.value >= dep.standard : false };
-          })
-        );
-        depResults = results;
-        if (_gen !== gen) return;
-        const satisfied = habit.dependsOn!.mode === 'and'
-          ? results.every(r => r.met)
-          : results.some(r => r.met);
-        const value = entry?.value ?? 0;
-        if (satisfied && value === 0) {
-          for (const r of depResults) {
-            if (!r.met) continue;
-            const e = await getEntry(r.hid, today);
-            if (e && e.value > 0) continue;
-            recordAutoCompletedDep(habit.id, today, r.hid);
+      try {
+        if (habit.type === 'binary' && habit.dependsOn) {
+          const entry = await getEntry(habit.id, today);
+          if (_gen !== gen) return;
+          const results = await Promise.all(
+            habit.dependsOn!.habitIds.map(async hid => {
+              const e = await getEntry(hid, today);
+              const dep = allHabits.find(h => h.id === hid);
+              return { hid, met: e && dep ? e.value >= dep.standard : false };
+            })
+          );
+          depResults = results;
+          if (_gen !== gen) return;
+          const satisfied = habit.dependsOn!.mode === 'and'
+            ? results.every(r => r.met)
+            : results.some(r => r.met);
+          const value = entry?.value ?? 0;
+          if (satisfied && value === 0) {
+            for (const r of depResults) {
+              if (!r.met) continue;
+              const e = await getEntry(r.hid, today);
+              if (e && e.value > 0) continue;
+              recordAutoCompletedDep(habit.id, today, r.hid);
+            }
+            autoCompleted.add(key);
+            await HabitEngine.logCompletion(habit, today, 1);
+            todayEntry = { value: 1, standardMet: 1 >= habit.standard, targetMet: habit.target != null && 1 >= habit.target, _v: entryVersion++ };
+          } else if (!satisfied && value === 1) {
+            await HabitEngine.logCompletion(habit, today, 0);
+            autoCompleted.delete(key);
+            todayEntry = { value: 0, standardMet: false, targetMet: false, _v: entryVersion++ };
           }
-          autoCompleted.add(key);
-          await HabitEngine.logCompletion(habit, today, 1);
-          todayEntry = { value: 1, standardMet: 1 >= habit.standard, targetMet: habit.target != null && 1 >= habit.target, _v: entryVersion++ };
-        } else if (!satisfied && value === 1) {
-          await HabitEngine.logCompletion(habit, today, 0);
-          autoCompleted.delete(key);
-          todayEntry = { value: 0, standardMet: false, targetMet: false, _v: entryVersion++ };
+          if (todayEntry?.value === 0) {
+            autoCompleted.delete(key);
+          }
         }
-        if (todayEntry?.value === 0) {
-          autoCompleted.delete(key);
-        }
+        if (_gen !== gen) return;
+        streak = await HabitEngine.getStreak(habit);
+      } catch (e) {
+        console.error('Habit effect error:', e);
       }
-      if (_gen !== gen) return;
-      streak = await HabitEngine.getStreak(habit);
     })();
   });
 
@@ -263,35 +267,47 @@
 
   async function handleBinaryChange() {
     if (!habit) return;
-    const savedScrollY = window.scrollY;
-    const today = getLocalDateString();
-    const wasChecked = todayEntry?.value === 1;
-    const value = wasChecked ? 0 : 1;
-    const getEntryFn = (hid: string, d: string) => getEntry(hid, d);
-    if (value === 1 && habit.dependsOn) {
-      await autoCompleteDependencies(habit, today, allHabits, getEntryFn);
+    try {
+      const savedScrollY = window.scrollY;
+      const today = getLocalDateString();
+      const wasChecked = todayEntry?.value === 1;
+      const value = wasChecked ? 0 : 1;
+      const getEntryFn = (hid: string, d: string) => getEntry(hid, d);
+      if (value === 1 && habit.dependsOn) {
+        await autoCompleteDependencies(habit, today, allHabits, getEntryFn);
+      }
+      if (wasChecked && habit.dependsOn) {
+        await uncheckDependencies(habit, today, allHabits, getEntryFn);
+      }
+      await logAndRefresh(value);
+      await svelteTick();
+      window.scrollTo(0, savedScrollY);
+      if (value === 1) addLog(habit.id, 'complete');
+    } catch (e) {
+      console.error('handleBinaryChange error:', e);
     }
-    if (wasChecked && habit.dependsOn) {
-      await uncheckDependencies(habit, today, allHabits, getEntryFn);
-    }
-    await logAndRefresh(value);
-    await svelteTick();
-    window.scrollTo(0, savedScrollY);
-    if (value === 1) addLog(habit.id, 'complete');
   }
 
   async function handleQuantityDelta(delta: number) {
     if (!habit) return;
-    const current = todayEntry?.value ?? 0;
-    await logAndRefresh(Math.max(0, current + delta));
-    if (delta > 0) addLog(habit.id, 'increment');
-    else addLog(habit.id, 'decrement');
+    try {
+      const current = todayEntry?.value ?? 0;
+      await logAndRefresh(Math.max(0, current + delta));
+      if (delta > 0) addLog(habit.id, 'increment');
+      else addLog(habit.id, 'decrement');
+    } catch (e) {
+      console.error('handleQuantityDelta error:', e);
+    }
   }
 
   async function handleQuantitySet(value: number) {
     if (!habit) return;
-    await logAndRefresh(value);
-    addLog(habit.id, 'complete');
+    try {
+      await logAndRefresh(value);
+      addLog(habit.id, 'complete');
+    } catch (e) {
+      console.error('handleQuantitySet error:', e);
+    }
   }
 </script>
 

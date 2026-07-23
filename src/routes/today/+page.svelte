@@ -75,7 +75,7 @@
     const td = today;
     getEntriesByDateRange(td, td).then(e => {
       allEntries = e;
-    });
+    }).catch(e => console.error('Failed to load entries:', e));
   });
   let completedHabitIds = $derived.by(() => {
     const ids = new Set<string>();

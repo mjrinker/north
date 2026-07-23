@@ -12,22 +12,26 @@ async function triggerSync() {
   if (syncScheduled) return
   syncScheduled = true
 
-  const { supabaseSyncProvider } = await import('../services/sync.providers/supabase')
+  try {
+    const { supabaseSyncProvider } = await import('../services/sync.providers/supabase')
 
-  const { habitsStore } = await import('./habits')
-  const { entriesStore } = await import('./entries')
-  const { identitiesStore } = await import('./identities')
-  const { notesStore } = await import('./notes')
+    const { habitsStore } = await import('./habits')
+    const { entriesStore } = await import('./entries')
+    const { identitiesStore } = await import('./identities')
+    const { notesStore } = await import('./notes')
 
-  const hasLocal = get(habitsStore).length > 0
-    || get(entriesStore).length > 0
-    || get(identitiesStore).length > 0
-    || get(notesStore).length > 0
+    const hasLocal = get(habitsStore).length > 0
+      || get(entriesStore).length > 0
+      || get(identitiesStore).length > 0
+      || get(notesStore).length > 0
 
-  await supabaseSyncProvider.downloadAll()
+    await supabaseSyncProvider.downloadAll()
 
-  if (hasLocal) {
-    await supabaseSyncProvider.uploadAll()
+    if (hasLocal) {
+      await supabaseSyncProvider.uploadAll()
+    }
+  } catch (e) {
+    console.error('Sync failed:', e)
   }
 }
 

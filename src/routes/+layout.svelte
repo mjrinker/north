@@ -10,6 +10,17 @@
   import { getSchema, toggleSchema } from '../lib/schemaToggle';
   let { children }: { children: any } = $props();
   let currentUser = $state<any>(null);
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('error', e => {
+      console.error('Global error:', e.error || e.message);
+      e.preventDefault();
+    });
+    window.addEventListener('unhandledrejection', e => {
+      console.error('Unhandled rejection:', e.reason);
+      e.preventDefault();
+    });
+  }
   user.subscribe(v => currentUser = v);
   let roles = $state<string[]>([]);
   userRoles.subscribe(v => roles = v);
