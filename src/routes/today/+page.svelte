@@ -605,7 +605,7 @@
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
   }
-  .tag-section { margin-bottom: 1rem; }
+  .tag-section { margin-bottom: 1rem; content-visibility: auto; contain-intrinsic-size: 200px; }
   .tag-header {
     background: none;
     border: none;
@@ -670,6 +670,9 @@
     position: relative;
     overflow: hidden;
     overflow-anchor: none;
+    content-visibility: auto;
+    contain: layout style paint;
+    contain-intrinsic-size: 120px;
   }
   .habit-wrapper.drop-target { outline: 2px dashed var(--text-secondary, #888); outline-offset: -2px; border-radius: 8px; }
   .drag-ghost { transition: transform 0.05s linear; }
