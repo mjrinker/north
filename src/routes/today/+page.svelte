@@ -20,9 +20,14 @@
   import { appSettings, updateSettings } from '../../lib/settings';
 
   let today = getLocalDateString();
+  console.log('[today] script start');
+  $effect(() => { console.log('[today] mounted'); });
 
   let allHabits = $state<Habit[]>([]);
-  habitsStore.subscribe(v => allHabits = v);
+  habitsStore.subscribe(v => {
+    allHabits = v;
+    console.log('[today] habits loaded:', v.length);
+  });
   let habits = $derived(allHabits.filter(h => h.status === 'active'));
 
   let tagGroups = $derived.by(() => {
@@ -54,6 +59,7 @@
     }
     return groups;
   });
+  console.log('[today] tagGroups computed');
 
   // Smart suggestions — weighted by past time + location
   let currentLocation = $state<GeolocationPosition | null>(null);
@@ -73,8 +79,10 @@
   $effect(() => {
     const _dv = dataVersion;
     const td = today;
+    console.log('[today] loading entries for', td);
     getEntriesByDateRange(td, td).then(e => {
       allEntries = e;
+      console.log('[today] entries loaded:', e.length);
     }).catch(e => console.error('Failed to load entries:', e));
   });
   let completedHabitIds = $derived.by(() => {
