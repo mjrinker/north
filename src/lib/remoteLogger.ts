@@ -53,6 +53,18 @@ function flush() {
   send(JSON.stringify(batch))
 }
 
+function lsPush(level: string, msg: string, stack?: string) {
+  try {
+    const KEY = '__logs'
+    const MAX = 500
+    let buf: Record<string, unknown>[] = []
+    try { buf = JSON.parse(localStorage.getItem(KEY) || '[]') } catch {}
+    buf.push({ t: Date.now(), l: level, m: msg.slice(0, 5000), s: stack ? stack.slice(0, 10000) : undefined, u: window.location.href })
+    if (buf.length > MAX) buf = buf.slice(buf.length - MAX)
+    localStorage.setItem(KEY, JSON.stringify(buf))
+  } catch {}
+}
+
 function enqueue(level: LogEntry['level'], args: unknown[]) {
   if (typeof window === 'undefined') return
 
@@ -84,6 +96,7 @@ function enqueue(level: LogEntry['level'], args: unknown[]) {
     url: window.location.href,
   }
 
+  lsPush(level, message, entry.stack)
   queue.push(entry)
 
   if (!timer) {

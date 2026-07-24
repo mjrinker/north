@@ -12,26 +12,31 @@
 		<script>
 			(function() {
 				'use strict';
-				function sendNow(level, message, stack) {
-					try {
-						var body = JSON.stringify([{timestamp: new Date().toISOString(), level: level, message: message || '', stack: stack, url: window.location.href}]);
-						navigator.sendBeacon && navigator.sendBeacon('/api/log', body);
-					} catch(e) {}
+				var KEY = '__logs';
+				var MAX = 500;
+				var buf = [];
+				try { buf = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { buf = []; }
+				function save() {
+					try { localStorage.setItem(KEY, JSON.stringify(buf)); } catch(e) {}
 				}
-				var q = window.__earlyErrors = [];
-				var orig = console.error.bind(console);
-				console.error = function() {
-					orig.apply(console, arguments);
-					var msg = Array.prototype.map.call(arguments, String).join(' ');
-					q.push({t:Date.now(), m:msg, s:new Error().stack});
-					sendNow('error', msg, new Error().stack);
-				};
+				function push(level, msg, stack) {
+					buf.push({t:Date.now(),l:level,m:(msg||'').slice(0,5000),s:stack?stack.slice(0,10000):undefined,u:window.location.href});
+					if (buf.length>MAX) buf=buf.slice(buf.length-MAX);
+					save();
+				}
+				['log','info','warn','error'].forEach(function(l) {
+					var orig = console[l].bind(console);
+					console[l] = function() {
+						orig.apply(console, arguments);
+						push(l, Array.prototype.map.call(arguments, String).join(' '));
+					};
+				});
 				window.addEventListener('error', function(e) {
-					sendNow('error', e.error ? (e.error.message || String(e.error)) : (e.message || 'error'), e.error ? e.error.stack : undefined);
+					push('error', e.error ? (e.error.message||String(e.error)) : (e.message||'error'), e.error ? e.error.stack : undefined);
 				});
 				window.addEventListener('unhandledrejection', function(e) {
 					var r = e.reason;
-					sendNow('error', r ? (r.message || String(r)) : 'rejection', r ? r.stack : undefined);
+					push('error', r ? (r.message||String(r)) : 'Unhandled rejection', r ? r.stack : undefined);
 				});
 			})();
 		</script>
