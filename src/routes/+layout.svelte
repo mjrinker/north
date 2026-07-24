@@ -5,9 +5,6 @@
   import { applyThemeEffect } from '../stores/theme';
   import { initRemoteLogger } from '../lib/remoteLogger';
   initRemoteLogger();
-  if (typeof window !== 'undefined') {
-    fetch('/api/log', { method: 'POST', body: JSON.stringify([{level:'info',message:'+layout.svelte: script executed',url:location.href}]), headers:{'Content-Type':'application/json'} }).catch(()=>{});
-  }
   import { user, signInWithGoogle, signOut } from '../stores/auth';
   import { userRoles } from '../stores/roles';
   import { userHasFeature, userHasPermission } from '../lib/featureFlags';

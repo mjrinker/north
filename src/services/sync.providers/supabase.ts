@@ -300,61 +300,74 @@ class SupabaseSyncProvider implements SyncProvider {
       if (getSchema() === 'new') {
         const { setSyncEnabled } = await import('../sync')
         setSyncEnabled(false)
+        const { saveHabit, getAllHabits, deleteHabit } = await import('../storage')
+        const { saveEntry, getAllEntries } = await import('../storage')
+        const { saveIdentity, getAllIdentities } = await import('../storage')
+        const { saveNote, getAllNotes } = await import('../storage')
+
+        const habits = get(habitsStore)
+        const entries = get(entriesStore)
+        const identities = get(identitiesStore)
+        const notes = get(notesStore)
 
         const { data: habitRows, error: he } = await supabase.from('habits').select('*').eq('user_id', uid)
         if (he) throw new Error(he.message)
-        for (const row of habitRows || []) {
-          try {
-            const data = fromNewRow('habits', row)
-            const { addHabit, updateHabit } = await import('../../stores/habits')
-            if (get(habitsStore).some(h => h.id === data.id)) {
-              updateHabit(data)
-            } else {
-              addHabit(data)
-            }
-          } catch {}
+        if (habitRows) {
+          const merged = [...habits]
+          for (const row of habitRows) {
+            try {
+              const data = fromNewRow('habits', row)
+              const idx = merged.findIndex(h => h.id === data.id)
+              if (idx >= 0) merged[idx] = data; else merged.push(data)
+              await saveHabit(data)
+            } catch {}
+          }
+          habitsStore.set(merged)
         }
 
         const { data: entryRows, error: ee } = await supabase.from('entries').select('*').eq('user_id', uid)
         if (ee) throw new Error(ee.message)
-        for (const row of entryRows || []) {
-          try {
-            const data = fromNewRow('entries', row)
-            const { addEntry } = await import('../../stores/entries')
-            if (get(entriesStore).some(e => e.id === data.id)) {
-              entriesStore.updateItem(data)
-            } else {
-              addEntry(data)
-            }
-          } catch {}
+        if (entryRows) {
+          const merged = [...entries]
+          for (const row of entryRows) {
+            try {
+              const data = fromNewRow('entries', row)
+              const idx = merged.findIndex(e => e.id === data.id)
+              if (idx >= 0) merged[idx] = data; else merged.push(data)
+              await saveEntry(data)
+            } catch {}
+          }
+          entriesStore.set(merged)
         }
 
         const { data: identityRows, error: ie } = await supabase.from('identities').select('*').eq('user_id', uid)
         if (ie) throw new Error(ie.message)
-        for (const row of identityRows || []) {
-          try {
-            const data = fromNewRow('identities', row)
-            const { addIdentity, updateIdentity } = await import('../../stores/identities')
-            if (get(identitiesStore).some(i => i.id === data.id)) {
-              updateIdentity(data)
-            } else {
-              addIdentity(data)
-            }
-          } catch {}
+        if (identityRows) {
+          const merged = [...identities]
+          for (const row of identityRows) {
+            try {
+              const data = fromNewRow('identities', row)
+              const idx = merged.findIndex(i => i.id === data.id)
+              if (idx >= 0) merged[idx] = data; else merged.push(data)
+              await saveIdentity(data)
+            } catch {}
+          }
+          identitiesStore.set(merged)
         }
 
         const { data: noteRows, error: ne } = await supabase.from('notes').select('*').eq('user_id', uid)
         if (ne) throw new Error(ne.message)
-        for (const row of noteRows || []) {
-          try {
-            const data = fromNewRow('notes', row)
-            const { addNote } = await import('../../stores/notes')
-            if (get(notesStore).some(n => n.id === data.id)) {
-              notesStore.updateItem(data)
-            } else {
-              addNote(data)
-            }
-          } catch {}
+        if (noteRows) {
+          const merged = [...notes]
+          for (const row of noteRows) {
+            try {
+              const data = fromNewRow('notes', row)
+              const idx = merged.findIndex(n => n.id === data.id)
+              if (idx >= 0) merged[idx] = data; else merged.push(data)
+              await saveNote(data)
+            } catch {}
+          }
+          notesStore.set(merged)
         }
 
         const { data: settingsRows, error: se } = await supabase.from('user_settings').select('*').eq('user_id', uid)
