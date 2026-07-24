@@ -34,6 +34,28 @@
   });
   let habits = $derived(allHabits.filter(h => h.status === 'active'));
 
+  function loadSortMode(): 'tag' | 'name' | 'type' | 'custom' {
+    try {
+      const saved = localStorage.getItem('sortMode');
+      if (saved === 'tag' || saved === 'name' || saved === 'type' || saved === 'custom') return saved;
+    } catch {}
+    return 'tag';
+  }
+
+  let sortMode = $state(loadSortMode());
+
+  $effect(() => {
+    try { localStorage.setItem('sortMode', sortMode); } catch {}
+  });
+
+  let customOrder = $state<string[]>([]);
+  appSettings.subscribe(v => customOrder = v.habitOrder);
+
+  function saveCustomOrder(order: string[]) {
+    customOrder = order;
+    updateSettings({ habitOrder: order });
+  }
+
   let tagGroups = $derived.by(() => {
     const groups: { tag: string; habits: Habit[] }[] = [];
     const tags = Array.from(new Set(habits.flatMap(h => h.tags ?? []))).sort();
@@ -118,20 +140,6 @@
   });
   console.log('[today] notes $effect defined');
 
-  function loadSortMode(): 'tag' | 'name' | 'type' | 'custom' {
-    try {
-      const saved = localStorage.getItem('sortMode');
-      if (saved === 'tag' || saved === 'name' || saved === 'type' || saved === 'custom') return saved;
-    } catch {}
-    return 'tag';
-  }
-
-  let sortMode = $state(loadSortMode());
-
-  $effect(() => {
-    try { localStorage.setItem('sortMode', sortMode); } catch {}
-  });
-
   let collapsedGroups = $state<Set<string>>(new Set());
 
   function loadCollapsed() {
@@ -155,14 +163,6 @@
   }
 
   let dragHabitId = $state<string | null>(null);
-
-  let customOrder = $state<string[]>([]);
-  appSettings.subscribe(v => customOrder = v.habitOrder);
-
-  function saveCustomOrder(order: string[]) {
-    customOrder = order;
-    updateSettings({ habitOrder: order });
-  }
 
   function reorder(fromId: string, targetId: string) {
     if (!fromId || fromId === targetId) return;
