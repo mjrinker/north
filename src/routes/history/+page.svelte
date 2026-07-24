@@ -1,4 +1,5 @@
 <script lang="ts">
+  console.log('[history] script start');
   import type { Habit, HabitEntry } from '../../types';
   import { habitsStore } from '../../stores/habits';
   import { getEntriesByDateRange, getAllEntries } from '../../services/storage';
@@ -9,7 +10,6 @@
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import Icon from '@iconify/svelte';
 
-
   $effect(() => {
     if (editTarget) {
       document.body.style.overflow = 'hidden';
@@ -18,7 +18,10 @@
   });
 
   let habits = $state<Habit[]>([]);
-  habitsStore.subscribe(v => (habits = v.filter(h => h.status === 'active')));
+  habitsStore.subscribe(v => {
+    habits = v.filter(h => h.status === 'active');
+    console.log('[history] habits loaded:', v.length);
+  });
 
   let allEntries = $state<HabitEntry[]>([]);
   let entriesReady = $state(false);
@@ -28,11 +31,17 @@
     const dates = getDates();
     const startDate = dates[0];
     const endDate = dates[WINDOW_SIZE - 1];
+    console.log('[history] loading entries:', startDate, 'to', endDate);
     getEntriesByDateRange(startDate, endDate)
-      .then(e => { allEntries = e; })
-      .catch(err => console.error('load entries error:', err))
-      .finally(() => { entriesReady = true; });
+      .then(e => {
+        allEntries = e;
+        console.log('[history] entries loaded:', e.length);
+      })
+      .catch(err => console.error('[history] load entries error:', err))
+      .finally(() => { entriesReady = true; console.log('[history] entriesReady = true'); });
   });
+
+  console.log('[history] script body done');
 
   let showCreate = $state(false);
   let editingHabit = $state<Habit | null>(null);

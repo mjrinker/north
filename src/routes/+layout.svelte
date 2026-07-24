@@ -14,38 +14,55 @@
   let { children }: { children: any } = $props();
   let currentUser = $state<any>(null);
 
+  console.log('[layout] script start, path:', typeof window !== 'undefined' ? window.location.href : 'SSR');
+
   if (typeof window !== 'undefined') {
     window.addEventListener('error', e => {
-      console.error('Global error:', e.error || e.message);
+      console.error('[layout] Global error:', e.error || e.message);
       e.preventDefault();
     });
     window.addEventListener('unhandledrejection', e => {
-      console.error('Unhandled rejection:', e.reason);
+      console.error('[layout] Unhandled rejection:', e.reason);
       e.preventDefault();
     });
   }
-  user.subscribe(v => currentUser = v);
+  user.subscribe(v => {
+    currentUser = v;
+    console.log('[layout] user:', v ? v.id?.slice(0,8) : 'null');
+  });
   let roles = $state<string[]>([]);
-  userRoles.subscribe(v => roles = v);
+  userRoles.subscribe(v => {
+    roles = v;
+    console.log('[layout] roles:', v);
+  });
+
   let settings = $state(get(appSettings));
 
   $effect(() => {
-    const unsub = appSettings.subscribe(v => settings = v);
+    const unsub = appSettings.subscribe(v => {
+      settings = v;
+      console.log('[layout] settings loaded');
+    });
     return unsub;
   });
 
   $effect(() => {
+    console.log('[layout] $effect: init');
     appSettings.init();
     const unsub = applyThemeEffect();
-    return unsub;
+    return () => { console.log('[layout] $effect: cleanup'); unsub(); };
   });
 
   let currentPath = $state('');
-  page.subscribe(p => currentPath = p.url.pathname);
+  page.subscribe(p => {
+    currentPath = p.url.pathname;
+    console.log('[layout] page:', p.url.pathname);
+  });
 
   let launched = $state(false);
   $effect(() => {
     if (!launched && currentPath && settings.launchScreen && currentPath !== settings.launchScreen) {
+      console.log('[layout] launch redirect to', settings.launchScreen);
       if (currentPath === '/') {
         launched = true;
         goto(settings.launchScreen, { replaceState: true });
@@ -53,10 +70,13 @@
     }
   });
 
+  $effect(() => { console.log('[layout] mounted'); });
+
   let schemaVersion = $state(getSchema());
   function handleSchemaToggle() {
     toggleSchema();
     schemaVersion = getSchema();
+    console.log('[layout] schema toggled to', schemaVersion);
   }
 </script>
 
@@ -67,6 +87,7 @@
   {#if userHasPermission(roles, 'access_admin')}<a href="/admin">Admin</a>{/if}
   <a href="/settings">Settings</a>
   <div class="spacer"></div>
+  <a href="/debug" class="debug-link">Debug</a>
   {#if currentUser}
     {#if currentUser.user_metadata?.avatar_url}
       <img src={currentUser.user_metadata.avatar_url} alt="" class="avatar" />
@@ -141,4 +162,8 @@
     line-height: 1;
   }
   .schema-toggle:hover { opacity: 0.9; }
+  .debug-link {
+    color: var(--accent, #6366f1);
+    font-weight: 600;
+  }
 </style>

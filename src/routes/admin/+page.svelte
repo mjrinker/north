@@ -1,4 +1,5 @@
 <script lang="ts">
+  console.log('[admin] script start');
   import { user } from '../../stores/auth';
   import { userHasPermission } from '../../lib/featureFlags';
   import { goto } from '$app/navigation';
@@ -6,10 +7,11 @@
   import { userRoles } from '../../stores/roles';
 
   let currentUser = $state<any>(null);
-  user.subscribe(v => currentUser = v);
+  user.subscribe(v => { currentUser = v; console.log('[admin] user:', v ? v.id?.slice(0,8) : 'null'); });
 
   let roles = $state<string[]>([]);
-  userRoles.subscribe(v => { roles = v; if (!userHasPermission(roles, 'access_admin')) goto('/'); });
+  userRoles.subscribe(v => { roles = v; console.log('[admin] roles:', v); if (!userHasPermission(roles, 'access_admin')) goto('/'); });
+  console.log('[admin] script body done');
 </script>
 
 <div class="admin-page">

@@ -1,15 +1,17 @@
 <script lang="ts">
+  console.log('[admin/users] script start');
   import { userHasPermission } from '../../../lib/featureFlags';
   import { goto } from '$app/navigation';
   import { supabase } from '../../../lib/supabase';
   import { userRoles } from '../../../stores/roles';
 
   let roles = $state<string[]>([]);
-  userRoles.subscribe(v => { roles = v; if (!userHasPermission(roles, 'manage_roles')) goto('/admin'); });
+  userRoles.subscribe(v => { roles = v; console.log('[admin/users] roles:', v); if (!userHasPermission(roles, 'manage_roles')) goto('/admin'); });
 
   let users = $state<{ id: string; email: string; name: string; roles: string[] }[]>([]);
   let loading = $state(true);
   let saving = $state<string | null>(null);
+  console.log('[admin/users] script body done');
 
   async function loadUsers() {
     loading = true;

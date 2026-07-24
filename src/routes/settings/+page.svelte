@@ -1,4 +1,5 @@
 <script lang="ts">
+  console.log('[settings] script start');
   import { user, signInWithGoogle, signOut } from '../../stores/auth'
   import { supabaseSyncProvider } from '../../services/sync.providers/supabase'
   import { get } from 'svelte/store'
@@ -12,8 +13,11 @@
   let s = $state<AppSettings>(get(appSettings))
 
   $effect(() => {
-    const unsub = appSettings.subscribe(v => s = v)
-    return unsub
+    const unsub = appSettings.subscribe(v => {
+      s = v;
+      console.log('[settings] settings updated');
+    });
+    return unsub;
   })
 
   function update(partial: Partial<AppSettings>) {
@@ -21,8 +25,11 @@
   }
 
   user.subscribe(async (u) => {
-    currentUser = u
+    currentUser = u;
+    console.log('[settings] user:', u ? u.id?.slice(0,8) : 'null');
   })
+
+  console.log('[settings] script body done');
 
   async function syncNow() {
     if (!currentUser) return

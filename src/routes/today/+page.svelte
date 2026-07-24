@@ -19,14 +19,18 @@
   import { getLocalDateString } from '../../lib/dates';
   import { appSettings, updateSettings } from '../../lib/settings';
 
-  let today = getLocalDateString();
   console.log('[today] script start');
-  $effect(() => { console.log('[today] mounted'); });
+  let today = getLocalDateString();
+  console.log('[today] today date:', today);
 
   let allHabits = $state<Habit[]>([]);
   habitsStore.subscribe(v => {
     allHabits = v;
     console.log('[today] habits loaded:', v.length);
+  });
+
+  $effect(() => {
+    console.log('[today] mounted, allHabits length:', allHabits.length);
   });
   let habits = $derived(allHabits.filter(h => h.status === 'active'));
 
@@ -59,32 +63,37 @@
     }
     return groups;
   });
-  console.log('[today] tagGroups computed');
-
-  // Smart suggestions — weighted by past time + location
+  console.log('[today] tagGroups computed, groups:', tagGroups.length);
   let currentLocation = $state<GeolocationPosition | null>(null);
   let locationChecked = $state(false);
 
   $effect(() => {
-    getCurrentLocation().then(pos => { currentLocation = pos; locationChecked = true; });
+    console.log('[today] requesting geolocation');
+    getCurrentLocation().then(pos => { currentLocation = pos; locationChecked = true; console.log('[today] geolocation result:', pos ? 'got' : 'null'); });
   });
 
   let suggestedHabits = $derived(computeSuggestions(habits, undefined, currentLocation));
+  console.log('[today] derived: suggestedHabits computed');
 
   let allEntries = $state<import('../../types').HabitEntry[]>([]);
+  console.log('[today] allEntries state initialized');
 
   let dataVersion = $state(0);
-  entriesStore.subscribe(() => dataVersion++);
+  entriesStore.subscribe(v => {
+    dataVersion++;
+    console.log('[today] entriesStore changed, version:', dataVersion);
+  });
 
   $effect(() => {
     const _dv = dataVersion;
     const td = today;
-    console.log('[today] loading entries for', td);
+    console.log('[today] loading entries for', td, 'dv:', _dv);
     getEntriesByDateRange(td, td).then(e => {
       allEntries = e;
       console.log('[today] entries loaded:', e.length);
-    }).catch(e => console.error('Failed to load entries:', e));
+    }).catch(e => console.error('[today] Failed to load entries:', e));
   });
+  console.log('[today] entries $effect defined');
   let completedHabitIds = $derived.by(() => {
     const ids = new Set<string>();
     for (const e of allEntries) {
@@ -96,7 +105,10 @@
   let suggestedCollapsed = $state(false);
 
   let allNotes = $state<import('../../types').HabitNote[]>([]);
-  notesStore.subscribe(v => allNotes = v);
+  notesStore.subscribe(v => {
+    allNotes = v;
+    console.log('[today] notes loaded:', v.length);
+  });
   let notesCountMap = $derived.by(() => {
     const map = new Map<string, number>();
     for (const n of allNotes) {
@@ -104,6 +116,7 @@
     }
     return map;
   });
+  console.log('[today] notes $effect defined');
 
   function loadSortMode(): 'tag' | 'name' | 'type' | 'custom' {
     try {
