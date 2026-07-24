@@ -2,18 +2,22 @@
   let logs = $state<Record<string, unknown>[]>([])
   let filter = $state('')
   let selected = $state<Set<number>>(new Set())
+  let page = $state(0)
+  const PAGE_SIZE = 200
 
   function load() {
     try {
       logs = JSON.parse(localStorage.getItem('__logs') || '[]')
     } catch { logs = [] }
     selected = new Set(logs.map((_, i) => i))
+    page = 0
   }
 
   function clear() {
     localStorage.removeItem('__logs')
     logs = []
     selected = new Set()
+    page = 0
   }
 
   function selectAll() {
@@ -35,8 +39,8 @@
     const text = logs
       .filter((_, i) => selected.has(i))
       .map(e => {
-        const msg = `[${new Date(e.t as number).toISOString()}] ${e.l?.toString().toUpperCase().padEnd(5)} ${e.m}`
-        return e.s ? msg + '\n' + (e.s as string) : msg
+        const base = `[${new Date(e.t as number).toISOString()}] ${e.l?.toString().toUpperCase().padEnd(5)} ${e.m}`
+        return e.s ? base + '\n' + (e.s as string) : base
       })
       .join('\n')
     navigator.clipboard.writeText(text).catch(() => {})
@@ -54,6 +58,12 @@
   load()
 
   let filtered = $derived(filter ? logs.filter(e => JSON.stringify(e).toLowerCase().includes(filter.toLowerCase())) : logs)
+  let totalPages = $derived(Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)))
+  let paged = $derived(filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE))
+
+  function goTo(p: number) {
+    page = Math.max(0, Math.min(totalPages - 1, p))
+  }
 </script>
 
 <svelte:head>
@@ -78,7 +88,7 @@
   </div>
 
   <div class="log-list">
-    {#each filtered as entry, i}
+    {#each paged as entry, i}
       {@const idx = logs.indexOf(entry)}
       <div class="log-entry level-{entry.l as string}" class:checked={selected.has(idx)}>
         <label class="checkbox-cell">
@@ -92,6 +102,12 @@
         {/if}
       </div>
     {/each}
+  </div>
+
+  <div class="pager">
+    <button onclick={() => goTo(page - 1)} disabled={page === 0}>Prev</button>
+    <span class="page-info">{page + 1} / {totalPages}</span>
+    <button onclick={() => goTo(page + 1)} disabled={page >= totalPages - 1}>Next</button>
   </div>
 </div>
 
@@ -161,6 +177,18 @@
   .level-error .level { color: #f66; }
   .level-warn  .level { color: #fa0; }
   .msg { flex: 1; word-break: break-word; }
+  .pager {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 0;
+    position: sticky;
+    bottom: 0;
+    background: #111;
+  }
+  .pager button:disabled { opacity: 0.3; cursor: default; }
+  .page-info { font-size: 0.8rem; color: #888; }
   .stack {
     width: 100%;
     margin-top: 0.2rem;

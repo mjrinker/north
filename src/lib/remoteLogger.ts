@@ -56,7 +56,7 @@ function flush() {
 function lsPush(level: string, msg: string, stack?: string) {
   try {
     const KEY = '__logs'
-    const MAX = 500
+    const MAX = 2000
     let buf: Record<string, unknown>[] = []
     try { buf = JSON.parse(localStorage.getItem(KEY) || '[]') } catch {}
     buf.push({ t: Date.now(), l: level, m: msg.slice(0, 5000), s: stack ? stack.slice(0, 10000) : undefined, u: window.location.href })
