@@ -11,21 +11,11 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { getSchema, toggleSchema } from '../lib/schemaToggle';
+  import ErrorBoundary from '../components/ErrorBoundary.svelte';
   let { children }: { children: any } = $props();
   let currentUser = $state<any>(null);
 
   console.log('[layout] script start, path:', typeof window !== 'undefined' ? window.location.href : 'SSR');
-
-  if (typeof window !== 'undefined') {
-    window.addEventListener('error', e => {
-      console.error('[layout] Global error:', e.error || e.message);
-      e.preventDefault();
-    });
-    window.addEventListener('unhandledrejection', e => {
-      console.error('[layout] Unhandled rejection:', e.reason);
-      e.preventDefault();
-    });
-  }
   user.subscribe(v => {
     currentUser = v;
     console.log('[layout] user:', v ? v.id?.slice(0,8) : 'null');
@@ -103,7 +93,9 @@
   {schemaVersion === 'new' ? 'NEW' : 'OLD'}
 </button>
 
-{@render children()}
+<ErrorBoundary>
+  {@render children()}
+</ErrorBoundary>
 
 <style>
   nav {
