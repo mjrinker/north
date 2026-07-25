@@ -114,55 +114,59 @@
 </ErrorBoundary>
 
 <nav class="bottom-bar">
-  <a href="/today" class="bar-link" class:active={isActive('/today')} aria-label="Today">
-    <Icon icon="mdi:calendar-check" />
-  </a>
-  <a href="/history" class="bar-link" class:active={isActive('/history')} aria-label="History">
-    <Icon icon="mdi:history" />
-  </a>
-  <a href="/stats" class="bar-link" class:active={isActive('/stats')} aria-label="Stats">
-    <Icon icon="mdi:chart-bar" />
-  </a>
-  {#if userHasPermission(roles, 'access_admin')}
-    <a href="/admin" class="bar-link" class:active={isActive('/admin')} aria-label="Admin">
-      <Icon icon="mdi:shield-account" />
+  <div class="bar-side">
+    <a href="/today" class="bar-link" class:active={isActive('/today')} aria-label="Today">
+      <Icon icon="mdi:calendar-check" />
     </a>
-  {/if}
+    <a href="/history" class="bar-link" class:active={isActive('/history')} aria-label="History">
+      <Icon icon="mdi:history" />
+    </a>
+    {#if userHasPermission(roles, 'access_admin')}
+      <a href="/admin" class="bar-link" class:active={isActive('/admin')} aria-label="Admin">
+        <Icon icon="mdi:shield-account" />
+      </a>
+    {/if}
+  </div>
 
   <button class="fab" onclick={handleCreateHabit} aria-label="Add Habit">
     <Icon icon="mdi:plus" />
   </button>
 
-  <div class="avatar-wrap" bind:this={avatarMenuEl}>
-    {#if currentUser}
-      <button class="bar-link avatar-btn" onclick={toggleAvatarMenu} onkeydown={handleAvatarKeydown} aria-label="Account" aria-expanded={showAvatarMenu}>
-        {#if currentUser.user_metadata?.avatar_url}
-          <img src={currentUser.user_metadata.avatar_url} alt="" class="bar-avatar" />
-        {:else}
-          <Icon icon="mdi:account-circle" />
+  <div class="bar-side bar-side--right">
+    <a href="/stats" class="bar-link" class:active={isActive('/stats')} aria-label="Stats">
+      <Icon icon="mdi:chart-bar" />
+    </a>
+    <div class="avatar-wrap" bind:this={avatarMenuEl}>
+      {#if currentUser}
+        <button class="bar-link avatar-btn" onclick={toggleAvatarMenu} onkeydown={handleAvatarKeydown} aria-label="Account" aria-expanded={showAvatarMenu}>
+          {#if currentUser.user_metadata?.avatar_url}
+            <img src={currentUser.user_metadata.avatar_url} alt="" class="bar-avatar" />
+          {:else}
+            <Icon icon="mdi:account-circle" />
+          {/if}
+        </button>
+        {#if showAvatarMenu}
+          <div class="avatar-menu" role="menu">
+            <a href="/settings" class="menu-item" role="menuitem" onclick={() => showAvatarMenu = false}>
+              <Icon icon="mdi:cog" />
+              Settings
+            </a>
+            <button class="menu-item" role="menuitem" onclick={handleSwitchUser}>
+              <Icon icon="mdi:account-switch" />
+              Switch User
+            </button>
+            <button class="menu-item menu-item--danger" role="menuitem" onclick={handleLogout}>
+              <Icon icon="mdi:logout" />
+              Logout
+            </button>
+          </div>
         {/if}
-      </button>
-      {#if showAvatarMenu}
-        <div class="avatar-menu" role="menu">
-          <a href="/settings" class="menu-item" role="menuitem" onclick={() => showAvatarMenu = false}>
-            <Icon icon="mdi:cog" />
-            Settings
-          </a>
-          <button class="menu-item" role="menuitem" onclick={handleSwitchUser}>
-            <Icon icon="mdi:account-switch" />
-            Switch User
-          </button>
-          <button class="menu-item menu-item--danger" role="menuitem" onclick={handleLogout}>
-            <Icon icon="mdi:logout" />
-            Logout
-          </button>
-        </div>
+      {:else}
+        <button class="bar-link" onclick={signInWithGoogle} aria-label="Sign in">
+          <Icon icon="mdi:login" />
+        </button>
       {/if}
-    {:else}
-      <button class="bar-link" onclick={signInWithGoogle} aria-label="Sign in">
-        <Icon icon="mdi:login" />
-      </button>
-    {/if}
+    </div>
   </div>
 </nav>
 
@@ -185,12 +189,25 @@
     height: 4.25rem;
     display: flex;
     align-items: center;
-    justify-content: space-evenly;
+    justify-content: center;
     background: var(--nav-bg, #f5f5f5);
     border-top: 1px solid var(--nav-border, #e0e0e0);
     z-index: 40;
     padding: 0 0.25rem;
     box-sizing: border-box;
+    gap: 0;
+  }
+
+  .bar-side {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .bar-side--right {
+    justify-content: flex-start;
   }
 
   .bar-link {
