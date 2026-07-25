@@ -98,10 +98,9 @@
 
   let suggestedHabits = $derived(computeSuggestions(habits, undefined, currentLocation));
 
-  let allEntries = $state<import('../../types').HabitEntry[]>([]);
-  entriesStore.subscribe(v => {
-    allEntries = v.filter(e => e.date === viewDate);
-  });
+  let rawEntries = $state<import('../../types').HabitEntry[]>([]);
+  entriesStore.subscribe(v => rawEntries = v);
+  let allEntries = $derived(rawEntries.filter(e => e.date === viewDate));
   let completedHabitIds = $derived.by(() => {
     const ids = new Set<string>();
     for (const e of allEntries) {
