@@ -5,15 +5,16 @@
   import { applyThemeEffect } from '../stores/theme';
   import { initRemoteLogger } from '../lib/remoteLogger';
   initRemoteLogger();
-  import { user, signInWithGoogle } from '../stores/auth';
+  import { user, signInWithGoogle, signOut } from '../stores/auth';
   import { userRoles } from '../stores/roles';
-  import { userHasFeature, userHasPermission } from '../lib/featureFlags';
+  import { userHasPermission } from '../lib/featureFlags';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { getSchema, toggleSchema } from '../lib/schemaToggle';
   import { showCreateHabit } from '../stores/createHabit';
   import ErrorBoundary from '../components/ErrorBoundary.svelte';
   import Icon from '@iconify/svelte';
+  import { tick } from 'svelte';
   let { children }: { children: any } = $props();
   let currentUser = $state<any>(null);
 
@@ -59,7 +60,52 @@
   function handleCreateHabit() {
     showCreateHabit.update(n => n + 1);
   }
+
+  let showAvatarMenu = $state(false);
+  let avatarMenuEl = $state<HTMLDivElement | null>(null);
+
+  function toggleAvatarMenu() {
+    showAvatarMenu = !showAvatarMenu;
+  }
+
+  async function handleLogout() {
+    showAvatarMenu = false;
+    await signOut();
+  }
+
+  function handleSwitchUser() {
+    showAvatarMenu = false;
+    signOut();
+  }
+
+  function handleAvatarKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleAvatarMenu();
+    }
+  }
+
+  function handleMenuKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      showAvatarMenu = false;
+    }
+  }
+
+  function handleOutsideClick(e: MouseEvent) {
+    if (avatarMenuEl && !avatarMenuEl.contains(e.target as Node)) {
+      showAvatarMenu = false;
+    }
+  }
+
+  $effect(() => {
+    if (showAvatarMenu) {
+      document.addEventListener('click', handleOutsideClick);
+      return () => document.removeEventListener('click', handleOutsideClick);
+    }
+  });
 </script>
+
+<svelte:window on:keydown={handleMenuKeydown} />
 
 <ErrorBoundary>
   <div class="page-content">
@@ -68,62 +114,52 @@
 </ErrorBoundary>
 
 <nav class="bottom-bar">
-  <div class="bar-item" class:active={isActive('/today')}>
-    <a href="/today" class="bar-link">
-      <Icon icon="mdi:calendar-check" />
-      <span class="bar-label">Today</span>
-    </a>
-  </div>
-  <div class="bar-item" class:active={isActive('/history')}>
-    <a href="/history" class="bar-link">
-      <Icon icon="mdi:history" />
-      <span class="bar-label">History</span>
-    </a>
-  </div>
-  {#if userHasFeature(roles, 'stats')}
-    <div class="bar-item" class:active={isActive('/stats')}>
-      <a href="/stats" class="bar-link">
-        <Icon icon="mdi:chart-bar" />
-        <span class="bar-label">Stats</span>
-      </a>
-    </div>
-  {/if}
+  <a href="/today" class="bar-link" class:active={isActive('/today')} aria-label="Today">
+    <Icon icon="mdi:calendar-check" />
+  </a>
+  <a href="/history" class="bar-link" class:active={isActive('/history')} aria-label="History">
+    <Icon icon="mdi:history" />
+  </a>
+  <a href="/stats" class="bar-link" class:active={isActive('/stats')} aria-label="Stats">
+    <Icon icon="mdi:chart-bar" />
+  </a>
   {#if userHasPermission(roles, 'access_admin')}
-    <div class="bar-item" class:active={isActive('/admin')}>
-      <a href="/admin" class="bar-link">
-        <Icon icon="mdi:shield-account" />
-        <span class="bar-label">Admin</span>
-      </a>
-    </div>
+    <a href="/admin" class="bar-link" class:active={isActive('/admin')} aria-label="Admin">
+      <Icon icon="mdi:shield-account" />
+    </a>
   {/if}
-
-  <div class="bar-fab-spacer"></div>
 
   <button class="fab" onclick={handleCreateHabit} aria-label="Add Habit">
     <Icon icon="mdi:plus" />
   </button>
 
-  <div class="bar-fab-spacer"></div>
-
-  <div class="bar-item bar-item--right" class:active={isActive('/settings')}>
-    <a href="/settings" class="bar-link">
-      <Icon icon="mdi:cog" />
-      <span class="bar-label">Settings</span>
-    </a>
-  </div>
-  <div class="bar-item bar-item--right">
+  <div class="avatar-wrap" bind:this={avatarMenuEl}>
     {#if currentUser}
-      {#if currentUser.user_metadata?.avatar_url}
-        <a href="/settings" class="bar-link">
+      <button class="bar-link avatar-btn" onclick={toggleAvatarMenu} onkeydown={handleAvatarKeydown} aria-label="Account" aria-expanded={showAvatarMenu}>
+        {#if currentUser.user_metadata?.avatar_url}
           <img src={currentUser.user_metadata.avatar_url} alt="" class="bar-avatar" />
-        </a>
-      {:else}
-        <a href="/settings" class="bar-link">
+        {:else}
           <Icon icon="mdi:account-circle" />
-        </a>
+        {/if}
+      </button>
+      {#if showAvatarMenu}
+        <div class="avatar-menu" role="menu">
+          <a href="/settings" class="menu-item" role="menuitem" onclick={() => showAvatarMenu = false}>
+            <Icon icon="mdi:cog" />
+            Settings
+          </a>
+          <button class="menu-item" role="menuitem" onclick={handleSwitchUser}>
+            <Icon icon="mdi:account-switch" />
+            Switch User
+          </button>
+          <button class="menu-item menu-item--danger" role="menuitem" onclick={handleLogout}>
+            <Icon icon="mdi:logout" />
+            Logout
+          </button>
+        </div>
       {/if}
     {:else}
-      <button class="bar-link bar-auth" onclick={signInWithGoogle} aria-label="Sign in">
+      <button class="bar-link" onclick={signInWithGoogle} aria-label="Sign in">
         <Icon icon="mdi:login" />
       </button>
     {/if}
@@ -136,7 +172,7 @@
 
 <style>
   .page-content {
-    padding-bottom: 5rem;
+    padding-bottom: 5.5rem;
     min-height: 100dvh;
     box-sizing: border-box;
   }
@@ -146,10 +182,10 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 3.75rem;
+    height: 4.25rem;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-evenly;
     background: var(--nav-bg, #f5f5f5);
     border-top: 1px solid var(--nav-border, #e0e0e0);
     z-index: 40;
@@ -157,23 +193,14 @@
     box-sizing: border-box;
   }
 
-  .bar-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-width: 0;
-  }
-
   .bar-link {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1px;
     text-decoration: none;
     color: var(--text-secondary, #888);
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem;
     border-radius: 4px;
     transition: color 0.15s;
     border: none;
@@ -184,15 +211,10 @@
   }
 
   .bar-link :global(svg), .bar-link :global(.iconify) {
-    font-size: 1.35rem;
+    font-size: 1.6rem;
   }
 
-  .bar-label {
-    font-size: 0.6rem;
-    font-weight: 500;
-  }
-
-  .bar-item.active .bar-link {
+  .bar-link.active {
     color: var(--accent, #0066cc);
   }
 
@@ -200,14 +222,9 @@
     color: var(--text-primary, #222);
   }
 
-  .bar-fab-spacer {
-    flex: 1;
-    min-width: 0.5rem;
-  }
-
   .fab {
-    width: 3.25rem;
-    height: 3.25rem;
+    width: 3.5rem;
+    height: 3.5rem;
     border-radius: 50%;
     background: var(--accent, #0066cc);
     color: white;
@@ -225,18 +242,71 @@
   }
 
   .fab :global(svg), .fab :global(.iconify) {
-    font-size: 1.75rem;
+    font-size: 2rem;
   }
 
   .fab:hover {
     opacity: 0.9;
   }
 
+  .avatar-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .avatar-btn {
+    padding: 0;
+  }
+
   .bar-avatar {
-    width: 1.35rem;
-    height: 1.35rem;
+    width: 1.6rem;
+    height: 1.6rem;
     border-radius: 50%;
     object-fit: cover;
+  }
+
+  .avatar-menu {
+    position: absolute;
+    bottom: calc(100% + 0.5rem);
+    right: 0;
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--card-border, #e0e0e0);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    min-width: 180px;
+    padding: 0.25rem 0;
+    z-index: 100;
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: none;
+    background: none;
+    font-size: 0.9rem;
+    font-family: inherit;
+    color: var(--text-primary, #222);
+    cursor: pointer;
+    text-decoration: none;
+    box-sizing: border-box;
+    line-height: 1;
+  }
+
+  .menu-item :global(svg), .menu-item :global(.iconify) {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .menu-item:hover {
+    background: var(--btn-secondary-bg, #eee);
+  }
+
+  .menu-item--danger {
+    color: #d32f2f;
   }
 
   .schema-toggle {
