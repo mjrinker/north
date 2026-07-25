@@ -14,7 +14,7 @@
   import { addLog } from '../lib/completionLog';
   import { marked } from 'marked';
   import type { DepPopoverState } from '../types';
-  let { habit, onEdit, onNotes, notesCount, onDepPopover }: { habit: Habit; onEdit?: () => void; onNotes?: () => void; notesCount?: number; onDepPopover?: (state: DepPopoverState) => void } = $props();
+  let { habit, date = getLocalDateString(), onEdit, onNotes, notesCount, onDepPopover }: { habit: Habit; date?: string; onEdit?: () => void; onNotes?: () => void; notesCount?: number; onDepPopover?: (state: DepPopoverState) => void } = $props();
   let showNotes = $state(false);
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
   let longPressFired = $state(false);
@@ -29,7 +29,7 @@
   entriesStore.subscribe(() => trigger++);
   let _gen = 0;
   let autoCompleted = $state(new Set<string>());
-  let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + getLocalDateString()) : false);
+  let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + date) : false);
   let isStandardMet = $derived(todayEntry ? todayEntry.value >= habit.standard : false);
   let isTargetMet = $derived(todayEntry && habit.target != null ? todayEntry.value >= habit.target : false);
   let depResults = $state<{ hid: string; met: boolean }[]>([]);
@@ -51,8 +51,7 @@
   }
 
   onMount(async () => {
-    const today = getLocalDateString();
-    const entry = await getEntry(habit.id, today);
+    const entry = await getEntry(habit.id, date);
     if (entry) {
       todayEntry = { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet, _v: 0 };
     }
@@ -63,16 +62,15 @@
     if (!habit) return;
     const _ = trigger;
     const gen = ++_gen;
-    const today = getLocalDateString();
-    const key = habit.id + '|' + today;
+    const key = habit.id + '|' + date;
     (async () => {
       try {
-        if (habit.type === 'binary' && habit.dependsOn) {
-          const entry = await getEntry(habit.id, today);
+        if (habit.type === 'binary' && habit.dependsOn && date === getLocalDateString()) {
+          const entry = await getEntry(habit.id, date);
           if (_gen !== gen) return;
           const results = await Promise.all(
             habit.dependsOn!.habitIds.map(async hid => {
-              const e = await getEntry(hid, today);
+              const e = await getEntry(hid, date);
               const dep = allHabits.find(h => h.id === hid);
               return { hid, met: e && dep ? e.value >= dep.standard : false };
             })
@@ -86,15 +84,15 @@
           if (satisfied && value === 0) {
             for (const r of depResults) {
               if (!r.met) continue;
-              const e = await getEntry(r.hid, today);
+              const e = await getEntry(r.hid, date);
               if (e && e.value > 0) continue;
-              recordAutoCompletedDep(habit.id, today, r.hid);
+              recordAutoCompletedDep(habit.id, date, r.hid);
             }
             autoCompleted.add(key);
-            await HabitEngine.logCompletion(habit, today, 1);
+            await HabitEngine.logCompletion(habit, date, 1);
             todayEntry = { value: 1, standardMet: 1 >= habit.standard, targetMet: habit.target != null && 1 >= habit.target, _v: entryVersion++ };
           } else if (!satisfied && value === 1) {
-            await HabitEngine.logCompletion(habit, today, 0);
+            await HabitEngine.logCompletion(habit, date, 0);
             autoCompleted.delete(key);
             todayEntry = { value: 0, standardMet: false, targetMet: false, _v: entryVersion++ };
           }
@@ -201,7 +199,6 @@
   }
 
   async function logAndRefresh(value: number) {
-    const today = getLocalDateString();
     if (todayEntry) {
       todayEntry.value = value;
       todayEntry.standardMet = value >= habit.standard;
@@ -215,7 +212,7 @@
         _v: ++entryVersion,
       };
     }
-    HabitEngine.logCompletion(habit, today, value).catch(e => console.error('logCompletion error:', e));
+    HabitEngine.logCompletion(habit, date, value).catch(e => console.error('logCompletion error:', e));
   }
 
   function clearTimerInterval() {
@@ -269,15 +266,14 @@
     if (!habit) return;
     try {
       const savedScrollY = window.scrollY;
-      const today = getLocalDateString();
       const wasChecked = todayEntry?.value === 1;
       const value = wasChecked ? 0 : 1;
       const getEntryFn = (hid: string, d: string) => getEntry(hid, d);
       if (value === 1 && habit.dependsOn) {
-        await autoCompleteDependencies(habit, today, allHabits, getEntryFn);
+        await autoCompleteDependencies(habit, date, allHabits, getEntryFn);
       }
       if (wasChecked && habit.dependsOn) {
-        await uncheckDependencies(habit, today, allHabits, getEntryFn);
+        await uncheckDependencies(habit, date, allHabits, getEntryFn);
       }
       await logAndRefresh(value);
       await svelteTick();

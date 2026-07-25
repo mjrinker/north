@@ -19,11 +19,24 @@
   import { appSettings, updateSettings } from '../../lib/settings';
 
   let today = getLocalDateString();
+  let viewDate = $state(today);
 
   let allHabits = $state<Habit[]>([]);
   habitsStore.subscribe(v => allHabits = v);
 
   let habits = $derived(allHabits.filter(h => h.status === 'active'));
+
+  function shiftDate(dir: number) {
+    const d = new Date(viewDate + 'T12:00:00');
+    d.setDate(d.getDate() + dir);
+    viewDate = getLocalDateString(d);
+  }
+
+  function formatDisplayDate(dateStr: string): string {
+    if (dateStr === today) return 'Today';
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  }
 
   function loadSortMode(): 'tag' | 'name' | 'type' | 'custom' {
     try {
@@ -87,16 +100,16 @@
 
   let allEntries = $state<import('../../types').HabitEntry[]>([]);
   entriesStore.subscribe(v => {
-    allEntries = v.filter(e => e.date === today);
+    allEntries = v.filter(e => e.date === viewDate);
   });
   let completedHabitIds = $derived.by(() => {
     const ids = new Set<string>();
     for (const e of allEntries) {
-      if (e.date === today && e.standardMet) ids.add(e.habitId);
+      if (e.standardMet) ids.add(e.habitId);
     }
     return ids;
   });
-  let filteredSuggested = $derived(suggestedHabits.filter(h => !completedHabitIds.has(h.id)));
+  let filteredSuggested = $derived(viewDate === today ? suggestedHabits.filter(h => !completedHabitIds.has(h.id)) : []);
   let suggestedCollapsed = $state(false);
 
   let allNotes = $state<import('../../types').HabitNote[]>([]);
@@ -104,7 +117,7 @@
   let notesCountMap = $derived.by(() => {
     const map = new Map<string, number>();
     for (const n of allNotes) {
-      if (n.date === today) map.set(n.habitId, (map.get(n.habitId) ?? 0) + 1);
+      if (n.date === viewDate) map.set(n.habitId, (map.get(n.habitId) ?? 0) + 1);
     }
     return map;
   });
@@ -416,8 +429,15 @@
   {/if}
 </div>
 
-<h1 class="page-title">Today</h1>
-
+<div class="date-nav">
+  <button class="date-arrow" on:click={() => shiftDate(-1)} aria-label="Previous day">
+    <Icon icon="mdi:chevron-left" />
+  </button>
+  <span class="date-label">{viewDate === today ? 'Today' : formatDisplayDate(viewDate)}</span>
+  <button class="date-arrow" on:click={() => shiftDate(1)} disabled={viewDate === today} aria-label="Next day">
+    <Icon icon="mdi:chevron-right" />
+  </button>
+</div>
 
 <div class="toolbar">
   <label class="sort-label">
@@ -478,7 +498,7 @@
               on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
               on:touchend={(e) => handleTouchEnd(e, habit.id)}
             >
-              <HabitCard {habit} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} />
+              <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} />
             </div>
           </div>
         </div>
@@ -522,7 +542,7 @@
               on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
               on:touchend={(e) => handleTouchEnd(e, habit.id)}
             >
-              <HabitCard {habit} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} />
+              <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} />
             </div>
             <div
               class="swipe-actions"
@@ -548,10 +568,32 @@
 <div class="fab-spacer"></div>
 
 <style>
-  .page-title {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
+  .date-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  .date-arrow {
+    background: none;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 6px;
+    padding: 0.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
     color: var(--text-primary, #222);
+    line-height: 1;
+  }
+  .date-arrow:disabled { opacity: 0.3; cursor: default; }
+  .date-arrow :global(svg), .date-arrow :global(.iconify) { font-size: 1.25rem; }
+  .date-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary, #222);
+    min-width: 8rem;
+    text-align: center;
   }
   .toolbar {
     display: flex;
