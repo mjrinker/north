@@ -11,7 +11,9 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { getSchema, toggleSchema } from '../lib/schemaToggle';
+  import { showCreateHabit } from '../stores/createHabit';
   import ErrorBoundary from '../components/ErrorBoundary.svelte';
+  import Icon from '@iconify/svelte';
   let { children }: { children: any } = $props();
   let currentUser = $state<any>(null);
 
@@ -49,75 +51,200 @@
     toggleSchema();
     schemaVersion = getSchema();
   }
+
+  function isActive(path: string) {
+    return currentPath === path || currentPath.startsWith(path + '/');
+  }
+
+  function handleCreateHabit() {
+    showCreateHabit.update(n => n + 1);
+  }
 </script>
 
-<nav>
-  <a href="/today">Today</a>
-  <a href="/history">History</a>
-  {#if userHasFeature(roles, 'stats')}<a href="/stats">Stats</a>{/if}
-  {#if userHasPermission(roles, 'access_admin')}<a href="/admin">Admin</a>{/if}
-  <a href="/settings">Settings</a>
-  <div class="spacer"></div>
-  {#if currentUser}
-    {#if currentUser.user_metadata?.avatar_url}
-      <img src={currentUser.user_metadata.avatar_url} alt="" class="avatar" />
-    {/if}
-    <span class="user-name">{currentUser.user_metadata?.name ?? currentUser.email}</span>
-  {:else}
-    <button class="auth-btn" onclick={signInWithGoogle}>Sign in with Google</button>
+<ErrorBoundary>
+  <div class="page-content">
+    {@render children()}
+  </div>
+</ErrorBoundary>
+
+<nav class="bottom-bar">
+  <div class="bar-item" class:active={isActive('/today')}>
+    <a href="/today" class="bar-link">
+      <Icon icon="mdi:calendar-check" />
+      <span class="bar-label">Today</span>
+    </a>
+  </div>
+  <div class="bar-item" class:active={isActive('/history')}>
+    <a href="/history" class="bar-link">
+      <Icon icon="mdi:history" />
+      <span class="bar-label">History</span>
+    </a>
+  </div>
+  {#if userHasFeature(roles, 'stats')}
+    <div class="bar-item" class:active={isActive('/stats')}>
+      <a href="/stats" class="bar-link">
+        <Icon icon="mdi:chart-bar" />
+        <span class="bar-label">Stats</span>
+      </a>
+    </div>
   {/if}
+  {#if userHasPermission(roles, 'access_admin')}
+    <div class="bar-item" class:active={isActive('/admin')}>
+      <a href="/admin" class="bar-link">
+        <Icon icon="mdi:shield-account" />
+        <span class="bar-label">Admin</span>
+      </a>
+    </div>
+  {/if}
+
+  <div class="bar-fab-spacer"></div>
+
+  <button class="fab" onclick={handleCreateHabit} aria-label="Add Habit">
+    <Icon icon="mdi:plus" />
+  </button>
+
+  <div class="bar-fab-spacer"></div>
+
+  <div class="bar-item bar-item--right" class:active={isActive('/settings')}>
+    <a href="/settings" class="bar-link">
+      <Icon icon="mdi:cog" />
+      <span class="bar-label">Settings</span>
+    </a>
+  </div>
+  <div class="bar-item bar-item--right">
+    {#if currentUser}
+      {#if currentUser.user_metadata?.avatar_url}
+        <a href="/settings" class="bar-link">
+          <img src={currentUser.user_metadata.avatar_url} alt="" class="bar-avatar" />
+        </a>
+      {:else}
+        <a href="/settings" class="bar-link">
+          <Icon icon="mdi:account-circle" />
+        </a>
+      {/if}
+    {:else}
+      <button class="bar-link bar-auth" onclick={signInWithGoogle} aria-label="Sign in">
+        <Icon icon="mdi:login" />
+      </button>
+    {/if}
+  </div>
 </nav>
 
 <button class="schema-toggle" onclick={handleSchemaToggle} title="Toggle DB schema (old user_sync_data vs new typed tables)">
   {schemaVersion === 'new' ? 'NEW' : 'OLD'}
 </button>
 
-<ErrorBoundary>
-  {@render children()}
-</ErrorBoundary>
-
 <style>
-  nav {
+  .page-content {
+    padding-bottom: 5rem;
+    min-height: 100dvh;
+    box-sizing: border-box;
+  }
+
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3.75rem;
     display: flex;
     align-items: center;
-    padding: 0.5rem 1rem;
+    justify-content: center;
     background: var(--nav-bg, #f5f5f5);
-    border-bottom: 1px solid var(--nav-border, #e0e0e0);
-    gap: 0.5rem;
+    border-top: 1px solid var(--nav-border, #e0e0e0);
+    z-index: 40;
+    padding: 0 0.25rem;
+    box-sizing: border-box;
   }
-  nav a {
+
+  .bar-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .bar-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
     text-decoration: none;
-    color: var(--text-primary, #222);
-    font-weight: 500;
-    font-size: 0.9rem;
-    padding: 0.25rem 0.4rem;
+    color: var(--text-secondary, #888);
+    padding: 0.25rem 0.5rem;
     border-radius: 4px;
-  }
-  nav a:hover {
-    background: var(--btn-secondary-bg, #eee);
-  }
-  .spacer { flex: 1; }
-  .avatar { width: 24px; height: 24px; border-radius: 50%; }
-  .user-name { font-size: 0.85rem; color: var(--text-primary, #222); }
-  .auth-btn {
-    padding: 0.3rem 0.6rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 4px;
-    background: transparent;
+    transition: color 0.15s;
+    border: none;
+    background: none;
     cursor: pointer;
-    font-size: 0.8rem;
+    font-family: inherit;
+    line-height: 1;
+  }
+
+  .bar-link :global(svg), .bar-link :global(.iconify) {
+    font-size: 1.35rem;
+  }
+
+  .bar-label {
+    font-size: 0.6rem;
+    font-weight: 500;
+  }
+
+  .bar-item.active .bar-link {
+    color: var(--accent, #0066cc);
+  }
+
+  .bar-link:hover {
     color: var(--text-primary, #222);
   }
-  .auth-btn:hover {
-    background: var(--bg);
-    border-color: var(--text-secondary, #555);
+
+  .bar-fab-spacer {
+    flex: 1;
+    min-width: 0.5rem;
   }
-  .schema-toggle {
-    position: fixed;
-    bottom: 1.5rem;
-    left: 1.5rem;
+
+  .fab {
     width: 3.25rem;
     height: 3.25rem;
+    border-radius: 50%;
+    background: var(--accent, #0066cc);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    z-index: 51;
+    position: relative;
+    top: -0.75rem;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+
+  .fab :global(svg), .fab :global(.iconify) {
+    font-size: 1.75rem;
+  }
+
+  .fab:hover {
+    opacity: 0.9;
+  }
+
+  .bar-avatar {
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .schema-toggle {
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
     border-radius: 50%;
     background: var(--schema-toggle-bg, #6b7280);
     color: white;
@@ -126,11 +253,15 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     z-index: 50;
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     font-weight: 700;
     line-height: 1;
+    opacity: 0.6;
   }
-  .schema-toggle:hover { opacity: 0.9; }
+
+  .schema-toggle:hover {
+    opacity: 1;
+  }
 </style>

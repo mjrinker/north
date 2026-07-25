@@ -8,6 +8,7 @@
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import Icon from '@iconify/svelte';
+  import { showCreateHabit } from '../../stores/createHabit';
 
   $effect(() => {
     if (editTarget) {
@@ -34,6 +35,11 @@
   });
 
   let showCreate = $state(false);
+  let createTrigger = $state(0);
+  showCreateHabit.subscribe(v => createTrigger = v);
+  $effect(() => {
+    if (createTrigger > 0) showCreate = true;
+  });
   let editingHabit = $state<Habit | null>(null);
   let scrollContainer = $state<HTMLDivElement | null>(null);
   let windowStart = $state(89);
@@ -249,8 +255,6 @@
 
 <h1>History</h1>
 
-<button class="fab" onclick={() => showCreate = true} aria-label="Add Habit"><Icon icon="mdi:plus" style="color: inherit" /></button>
-
 {#if showCreate}
   <HabitCreateModal {habits} onClose={() => showCreate = false} />
 {/if}
@@ -343,35 +347,12 @@
   </div>
 {/if}
 
-<div class="fab-spacer"></div>
-
 <style>
   h1 {
     font-size: 1.5rem;
     color: var(--text-primary, #222);
     margin-bottom: 0.5rem;
   }
-  .fab {
-    position: fixed;
-    bottom: 1.5rem;
-    right: 1.5rem;
-    width: 3.25rem;
-    height: 3.25rem;
-    border-radius: 50%;
-    background: var(--accent, #0066cc);
-    color: white;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-    z-index: 50;
-  }
-  .fab :global(svg), .fab :global(.iconify) { font-size: 1.75rem; color: inherit; }
-  .fab:hover { opacity: 0.9; }
-  .fab-spacer { height: 5.5rem; }
-
   .table-scroll {
     overflow-x: auto;
     max-width: 100%;
