@@ -1,8 +1,10 @@
 <script lang="ts">
   import { page } from '$app/stores';
   let status = $state(500);
+  let errorInfo = $state<{ message: string; stack?: string } | null>(null);
   page.subscribe(p => {
     status = p.status;
+    errorInfo = p.error ? { message: p.error.message, stack: (p.error as any).stack } : null;
     try {
       const KEY = '__logs';
       const MAX = 500;
@@ -13,6 +15,17 @@
       localStorage.setItem(KEY, JSON.stringify(buf));
     } catch {}
   });
+
+  let copied = $state(false);
+  async function copyError() {
+    if (!errorInfo) return;
+    const text = `Error: ${errorInfo.message}${errorInfo.stack ? '\n\nStack:\n' + errorInfo.stack : ''}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+      setTimeout(() => copied = false, 2000);
+    } catch {}
+  }
 </script>
 
 <div class="error-page">
@@ -21,6 +34,9 @@
   {#if typeof window !== 'undefined'}
     <div class="error-links">
       <button onclick={() => window.location.reload()}>Reload</button>
+      {#if errorInfo}
+        <button class="debug-link" onclick={copyError}>{copied ? 'Copied!' : 'Copy error stack'}</button>
+      {/if}
     </div>
   {/if}
 </div>

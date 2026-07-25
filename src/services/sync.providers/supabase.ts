@@ -157,7 +157,7 @@ class SupabaseSyncProvider implements SyncProvider {
     const row = toNewRow(collection, uid, data)
     const pk = collection === 'settings' ? 'user_id' : collection === 'entries' ? 'habit_id,date' : 'id'
     const { error } = await supabase.from(table).upsert(row, { onConflict: pk })
-    if (error) console.error('saveToNew error:', error.message)
+    if (error) throw error
   }
 
   private async saveToOld(collection: string, uid: string, id: string, data: any): Promise<void> {
@@ -168,17 +168,22 @@ class SupabaseSyncProvider implements SyncProvider {
       data,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,collection,record_id' })
-    if (error) console.error('saveToOld error:', error.message)
+    if (error) throw error
   }
 
   async saveRecord(collection: string, id: string, data: any): Promise<void> {
     const uid = this.getUserId()
     if (!uid) throw new Error('Not signed in')
 
-    await Promise.allSettled([
+    const results = await Promise.allSettled([
       this.saveToNew(collection, uid, data),
       this.saveToOld(collection, uid, id, data),
     ])
+
+    const rejected = results.filter(r => r.status === 'rejected') as PromiseRejectedResult[]
+    if (rejected.length === results.length) {
+      throw new Error(`Save failed: ${rejected.map(r => r.reason?.message ?? 'unknown').join('; ')}`)
+    }
   }
 
   async getRecord(collection: string, id: string): Promise<any> {
@@ -214,7 +219,11 @@ class SupabaseSyncProvider implements SyncProvider {
     const newDel = table ? supabase.from(table).delete().eq(pk, id) : Promise.resolve()
     const oldDel = supabase.from(OLD_TABLE).delete().eq('user_id', uid).eq('collection', collection).eq('record_id', id)
 
-    await Promise.allSettled([newDel, oldDel])
+    const results = await Promise.allSettled([newDel, oldDel])
+    const rejected = results.filter(r => r.status === 'rejected') as PromiseRejectedResult[]
+    if (rejected.length === results.length) {
+      throw new Error(`Delete failed: ${rejected.map(r => r.reason?.message ?? 'unknown').join('; ')}`)
+    }
   }
 
   async uploadAll(): Promise<SyncResult> {
@@ -285,7 +294,11 @@ class SupabaseSyncProvider implements SyncProvider {
         )
       }
 
-      await Promise.allSettled(promises)
+      const results = await Promise.allSettled(promises)
+      const rejected = results.filter(r => r.status === 'rejected') as PromiseRejectedResult[]
+      if (rejected.length > 0) {
+        console.error(`uploadAll: ${rejected.length}/${results.length} operations failed`)
+      }
       return { lastSynced: start, status: 'success', conflicts: [] }
     } catch (e: any) {
       return { lastSynced: start, status: 'error', conflicts: [] }
@@ -344,7 +357,11 @@ class SupabaseSyncProvider implements SyncProvider {
       )
     }
 
-    await Promise.allSettled(promises)
+    const results = await Promise.allSettled(promises)
+    const rejected = results.filter(r => r.status === 'rejected') as PromiseRejectedResult[]
+    if (rejected.length > 0) {
+      console.error(`migrateOldToNew: ${rejected.length}/${results.length} migrations failed`)
+    }
     try { localStorage.setItem('migrated_old_to_new', '1') } catch {}
   }
 

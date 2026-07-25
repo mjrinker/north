@@ -8,7 +8,7 @@
 
   let {
     habit,
-    allHabits,
+    allHabits = [] as Habit[],
     onClose
   }: {
     habit: Habit;

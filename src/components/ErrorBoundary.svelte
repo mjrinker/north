@@ -18,6 +18,8 @@
     } catch {}
   }
 
+  let errorStack = $state<string | undefined>();
+
   function onGlobalError(e: ErrorEvent) {
     const err = e.error || e.message || 'Unknown error';
     const msg = typeof err === 'string' ? err : err.message || String(err);
@@ -25,6 +27,7 @@
     lsLog('error', msg, stack);
     hasError = true;
     errorMessage = msg;
+    errorStack = stack;
     e.preventDefault();
   }
 
@@ -34,7 +37,18 @@
     lsLog('error', 'Unhandled rejection: ' + msg, r?.stack);
     hasError = true;
     errorMessage = msg;
+    errorStack = r?.stack;
     e.preventDefault();
+  }
+
+  let copied = $state(false);
+  async function copyError() {
+    const text = `Error: ${errorMessage}${errorStack ? '\n\nStack:\n' + errorStack : ''}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+      setTimeout(() => copied = false, 2000);
+    } catch {}
   }
 
   onMount(() => {
@@ -53,6 +67,7 @@
     <p class="error-msg">{errorMessage}</p>
     <div class="error-actions">
       <button class="btn-primary" onclick={() => window.location.reload()}>Reload app</button>
+      <button class="btn-link" onclick={copyError}>{copied ? 'Copied!' : 'Copy error stack'}</button>
     </div>
   </div>
 {:else}
