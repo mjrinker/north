@@ -297,13 +297,11 @@ class SupabaseSyncProvider implements SyncProvider {
       const uid = this.getUserId()
       if (!uid) throw new Error('Not signed in')
 
+      const { setSyncEnabled } = await import('../sync')
+      setSyncEnabled(false)
+
       if (getSchema() === 'new') {
-        const { setSyncEnabled } = await import('../sync')
-        setSyncEnabled(false)
-        const { saveHabit, getAllHabits, deleteHabit } = await import('../storage')
-        const { saveEntry, getAllEntries } = await import('../storage')
-        const { saveIdentity, getAllIdentities } = await import('../storage')
-        const { saveNote, getAllNotes } = await import('../storage')
+        const { saveHabit, saveEntry, saveIdentity, saveNote } = await import('../storage')
 
         const habits = get(habitsStore)
         const entries = get(entriesStore)
@@ -319,10 +317,10 @@ class SupabaseSyncProvider implements SyncProvider {
               const data = fromNewRow('habits', row)
               const idx = merged.findIndex(h => h.id === data.id)
               if (idx >= 0) merged[idx] = data; else merged.push(data)
-              await saveHabit(data)
             } catch {}
           }
           habitsStore.set(merged)
+          for (const h of merged) { try { await saveHabit(h) } catch {} }
         }
 
         const { data: entryRows, error: ee } = await supabase.from('entries').select('*').eq('user_id', uid)
@@ -334,10 +332,10 @@ class SupabaseSyncProvider implements SyncProvider {
               const data = fromNewRow('entries', row)
               const idx = merged.findIndex(e => e.id === data.id)
               if (idx >= 0) merged[idx] = data; else merged.push(data)
-              await saveEntry(data)
             } catch {}
           }
           entriesStore.set(merged)
+          for (const e of merged) { try { await saveEntry(e) } catch {} }
         }
 
         const { data: identityRows, error: ie } = await supabase.from('identities').select('*').eq('user_id', uid)
@@ -349,10 +347,10 @@ class SupabaseSyncProvider implements SyncProvider {
               const data = fromNewRow('identities', row)
               const idx = merged.findIndex(i => i.id === data.id)
               if (idx >= 0) merged[idx] = data; else merged.push(data)
-              await saveIdentity(data)
             } catch {}
           }
           identitiesStore.set(merged)
+          for (const i of merged) { try { await saveIdentity(i) } catch {} }
         }
 
         const { data: noteRows, error: ne } = await supabase.from('notes').select('*').eq('user_id', uid)
@@ -364,10 +362,10 @@ class SupabaseSyncProvider implements SyncProvider {
               const data = fromNewRow('notes', row)
               const idx = merged.findIndex(n => n.id === data.id)
               if (idx >= 0) merged[idx] = data; else merged.push(data)
-              await saveNote(data)
             } catch {}
           }
           notesStore.set(merged)
+          for (const n of merged) { try { await saveNote(n) } catch {} }
         }
 
         const { data: settingsRows, error: se } = await supabase.from('user_settings').select('*').eq('user_id', uid)
@@ -375,8 +373,6 @@ class SupabaseSyncProvider implements SyncProvider {
         if (settingsRows && settingsRows.length > 0) {
           appSettings.set(fromNewRow('settings', settingsRows[0]))
         }
-
-        setSyncEnabled(true)
       } else {
         let allRows: any[] = []
         const pageSize = 1000
@@ -395,49 +391,54 @@ class SupabaseSyncProvider implements SyncProvider {
         }
 
         if (allRows.length > 0) {
-          const { setSyncEnabled } = await import('../sync')
-          setSyncEnabled(false)
+          const { saveHabit, saveEntry, saveIdentity, saveNote } = await import('../storage')
+
+          const habits = get(habitsStore)
+          const entries = get(entriesStore)
+          const identities = get(identitiesStore)
+          const notes = get(notesStore)
+
+          let mergedHabits = [...habits]
+          let mergedEntries = [...entries]
+          let mergedIdentities = [...identities]
+          let mergedNotes = [...notes]
+
           for (const row of allRows) {
             try {
               if (row.collection === 'habits') {
-                const { addHabit, updateHabit } = await import('../../stores/habits')
-                if (get(habitsStore).some(h => h.id === row.record_id)) {
-                  updateHabit(row.data)
-                } else {
-                  addHabit(row.data)
-                }
+                const idx = mergedHabits.findIndex((h: any) => h.id === row.record_id)
+                if (idx >= 0) mergedHabits[idx] = row.data; else mergedHabits.push(row.data)
               } else if (row.collection === 'entries') {
-                const { addEntry } = await import('../../stores/entries')
-                if (get(entriesStore).some(e => e.id === row.record_id)) {
-                  entriesStore.updateItem(row.data)
-                } else {
-                  addEntry(row.data)
-                }
+                const idx = mergedEntries.findIndex((e: any) => e.id === row.record_id)
+                if (idx >= 0) mergedEntries[idx] = row.data; else mergedEntries.push(row.data)
               } else if (row.collection === 'identities') {
-                const { addIdentity, updateIdentity } = await import('../../stores/identities')
-                if (get(identitiesStore).some(i => i.id === row.record_id)) {
-                  updateIdentity(row.data)
-                } else {
-                  addIdentity(row.data)
-                }
+                const idx = mergedIdentities.findIndex((i: any) => i.id === row.record_id)
+                if (idx >= 0) mergedIdentities[idx] = row.data; else mergedIdentities.push(row.data)
               } else if (row.collection === 'notes') {
-                const { addNote } = await import('../../stores/notes')
-                if (get(notesStore).some(n => n.id === row.record_id)) {
-                  notesStore.updateItem(row.data)
-                } else {
-                  addNote(row.data)
-                }
+                const idx = mergedNotes.findIndex((n: any) => n.id === row.record_id)
+                if (idx >= 0) mergedNotes[idx] = row.data; else mergedNotes.push(row.data)
               } else if (row.collection === 'settings' && row.record_id === 'app_settings') {
                 appSettings.set(row.data)
               }
             } catch {}
           }
-          setSyncEnabled(true)
+
+          habitsStore.set(mergedHabits)
+          entriesStore.set(mergedEntries)
+          identitiesStore.set(mergedIdentities)
+          notesStore.set(mergedNotes)
+
+          for (const h of mergedHabits) { try { await saveHabit(h) } catch {} }
+          for (const e of mergedEntries) { try { await saveEntry(e) } catch {} }
+          for (const i of mergedIdentities) { try { await saveIdentity(i) } catch {} }
+          for (const n of mergedNotes) { try { await saveNote(n) } catch {} }
         }
       }
 
+      setSyncEnabled(true)
       return { lastSynced: start, status: 'success', conflicts: [] }
     } catch {
+      setSyncEnabled(true)
       return { lastSynced: start, status: 'error', conflicts: [] }
     }
   }

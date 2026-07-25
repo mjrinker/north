@@ -14,7 +14,6 @@
   import type { SuggestedPlace, DepPopoverState } from '../../types';
   import { notesStore } from '../../stores/notes';
   import { entriesStore } from '../../stores/entries';
-  import { getEntriesByDateRange } from '../../services/storage';
   import { HabitEngine } from '../../services/habitEngine';
   import { getLocalDateString } from '../../lib/dates';
   import { appSettings, updateSettings } from '../../lib/settings';
@@ -98,24 +97,11 @@
   console.log('[today] derived: suggestedHabits computed');
 
   let allEntries = $state<import('../../types').HabitEntry[]>([]);
-  console.log('[today] allEntries state initialized');
-
-  let dataVersion = $state(0);
+  let entriesLoading = $state(true);
   entriesStore.subscribe(v => {
-    dataVersion++;
-    console.log('[today] entriesStore changed, version:', dataVersion);
+    allEntries = v.filter(e => e.date === today);
+    entriesLoading = false;
   });
-
-  $effect(() => {
-    const _dv = dataVersion;
-    const td = today;
-    console.log('[today] loading entries for', td, 'dv:', _dv);
-    getEntriesByDateRange(td, td).then(e => {
-      allEntries = e;
-      console.log('[today] entries loaded:', e.length);
-    }).catch(e => console.error('[today] Failed to load entries:', e));
-  });
-  console.log('[today] entries $effect defined');
   let completedHabitIds = $derived.by(() => {
     const ids = new Set<string>();
     for (const e of allEntries) {
