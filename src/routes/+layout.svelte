@@ -14,7 +14,6 @@
   import { showCreateHabit } from '../stores/createHabit';
   import ErrorBoundary from '../components/ErrorBoundary.svelte';
   import Icon from '@iconify/svelte';
-  import { tick } from 'svelte';
   let { children }: { children: any } = $props();
   let currentUser = $state<any>(null);
 

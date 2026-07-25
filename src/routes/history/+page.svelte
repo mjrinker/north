@@ -9,6 +9,7 @@
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import Icon from '@iconify/svelte';
   import { showCreateHabit } from '../../stores/createHabit';
+  import { onDestroy } from 'svelte';
 
   $effect(() => {
     if (editTarget) {
@@ -18,7 +19,8 @@
   });
 
   let habits = $state<Habit[]>([]);
-  habitsStore.subscribe(v => habits = v.filter(h => h.status === 'active'));
+  let unsubHabits = habitsStore.subscribe(v => habits = v.filter(h => h.status === 'active'));
+  onDestroy(() => unsubHabits());
 
   let allEntries = $state<HabitEntry[]>([]);
   let entriesReady = $state(false);
@@ -35,11 +37,14 @@
   });
 
   let showCreate = $state(false);
-  let createTrigger = $state(0);
-  showCreateHabit.subscribe(v => createTrigger = v);
-  $effect(() => {
-    if (createTrigger > 0) showCreate = true;
-  });
+
+  {
+    let skip = true;
+    onDestroy(showCreateHabit.subscribe(() => {
+      if (skip) { skip = false; return; }
+      showCreate = true;
+    }));
+  }
   let editingHabit = $state<Habit | null>(null);
   let scrollContainer = $state<HTMLDivElement | null>(null);
   let windowStart = $state(89);

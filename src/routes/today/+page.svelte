@@ -18,12 +18,14 @@
   import { getLocalDateString } from '../../lib/dates';
   import { appSettings, updateSettings } from '../../lib/settings';
   import { showCreateHabit } from '../../stores/createHabit';
+  import { onDestroy } from 'svelte';
 
   let today = getLocalDateString();
   let viewDate = $state(today);
 
   let allHabits = $state<Habit[]>([]);
-  habitsStore.subscribe(v => allHabits = v);
+  let unsubHabits = habitsStore.subscribe(v => allHabits = v);
+  onDestroy(() => unsubHabits());
 
   let habits = $derived(allHabits.filter(h => h.status === 'active'));
 
@@ -54,7 +56,8 @@
   });
 
   let customOrder = $state<string[]>([]);
-  appSettings.subscribe(v => customOrder = v.habitOrder);
+  let unsubSettings = appSettings.subscribe(v => customOrder = v.habitOrder);
+  onDestroy(() => unsubSettings());
 
   function saveCustomOrder(order: string[]) {
     customOrder = order;
@@ -100,7 +103,8 @@
   let suggestedHabits = $derived(computeSuggestions(habits, undefined, currentLocation));
 
   let rawEntries = $state<import('../../types').HabitEntry[]>([]);
-  entriesStore.subscribe(v => rawEntries = v);
+  let unsubEntries = entriesStore.subscribe(v => rawEntries = v);
+  onDestroy(() => unsubEntries());
   let allEntries = $derived(rawEntries.filter(e => e.date === viewDate));
   let completedHabitIds = $derived.by(() => {
     const ids = new Set<string>();
@@ -113,7 +117,8 @@
   let suggestedCollapsed = $state(false);
 
   let allNotes = $state<import('../../types').HabitNote[]>([]);
-  notesStore.subscribe(v => allNotes = v);
+  let unsubNotes = notesStore.subscribe(v => allNotes = v);
+  onDestroy(() => unsubNotes());
   let notesCountMap = $derived.by(() => {
     const map = new Map<string, number>();
     for (const n of allNotes) {
@@ -266,11 +271,14 @@
   }
 
   let showCreate = $state(false);
-  let createTrigger = $state(0);
-  showCreateHabit.subscribe(v => createTrigger = v);
-  $effect(() => {
-    if (createTrigger > 0) showCreate = true;
-  });
+
+  {
+    let skip = true;
+    onDestroy(showCreateHabit.subscribe(() => {
+      if (skip) { skip = false; return; }
+      showCreate = true;
+    }));
+  }
   let editingHabit = $state<Habit | null>(null);
   let notesHabitId = $state<string | null>(null);
   let depPopover = $state<DepPopoverState | null>(null);
