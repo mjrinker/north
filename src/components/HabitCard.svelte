@@ -8,7 +8,7 @@
   import { recordAutoCompletedDep } from '../lib/autoDeps';
   import { autoCompleteDependencies, uncheckDependencies } from '../lib/dependencyEngine';
   import { entriesStore } from '../stores/entries';
-  import { onMount, onDestroy } from 'svelte';
+  import { onDestroy } from 'svelte';
   import { tick as svelteTick } from 'svelte';
   import Icon from '@iconify/svelte';
   import { addLog } from '../lib/completionLog';
@@ -50,14 +50,6 @@
     });
   }
 
-  onMount(async () => {
-    const entry = await getEntry(habit.id, date);
-    if (entry) {
-      todayEntry = { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet, _v: 0 };
-    }
-    streak = await HabitEngine.getStreak(habit);
-  });
-
   $effect(() => {
     if (!habit) return;
     const _ = trigger;
@@ -65,9 +57,14 @@
     const key = habit.id + '|' + date;
     (async () => {
       try {
+        const entry = await getEntry(habit.id, date);
+        if (_gen !== gen) return;
+        if (entry) {
+          todayEntry = { value: entry.value, standardMet: entry.standardMet, targetMet: entry.targetMet, _v: entryVersion };
+        } else {
+          todayEntry = null;
+        }
         if (habit.type === 'binary' && habit.dependsOn && date === getLocalDateString()) {
-          const entry = await getEntry(habit.id, date);
-          if (_gen !== gen) return;
           const results = await Promise.all(
             habit.dependsOn!.habitIds.map(async hid => {
               const e = await getEntry(hid, date);
