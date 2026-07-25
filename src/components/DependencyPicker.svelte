@@ -47,7 +47,7 @@
   }
   .dep-mode button.active {
     background: var(--accent, #0066cc);
-    color: white;
+    color: var(--accent-text, white);
     border-color: var(--accent, #0066cc);
   }
   .dep-picker {
@@ -67,7 +67,7 @@
   }
   .dep-picker button.selected {
     background: var(--accent, #0066cc);
-    color: white;
+    color: var(--accent-text, white);
     border-color: var(--accent, #0066cc);
   }
 </style>

@@ -34,6 +34,7 @@ body.light {
   --input-border: #ccc;
   --accent: #0066cc;
   --accent-hover: #0052a3;
+  --accent-text: #ffffff;
   --btn-secondary-bg: #eee;
   --slide-track: #e0e0e0;
   --slide-thumb: #fff;
@@ -59,6 +60,7 @@ body.dark {
   --input-border: #2a3a5e;
   --accent: #4da6ff;
   --accent-hover: #3d8be8;
+  --accent-text: #ffffff;
   --btn-secondary-bg: #2a3a5e;
   --slide-track: #2a3a5e;
   --slide-thumb: #1a1a2e;
@@ -84,6 +86,7 @@ body.oled {
   --input-border: #1a1a1a;
   --accent: #4da6ff;
   --accent-hover: #3d8be8;
+  --accent-text: #ffffff;
   --btn-secondary-bg: #1a1a1a;
   --slide-track: #1a1a1a;
   --slide-thumb: #0d0d0d;
@@ -110,6 +113,7 @@ body.oled {
     --input-border: #2a3a5e;
     --accent: #4da6ff;
     --accent-hover: #3d8be8;
+    --accent-text: #ffffff;
     --btn-secondary-bg: #2a3a5e;
     --slide-track: #2a3a5e;
     --slide-thumb: #1a1a2e;
@@ -135,8 +139,9 @@ body.oled {
     --input-bg: #fff;
     --input-border: #ccc;
     --accent: #0066cc;
-    --accent-hover: #0052a3;
-    --btn-secondary-bg: #eee;
+  --accent-hover: #0052a3;
+  --accent-text: #ffffff;
+  --btn-secondary-bg: #eee;
     --slide-track: #e0e0e0;
     --slide-thumb: #fff;
     --dep-popover-bg: #ffffff;

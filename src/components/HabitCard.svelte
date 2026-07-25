@@ -498,7 +498,7 @@
     border-radius: 999px;
     white-space: nowrap;
     background: var(--accent, #0066cc);
-    color: #fff;
+    color: var(--accent-text, #fff);
     font-weight: 600;
     letter-spacing: 0.02em;
     line-height: 1.4;

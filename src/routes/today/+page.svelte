@@ -683,7 +683,7 @@
   .suggested-time {
     font-size: 0.7rem;
     background: var(--accent, #0066cc);
-    color: #fff;
+    color: var(--accent-text, #fff);
     border-radius: 999px;
     padding: 1px 8px;
     font-weight: 600;

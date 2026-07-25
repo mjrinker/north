@@ -99,7 +99,7 @@
     border: none;
     border-radius: 6px;
     background: var(--accent, #0066cc);
-    color: white;
+    color: var(--accent-text, white);
     cursor: pointer;
     font-size: 1rem;
     text-decoration: none;

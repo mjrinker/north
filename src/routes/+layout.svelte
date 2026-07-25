@@ -226,7 +226,7 @@
     height: 3.5rem;
     border-radius: 50%;
     background: var(--accent, #0066cc);
-    color: white;
+    color: var(--accent-text, white);
     border: none;
     display: flex;
     align-items: center;

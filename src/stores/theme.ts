@@ -91,6 +91,11 @@ function clearPalette() {
   for (const p of props) body.style.removeProperty(p);
 }
 
+function getContrastText(hexColor: string): string {
+  const { l } = hexToHsl(hexColor);
+  return l > 55 ? '#000000' : '#ffffff';
+}
+
 function applyTheme() {
   if (typeof document === 'undefined') return;
   const unsub = appSettings.subscribe(s => {
@@ -115,9 +120,11 @@ function applyTheme() {
     if (s.accentColor) {
       body.style.setProperty('--accent', s.accentColor);
       body.style.setProperty('--accent-hover', s.accentColor + 'cc');
+      body.style.setProperty('--accent-text', getContrastText(s.accentColor));
     } else {
       body.style.removeProperty('--accent');
       body.style.removeProperty('--accent-hover');
+      body.style.removeProperty('--accent-text');
     }
 
     if (s.mainColor) {

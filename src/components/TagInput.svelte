@@ -72,7 +72,7 @@
     align-items: center;
     gap: 2px;
     background: var(--accent, #0066cc);
-    color: white;
+    color: var(--accent-text, white);
     font-size: 0.75rem;
     padding: 2px 6px;
     border-radius: 4px;
@@ -80,7 +80,7 @@
   .tag-remove {
     background: none;
     border: none;
-    color: white;
+    color: inherit;
     cursor: pointer;
     font-size: 0.85rem;
     padding: 0 2px;
@@ -113,6 +113,6 @@
   }
   .tag-option:hover {
     background: var(--accent, #0066cc);
-    color: white;
+    color: var(--accent-text, white);
   }
 </style>

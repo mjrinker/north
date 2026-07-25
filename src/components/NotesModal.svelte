@@ -125,7 +125,7 @@
     border-radius: 50%;
     border: none;
     background: var(--accent, #0066cc);
-    color: white;
+    color: var(--accent-text, white);
     font-size: 1.25rem;
     cursor: pointer;
     display: flex;
@@ -160,7 +160,7 @@
     border-radius: 6px;
     border: none;
     background: var(--accent, #0066cc);
-    color: white;
+    color: var(--accent-text, white);
     cursor: pointer;
     font-size: 0.8rem;
     font-weight: 500;
