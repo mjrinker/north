@@ -5,7 +5,7 @@
   import { applyThemeEffect } from '../stores/theme';
   import { initRemoteLogger } from '../lib/remoteLogger';
   initRemoteLogger();
-  import { user, signInWithGoogle, signOut } from '../stores/auth';
+  import { user, signInWithGoogle } from '../stores/auth';
   import { userRoles } from '../stores/roles';
   import { userHasFeature, userHasPermission } from '../lib/featureFlags';
   import { page } from '$app/stores';
@@ -15,44 +15,28 @@
   let { children }: { children: any } = $props();
   let currentUser = $state<any>(null);
 
-  console.log('[layout] script start, path:', typeof window !== 'undefined' ? window.location.href : 'SSR');
-  user.subscribe(v => {
-    currentUser = v;
-    console.log('[layout] user:', v ? v.id?.slice(0,8) : 'null');
-  });
+  user.subscribe(v => currentUser = v);
   let roles = $state<string[]>([]);
-  userRoles.subscribe(v => {
-    roles = v;
-    console.log('[layout] roles:', v);
-  });
+  userRoles.subscribe(v => roles = v);
 
   let settings = $state(get(appSettings));
 
   $effect(() => {
-    const unsub = appSettings.subscribe(v => {
-      settings = v;
-      console.log('[layout] settings loaded');
-    });
+    const unsub = appSettings.subscribe(v => settings = v);
     return unsub;
   });
 
   $effect(() => {
-    console.log('[layout] $effect: init');
     appSettings.init();
-    const unsub = applyThemeEffect();
-    return () => { console.log('[layout] $effect: cleanup'); unsub(); };
+    return applyThemeEffect();
   });
 
   let currentPath = $state('');
-  page.subscribe(p => {
-    currentPath = p.url.pathname;
-    console.log('[layout] page:', p.url.pathname);
-  });
+  page.subscribe(p => currentPath = p.url.pathname);
 
   let launched = $state(false);
   $effect(() => {
     if (!launched && currentPath && settings.launchScreen && currentPath !== settings.launchScreen) {
-      console.log('[layout] launch redirect to', settings.launchScreen);
       if (currentPath === '/') {
         launched = true;
         goto(settings.launchScreen, { replaceState: true });
@@ -60,13 +44,10 @@
     }
   });
 
-  $effect(() => { console.log('[layout] mounted'); });
-
   let schemaVersion = $state(getSchema());
   function handleSchemaToggle() {
     toggleSchema();
     schemaVersion = getSchema();
-    console.log('[layout] schema toggled to', schemaVersion);
   }
 </script>
 
@@ -77,13 +58,11 @@
   {#if userHasPermission(roles, 'access_admin')}<a href="/admin">Admin</a>{/if}
   <a href="/settings">Settings</a>
   <div class="spacer"></div>
-  <a href="/debug" class="debug-link">Debug</a>
   {#if currentUser}
     {#if currentUser.user_metadata?.avatar_url}
       <img src={currentUser.user_metadata.avatar_url} alt="" class="avatar" />
     {/if}
     <span class="user-name">{currentUser.user_metadata?.name ?? currentUser.email}</span>
-    <button class="auth-btn" onclick={signOut}>Logout</button>
   {:else}
     <button class="auth-btn" onclick={signInWithGoogle}>Sign in with Google</button>
   {/if}
@@ -154,8 +133,4 @@
     line-height: 1;
   }
   .schema-toggle:hover { opacity: 0.9; }
-  .debug-link {
-    color: var(--accent, #6366f1);
-    font-weight: 600;
-  }
 </style>

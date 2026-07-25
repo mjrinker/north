@@ -22,20 +22,18 @@
     const err = e.error || e.message || 'Unknown error';
     const msg = typeof err === 'string' ? err : err.message || String(err);
     const stack = e.error?.stack;
-    lsLog('error', '[ErrorBoundary] ' + msg, stack);
+    lsLog('error', msg, stack);
     hasError = true;
     errorMessage = msg;
-    try { console.error('[ErrorBoundary] caught:', err); } catch {}
     e.preventDefault();
   }
 
   function onRejection(e: PromiseRejectionEvent) {
     const r = e.reason;
     const msg = r?.message || String(r || 'Unknown rejection');
-    lsLog('error', '[ErrorBoundary] Unhandled rejection: ' + msg, r?.stack);
+    lsLog('error', 'Unhandled rejection: ' + msg, r?.stack);
     hasError = true;
     errorMessage = msg;
-    try { console.error('[ErrorBoundary] rejection:', msg); } catch {}
     e.preventDefault();
   }
 
@@ -55,7 +53,6 @@
     <p class="error-msg">{errorMessage}</p>
     <div class="error-actions">
       <button class="btn-primary" onclick={() => window.location.reload()}>Reload app</button>
-      <a href="/debug" class="btn-link">View debug logs</a>
     </div>
   </div>
 {:else}

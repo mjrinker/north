@@ -21,7 +21,6 @@
   {#if typeof window !== 'undefined'}
     <div class="error-links">
       <button onclick={() => window.location.reload()}>Reload</button>
-      <a href="/debug" class="debug-link">View debug logs</a>
     </div>
   {/if}
 </div>

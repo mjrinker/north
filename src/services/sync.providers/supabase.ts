@@ -151,27 +151,34 @@ class SupabaseSyncProvider implements SyncProvider {
     return u?.id ?? null
   }
 
+  private async saveToNew(collection: string, uid: string, data: any): Promise<void> {
+    const table = NEW_TABLES[collection]
+    if (!table) return
+    const row = toNewRow(collection, uid, data)
+    const pk = collection === 'settings' ? 'user_id' : collection === 'entries' ? 'habit_id,date' : 'id'
+    const { error } = await supabase.from(table).upsert(row, { onConflict: pk })
+    if (error) console.error('saveToNew error:', error.message)
+  }
+
+  private async saveToOld(collection: string, uid: string, id: string, data: any): Promise<void> {
+    const { error } = await supabase.from(OLD_TABLE).upsert({
+      user_id: uid,
+      collection,
+      record_id: id,
+      data,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,collection,record_id' })
+    if (error) console.error('saveToOld error:', error.message)
+  }
+
   async saveRecord(collection: string, id: string, data: any): Promise<void> {
     const uid = this.getUserId()
     if (!uid) throw new Error('Not signed in')
 
-    if (getSchema() === 'new') {
-      const table = NEW_TABLES[collection]
-      if (!table) throw new Error(`Unknown collection: ${collection}`)
-      const row = toNewRow(collection, uid, data)
-      const pk = collection === 'settings' ? 'user_id' : collection === 'entries' ? 'habit_id,date' : 'id'
-      const { error } = await supabase.from(table).upsert(row, { onConflict: pk })
-      if (error) throw new Error(`Save failed: ${error.message}`)
-    } else {
-      const { error } = await supabase.from(OLD_TABLE).upsert({
-        user_id: uid,
-        collection,
-        record_id: id,
-        data,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,collection,record_id' })
-      if (error) throw new Error(`Save failed: ${error.message}`)
-    }
+    await Promise.allSettled([
+      this.saveToNew(collection, uid, data),
+      this.saveToOld(collection, uid, id, data),
+    ])
   }
 
   async getRecord(collection: string, id: string): Promise<any> {
@@ -202,21 +209,12 @@ class SupabaseSyncProvider implements SyncProvider {
     const uid = this.getUserId()
     if (!uid) throw new Error('Not signed in')
 
-    if (getSchema() === 'new') {
-      const table = NEW_TABLES[collection]
-      if (!table) throw new Error(`Unknown collection: ${collection}`)
-      const pk = collection === 'settings' ? 'user_id' : 'id'
-      const { error } = await supabase.from(table).delete().eq(pk, id)
-      if (error) throw new Error(`Delete failed: ${error.message}`)
-    } else {
-      const { error } = await supabase
-        .from(OLD_TABLE)
-        .delete()
-        .eq('user_id', uid)
-        .eq('collection', collection)
-        .eq('record_id', id)
-      if (error) throw new Error(`Delete failed: ${error.message}`)
-    }
+    const table = NEW_TABLES[collection]
+    const pk = collection === 'settings' ? 'user_id' : 'id'
+    const newDel = table ? supabase.from(table).delete().eq(pk, id) : Promise.resolve()
+    const oldDel = supabase.from(OLD_TABLE).delete().eq('user_id', uid).eq('collection', collection).eq('record_id', id)
+
+    await Promise.allSettled([newDel, oldDel])
   }
 
   async uploadAll(): Promise<SyncResult> {
@@ -229,66 +227,125 @@ class SupabaseSyncProvider implements SyncProvider {
       const entries = get(entriesStore)
       const identities = get(identitiesStore)
       const notes = get(notesStore)
+      const settings = get(appSettings)
 
-      if (getSchema() === 'new') {
-        const habitRows = habits.map(h => toNewRow('habits', uid, h))
-        if (habitRows.length > 0) {
-          const { error } = await supabase.from('habits').upsert(habitRows, { onConflict: 'id' })
-          if (error) throw new Error(error.message)
-        }
-        const dedupedEntries = Array.from(
-          entries.reduce((map, e) => {
-            const key = `${e.habitId}|${e.date}`
-            const existing = map.get(key)
-            if (!existing || e.updatedAt > existing.updatedAt) map.set(key, e)
-            return map
-          }, new Map()).values()
+      const dedupedEntries = Array.from(
+        entries.reduce((map, e) => {
+          const key = `${e.habitId}|${e.date}`
+          const existing = map.get(key)
+          if (!existing || e.updatedAt > existing.updatedAt) map.set(key, e)
+          return map
+        }, new Map()).values()
+      )
+
+      const promises: Promise<void>[] = []
+
+      const newHabitRows = habits.map(h => toNewRow('habits', uid, h))
+      if (newHabitRows.length > 0) {
+        promises.push(
+          supabase.from('habits').upsert(newHabitRows, { onConflict: 'id' }).then(r => { if (r.error) throw r.error })
         )
-        const entryRows = dedupedEntries.map(e => toNewRow('entries', uid, e))
-        if (entryRows.length > 0) {
-          const { error } = await supabase.from('entries').upsert(entryRows, { onConflict: 'habit_id,date' })
-          if (error) throw new Error(error.message)
-        }
-        const identityRows = identities.map(i => toNewRow('identities', uid, i))
-        if (identityRows.length > 0) {
-          const { error } = await supabase.from('identities').upsert(identityRows, { onConflict: 'id' })
-          if (error) throw new Error(error.message)
-        }
-        const noteRows = notes.map(n => toNewRow('notes', uid, n))
-        if (noteRows.length > 0) {
-          const { error } = await supabase.from('notes').upsert(noteRows, { onConflict: 'id' })
-          if (error) throw new Error(error.message)
-        }
-        const settings = get(appSettings)
-        const settingsRow = toNewRow('settings', uid, settings)
-        const { error } = await supabase.from('user_settings').upsert(settingsRow, { onConflict: 'user_id' })
-        if (error) throw new Error(error.message)
-      } else {
-        const rows: any[] = []
-        for (const h of habits) {
-          rows.push({ user_id: uid, collection: 'habits', record_id: h.id, data: h, updated_at: new Date().toISOString() })
-        }
-        for (const e of entries) {
-          rows.push({ user_id: uid, collection: 'entries', record_id: e.id, data: e, updated_at: new Date().toISOString() })
-        }
-        for (const i of identities) {
-          rows.push({ user_id: uid, collection: 'identities', record_id: i.id, data: i, updated_at: new Date().toISOString() })
-        }
-        for (const n of notes) {
-          rows.push({ user_id: uid, collection: 'notes', record_id: n.id, data: n, updated_at: new Date().toISOString() })
-        }
-        const settings = get(appSettings)
-        rows.push({ user_id: uid, collection: 'settings', record_id: 'app_settings', data: settings, updated_at: new Date().toISOString() })
-        if (rows.length > 0) {
-          const { error } = await supabase.from(OLD_TABLE).upsert(rows, { onConflict: 'user_id,collection,record_id' })
-          if (error) throw new Error(error.message)
-        }
       }
 
+      const newEntryRows = dedupedEntries.map(e => toNewRow('entries', uid, e))
+      if (newEntryRows.length > 0) {
+        promises.push(
+          supabase.from('entries').upsert(newEntryRows, { onConflict: 'habit_id,date' }).then(r => { if (r.error) throw r.error })
+        )
+      }
+
+      const newIdentityRows = identities.map(i => toNewRow('identities', uid, i))
+      if (newIdentityRows.length > 0) {
+        promises.push(
+          supabase.from('identities').upsert(newIdentityRows, { onConflict: 'id' }).then(r => { if (r.error) throw r.error })
+        )
+      }
+
+      const newNoteRows = notes.map(n => toNewRow('notes', uid, n))
+      if (newNoteRows.length > 0) {
+        promises.push(
+          supabase.from('notes').upsert(newNoteRows, { onConflict: 'id' }).then(r => { if (r.error) throw r.error })
+        )
+      }
+
+      promises.push(
+        supabase.from('user_settings').upsert(toNewRow('settings', uid, settings), { onConflict: 'user_id' }).then(r => { if (r.error) throw r.error })
+      )
+
+      const oldRows: any[] = [
+        ...habits.map(h => ({ user_id: uid, collection: 'habits', record_id: h.id, data: h, updated_at: new Date().toISOString() })),
+        ...dedupedEntries.map(e => ({ user_id: uid, collection: 'entries', record_id: e.id, data: e, updated_at: new Date().toISOString() })),
+        ...identities.map(i => ({ user_id: uid, collection: 'identities', record_id: i.id, data: i, updated_at: new Date().toISOString() })),
+        ...notes.map(n => ({ user_id: uid, collection: 'notes', record_id: n.id, data: n, updated_at: new Date().toISOString() })),
+        { user_id: uid, collection: 'settings', record_id: 'app_settings', data: settings, updated_at: new Date().toISOString() },
+      ]
+      if (oldRows.length > 0) {
+        promises.push(
+          supabase.from(OLD_TABLE).upsert(oldRows, { onConflict: 'user_id,collection,record_id' }).then(r => { if (r.error) throw r.error })
+        )
+      }
+
+      await Promise.allSettled(promises)
       return { lastSynced: start, status: 'success', conflicts: [] }
     } catch (e: any) {
       return { lastSynced: start, status: 'error', conflicts: [] }
     }
+  }
+
+  private async migrateOldToNew(uid: string): Promise<void> {
+    const migrated = typeof localStorage !== 'undefined' && localStorage.getItem('migrated_old_to_new')
+    if (migrated) return
+
+    const { data: oldRows } = await supabase.from(OLD_TABLE).select('*').eq('user_id', uid).limit(1)
+    if (!oldRows || oldRows.length === 0) return
+
+    const { data: newHabits } = await supabase.from('habits').select('id').eq('user_id', uid).limit(1)
+    if (newHabits && newHabits.length > 0) return
+
+    const { data: allOld } = await supabase.from(OLD_TABLE).select('*').eq('user_id', uid)
+    if (!allOld || allOld.length === 0) return
+
+    const collectionMap: Record<string, any[]> = { habits: [], entries: [], identities: [], notes: [] }
+    let settingsRow: any = null
+
+    for (const row of allOld) {
+      if (row.collection in collectionMap) {
+        collectionMap[row.collection].push(row.data)
+      } else if (row.collection === 'settings') {
+        settingsRow = row.data
+      }
+    }
+
+    const promises: Promise<any>[] = []
+
+    if (collectionMap.habits.length > 0) {
+      promises.push(
+        supabase.from('habits').upsert(collectionMap.habits.map(h => toNewRow('habits', uid, h)), { onConflict: 'id' })
+      )
+    }
+    if (collectionMap.entries.length > 0) {
+      promises.push(
+        supabase.from('entries').upsert(collectionMap.entries.map(e => toNewRow('entries', uid, e)), { onConflict: 'habit_id,date' })
+      )
+    }
+    if (collectionMap.identities.length > 0) {
+      promises.push(
+        supabase.from('identities').upsert(collectionMap.identities.map(i => toNewRow('identities', uid, i)), { onConflict: 'id' })
+      )
+    }
+    if (collectionMap.notes.length > 0) {
+      promises.push(
+        supabase.from('notes').upsert(collectionMap.notes.map(n => toNewRow('notes', uid, n)), { onConflict: 'id' })
+      )
+    }
+    if (settingsRow) {
+      promises.push(
+        supabase.from('user_settings').upsert(toNewRow('settings', uid, settingsRow), { onConflict: 'user_id' })
+      )
+    }
+
+    await Promise.allSettled(promises)
+    try { localStorage.setItem('migrated_old_to_new', '1') } catch {}
   }
 
   async downloadAll(): Promise<SyncResult> {
@@ -299,6 +356,8 @@ class SupabaseSyncProvider implements SyncProvider {
 
       const { setSyncEnabled } = await import('../sync')
       setSyncEnabled(false)
+
+      await this.migrateOldToNew(uid)
 
       if (getSchema() === 'new') {
         const { saveHabit, saveEntry, saveIdentity, saveNote } = await import('../storage')

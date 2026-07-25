@@ -184,5 +184,4 @@ export function initRemoteLogger(): void {
     sendBeacon(JSON.stringify(queue.splice(0)))
   })
 
-  orig.log('[remote-logger] active')
 }

@@ -1,5 +1,4 @@
 <script lang="ts">
-  console.log('[stats] script start');
   import { habitsStore } from '../../stores/habits';
   import { entriesStore } from '../../stores/entries';
   import type { Habit, HabitEntry } from '../../types';
@@ -9,9 +8,8 @@
 
   let habits = $state<Habit[]>([]);
   let entries = $state<HabitEntry[]>([]);
-  habitsStore.subscribe(v => { habits = v; console.log('[stats] habits loaded:', v.length); });
-  entriesStore.subscribe(v => { entries = v; console.log('[stats] entries loaded:', v.length); });
-  console.log('[stats] script body done');
+  habitsStore.subscribe(v => habits = v);
+  entriesStore.subscribe(v => entries = v);
 
   let selectedHabitId = $state<string>('all');
 

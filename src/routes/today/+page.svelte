@@ -18,19 +18,11 @@
   import { getLocalDateString } from '../../lib/dates';
   import { appSettings, updateSettings } from '../../lib/settings';
 
-  console.log('[today] script start');
   let today = getLocalDateString();
-  console.log('[today] today date:', today);
 
   let allHabits = $state<Habit[]>([]);
-  habitsStore.subscribe(v => {
-    allHabits = v;
-    console.log('[today] habits loaded:', v.length);
-  });
+  habitsStore.subscribe(v => allHabits = v);
 
-  $effect(() => {
-    console.log('[today] mounted, allHabits length:', allHabits.length);
-  });
   let habits = $derived(allHabits.filter(h => h.status === 'active'));
 
   function loadSortMode(): 'tag' | 'name' | 'type' | 'custom' {
@@ -84,23 +76,18 @@
     }
     return groups;
   });
-  console.log('[today] tagGroups computed, groups:', tagGroups.length);
   let currentLocation = $state<GeolocationPosition | null>(null);
   let locationChecked = $state(false);
 
   $effect(() => {
-    console.log('[today] requesting geolocation');
-    getCurrentLocation().then(pos => { currentLocation = pos; locationChecked = true; console.log('[today] geolocation result:', pos ? 'got' : 'null'); });
+    getCurrentLocation().then(pos => { currentLocation = pos; locationChecked = true; });
   });
 
   let suggestedHabits = $derived(computeSuggestions(habits, undefined, currentLocation));
-  console.log('[today] derived: suggestedHabits computed');
 
   let allEntries = $state<import('../../types').HabitEntry[]>([]);
-  let entriesLoading = $state(true);
   entriesStore.subscribe(v => {
     allEntries = v.filter(e => e.date === today);
-    entriesLoading = false;
   });
   let completedHabitIds = $derived.by(() => {
     const ids = new Set<string>();
@@ -113,10 +100,7 @@
   let suggestedCollapsed = $state(false);
 
   let allNotes = $state<import('../../types').HabitNote[]>([]);
-  notesStore.subscribe(v => {
-    allNotes = v;
-    console.log('[today] notes loaded:', v.length);
-  });
+  notesStore.subscribe(v => allNotes = v);
   let notesCountMap = $derived.by(() => {
     const map = new Map<string, number>();
     for (const n of allNotes) {
@@ -124,7 +108,6 @@
     }
     return map;
   });
-  console.log('[today] notes $effect defined');
 
   let collapsedGroups = $state<Set<string>>(new Set());
 
