@@ -470,7 +470,7 @@
 {/if}
 
 {#if notesHabitId}
-  <NotesModal habitId={notesHabitId} onClose={() => notesHabitId = null} />
+  <NotesModal habitId={notesHabitId} date={viewDate} onClose={() => notesHabitId = null} />
 {/if}
 
 {#if depPopover}

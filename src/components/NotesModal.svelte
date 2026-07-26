@@ -7,17 +7,18 @@
 
   let {
     habitId,
+    date = getLocalDateString(),
     onClose
   }: {
     habitId: string;
+    date?: string;
     onClose: () => void;
   } = $props();
 
-  let today = $state(getLocalDateString());
   let allNotes = $state<HabitNote[]>([]);
   notesStore.subscribe(v => allNotes = v);
 
-  let notes = $derived(allNotes.filter(n => n.habitId === habitId && n.date === today));
+  let notes = $derived(allNotes.filter(n => n.habitId === habitId && n.date === date));
   let expandedId = $state<string | null>(null);
   let editingId = $state<string | null>(null);
   let adding = $state(false);
@@ -29,7 +30,7 @@
     const note: HabitNote = {
       id: crypto.randomUUID(),
       habitId,
-      date: today,
+      date,
       content: newContent.trim(),
       createdAt: new Date(),
     };
