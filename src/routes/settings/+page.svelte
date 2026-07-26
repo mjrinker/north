@@ -3,6 +3,7 @@
   import { supabaseSyncProvider } from '../../services/sync.providers/supabase'
   import { get } from 'svelte/store'
   import { appSettings, updateSettings, type AppSettings, type ThemeMode, type LaunchScreen } from '../../lib/settings'
+  import ColorPickerModal from '../../components/ColorPickerModal.svelte'
 
   let currentUser = $state<any>(null)
   let syncing = $state(false)
@@ -18,6 +19,25 @@
 
   function update(partial: Partial<AppSettings>) {
     updateSettings(partial)
+  }
+
+  let pickerMode = $state<'circles' | 'spectrum' | null>(null);
+
+  function openPicker(mode: 'circles' | 'spectrum') {
+    pickerMode = mode;
+  }
+
+  function handlePickerConfirm(hex: string, newMode: 'light' | 'dark') {
+    if (pickerMode === 'circles') {
+      update({ accentColor: hex });
+    } else {
+      update({ mainColor: hex, themeMode: newMode });
+    }
+    pickerMode = null;
+  }
+
+  function handlePickerClose() {
+    pickerMode = null;
   }
 
   user.subscribe(async (u) => { currentUser = u })
@@ -68,12 +88,18 @@
     </div>
     <div class="setting-row">
       <span class="setting-label">Accent color</span>
-      <input type="color" value={s.accentColor || '#0066cc'} oninput={(e) => update({ accentColor: (e.target as HTMLInputElement).value })} class="color-picker" />
+      <button class="color-btn" onclick={() => openPicker('circles')} aria-label="Choose accent color">
+        <span class="color-swatch" style="background: {s.accentColor || '#0066cc'};"></span>
+        <span class="color-label">{s.accentColor || '#0066cc'}</span>
+      </button>
     </div>
     <div class="setting-row">
       <span class="setting-label">Main color</span>
       <div class="color-row">
-        <input type="color" value={s.mainColor || '#1a1a2e'} oninput={(e) => update({ mainColor: (e.target as HTMLInputElement).value })} class="color-picker" />
+        <button class="color-btn" onclick={() => openPicker('spectrum')} aria-label="Choose main color">
+          <span class="color-swatch" style="background: {s.mainColor || '#1a1a2e'};"></span>
+          <span class="color-label">{s.mainColor || 'None'}</span>
+        </button>
         {#if s.mainColor}
           <button class="btn-reset" onclick={() => update({ mainColor: '' })}>Reset</button>
         {/if}
@@ -123,6 +149,16 @@
     {/if}
   </section>
 </div>
+
+{#if pickerMode}
+  <ColorPickerModal
+    mode={pickerMode}
+    currentHex={pickerMode === 'circles' ? (s.accentColor || '#0066cc') : (s.mainColor || '#1a1a2e')}
+    themeMode={s.themeMode === 'light' || s.themeMode === 'dark' ? s.themeMode : 'light'}
+    onConfirm={handlePickerConfirm}
+    onClose={handlePickerClose}
+  />
+{/if}
 
 <style>
   .page {
@@ -179,15 +215,35 @@
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
   }
-  .color-picker {
-    width: 40px;
-    height: 36px;
-    padding: 2px;
+  .color-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.6rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 8px;
+    background: var(--input-bg, #fff);
     cursor: pointer;
-    background: none;
   }
+
+  .color-btn:hover {
+    background: var(--btn-secondary-bg, #eee);
+  }
+
+  .color-swatch {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 1px solid var(--card-border, #ccc);
+    flex-shrink: 0;
+  }
+
+  .color-label {
+    font-size: 0.85rem;
+    color: var(--text-primary, #222);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+
   .color-row {
     display: flex;
     align-items: center;
