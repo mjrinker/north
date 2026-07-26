@@ -7,7 +7,7 @@ import { appSettings } from '../../lib/settings'
 import { get } from 'svelte/store'
 import { supabase } from '../../lib/supabase'
 import { user } from '../../stores/auth'
-import { getSchema } from '../../lib/schemaToggle'
+
 
 const OLD_TABLE = 'user_sync_data'
 
@@ -190,24 +190,12 @@ class SupabaseSyncProvider implements SyncProvider {
     const uid = this.getUserId()
     if (!uid) return undefined
 
-    if (getSchema() === 'new') {
-      const table = NEW_TABLES[collection]
-      if (!table) return undefined
-      const pk = collection === 'settings' ? 'user_id' : 'id'
-      const { data, error } = await supabase.from(table).select('*').eq(pk, id).single()
-      if (error || !data) return undefined
-      return fromNewRow(collection, data)
-    } else {
-      const { data, error } = await supabase
-        .from(OLD_TABLE)
-        .select('data')
-        .eq('user_id', uid)
-        .eq('collection', collection)
-        .eq('record_id', id)
-        .single()
-      if (error || !data) return undefined
-      return data.data
-    }
+    const table = NEW_TABLES[collection]
+    if (!table) return undefined
+    const pk = collection === 'settings' ? 'user_id' : 'id'
+    const { data, error } = await supabase.from(table).select('*').eq(pk, id).single()
+    if (error || !data) return undefined
+    return fromNewRow(collection, data)
   }
 
   async deleteRecord(collection: string, id: string): Promise<void> {
@@ -376,139 +364,77 @@ class SupabaseSyncProvider implements SyncProvider {
 
       await this.migrateOldToNew(uid)
 
-      if (getSchema() === 'new') {
-        const { saveHabit, saveEntry, saveIdentity, saveNote } = await import('../storage')
+      const { saveHabit, saveEntry, saveIdentity, saveNote } = await import('../storage')
 
-        const habits = get(habitsStore)
-        const entries = get(entriesStore)
-        const identities = get(identitiesStore)
-        const notes = get(notesStore)
+      const habits = get(habitsStore)
+      const entries = get(entriesStore)
+      const identities = get(identitiesStore)
+      const notes = get(notesStore)
 
-        const { data: habitRows, error: he } = await supabase.from('habits').select('*').eq('user_id', uid)
-        if (he) throw new Error(he.message)
-        if (habitRows) {
-          const merged = [...habits]
-          for (const row of habitRows) {
-            try {
-              const data = fromNewRow('habits', row)
-              const idx = merged.findIndex(h => h.id === data.id)
-              if (idx >= 0) merged[idx] = data; else merged.push(data)
-            } catch {}
-          }
-          habitsStore.set(merged)
-          for (const h of merged) { try { await saveHabit(h) } catch {} }
+      const { data: habitRows, error: he } = await supabase.from('habits').select('*').eq('user_id', uid)
+      if (he) throw new Error(he.message)
+      if (habitRows) {
+        const merged = [...habits]
+        for (const row of habitRows) {
+          try {
+            const data = fromNewRow('habits', row)
+            const idx = merged.findIndex(h => h.id === data.id)
+            if (idx >= 0) merged[idx] = data; else merged.push(data)
+          } catch {}
         }
+        habitsStore.set(merged)
+        for (const h of merged) { try { await saveHabit(h) } catch {} }
+      }
 
-        const { data: entryRows, error: ee } = await supabase.from('entries').select('*').eq('user_id', uid)
-        if (ee) throw new Error(ee.message)
-        if (entryRows) {
-          const merged = [...entries]
-          for (const row of entryRows) {
-            try {
-              const data = fromNewRow('entries', row)
-              const idx = merged.findIndex(e => e.id === data.id)
-              if (idx >= 0) merged[idx] = data; else merged.push(data)
-            } catch {}
-          }
-          entriesStore.set(merged)
-          for (const e of merged) { try { await saveEntry(e) } catch {} }
+      const { data: entryRows, error: ee } = await supabase.from('entries').select('*').eq('user_id', uid)
+      if (ee) throw new Error(ee.message)
+      if (entryRows) {
+        const merged = [...entries]
+        for (const row of entryRows) {
+          try {
+            const data = fromNewRow('entries', row)
+            const idx = merged.findIndex(e => e.id === data.id)
+            if (idx >= 0) merged[idx] = data; else merged.push(data)
+          } catch {}
         }
+        entriesStore.set(merged)
+        for (const e of merged) { try { await saveEntry(e) } catch {} }
+      }
 
-        const { data: identityRows, error: ie } = await supabase.from('identities').select('*').eq('user_id', uid)
-        if (ie) throw new Error(ie.message)
-        if (identityRows) {
-          const merged = [...identities]
-          for (const row of identityRows) {
-            try {
-              const data = fromNewRow('identities', row)
-              const idx = merged.findIndex(i => i.id === data.id)
-              if (idx >= 0) merged[idx] = data; else merged.push(data)
-            } catch {}
-          }
-          identitiesStore.set(merged)
-          for (const i of merged) { try { await saveIdentity(i) } catch {} }
+      const { data: identityRows, error: ie } = await supabase.from('identities').select('*').eq('user_id', uid)
+      if (ie) throw new Error(ie.message)
+      if (identityRows) {
+        const merged = [...identities]
+        for (const row of identityRows) {
+          try {
+            const data = fromNewRow('identities', row)
+            const idx = merged.findIndex(i => i.id === data.id)
+            if (idx >= 0) merged[idx] = data; else merged.push(data)
+          } catch {}
         }
+        identitiesStore.set(merged)
+        for (const i of merged) { try { await saveIdentity(i) } catch {} }
+      }
 
-        const { data: noteRows, error: ne } = await supabase.from('notes').select('*').eq('user_id', uid)
-        if (ne) throw new Error(ne.message)
-        if (noteRows) {
-          const merged = [...notes]
-          for (const row of noteRows) {
-            try {
-              const data = fromNewRow('notes', row)
-              const idx = merged.findIndex(n => n.id === data.id)
-              if (idx >= 0) merged[idx] = data; else merged.push(data)
-            } catch {}
-          }
-          notesStore.set(merged)
-          for (const n of merged) { try { await saveNote(n) } catch {} }
+      const { data: noteRows, error: ne } = await supabase.from('notes').select('*').eq('user_id', uid)
+      if (ne) throw new Error(ne.message)
+      if (noteRows) {
+        const merged = [...notes]
+        for (const row of noteRows) {
+          try {
+            const data = fromNewRow('notes', row)
+            const idx = merged.findIndex(n => n.id === data.id)
+            if (idx >= 0) merged[idx] = data; else merged.push(data)
+          } catch {}
         }
+        notesStore.set(merged)
+        for (const n of merged) { try { await saveNote(n) } catch {} }
+      }
 
-        const { data: settingsRows, error: se } = await supabase.from('user_settings').select('*').eq('user_id', uid)
-        if (se) throw new Error(se.message)
-        if (settingsRows && settingsRows.length > 0) {
-          appSettings.set(fromNewRow('settings', settingsRows[0]))
-        }
-      } else {
-        let allRows: any[] = []
-        const pageSize = 1000
-        let rangeStart = 0
-        while (true) {
-          const { data, error } = await supabase
-            .from(OLD_TABLE)
-            .select('*')
-            .eq('user_id', uid)
-            .range(rangeStart, rangeStart + pageSize - 1)
-          if (error) throw new Error(error.message)
-          if (!data || data.length === 0) break
-          allRows = allRows.concat(data)
-          if (data.length < pageSize) break
-          rangeStart += pageSize
-        }
-
-        if (allRows.length > 0) {
-          const { saveHabit, saveEntry, saveIdentity, saveNote } = await import('../storage')
-
-          const habits = get(habitsStore)
-          const entries = get(entriesStore)
-          const identities = get(identitiesStore)
-          const notes = get(notesStore)
-
-          let mergedHabits = [...habits]
-          let mergedEntries = [...entries]
-          let mergedIdentities = [...identities]
-          let mergedNotes = [...notes]
-
-          for (const row of allRows) {
-            try {
-              if (row.collection === 'habits') {
-                const idx = mergedHabits.findIndex((h: any) => h.id === row.record_id)
-                if (idx >= 0) mergedHabits[idx] = row.data; else mergedHabits.push(row.data)
-              } else if (row.collection === 'entries') {
-                const idx = mergedEntries.findIndex((e: any) => e.id === row.record_id)
-                if (idx >= 0) mergedEntries[idx] = row.data; else mergedEntries.push(row.data)
-              } else if (row.collection === 'identities') {
-                const idx = mergedIdentities.findIndex((i: any) => i.id === row.record_id)
-                if (idx >= 0) mergedIdentities[idx] = row.data; else mergedIdentities.push(row.data)
-              } else if (row.collection === 'notes') {
-                const idx = mergedNotes.findIndex((n: any) => n.id === row.record_id)
-                if (idx >= 0) mergedNotes[idx] = row.data; else mergedNotes.push(row.data)
-              } else if (row.collection === 'settings' && row.record_id === 'app_settings') {
-                appSettings.set(row.data)
-              }
-            } catch {}
-          }
-
-          habitsStore.set(mergedHabits)
-          entriesStore.set(mergedEntries)
-          identitiesStore.set(mergedIdentities)
-          notesStore.set(mergedNotes)
-
-          for (const h of mergedHabits) { try { await saveHabit(h) } catch {} }
-          for (const e of mergedEntries) { try { await saveEntry(e) } catch {} }
-          for (const i of mergedIdentities) { try { await saveIdentity(i) } catch {} }
-          for (const n of mergedNotes) { try { await saveNote(n) } catch {} }
-        }
+      const { data: settingsRows, error: se } = await supabase.from('user_settings').select('*').eq('user_id', uid)
+      if (se) throw new Error(se.message)
+      if (settingsRows && settingsRows.length > 0) {
+        appSettings.set(fromNewRow('settings', settingsRows[0]))
       }
 
       setSyncEnabled(true)

@@ -10,7 +10,6 @@
   import { userHasPermission } from '../lib/featureFlags';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { getSchema, toggleSchema } from '../lib/schemaToggle';
   import { showCreateHabit } from '../stores/createHabit';
   import ErrorBoundary from '../components/ErrorBoundary.svelte';
   import Icon from '@iconify/svelte';
@@ -45,12 +44,6 @@
       }
     }
   });
-
-  let schemaVersion = $state(getSchema());
-  function handleSchemaToggle() {
-    toggleSchema();
-    schemaVersion = getSchema();
-  }
 
   function isActive(path: string) {
     return currentPath === path || currentPath.startsWith(path + '/');
@@ -164,10 +157,6 @@
     {/if}
   </div>
 </nav>
-
-<button class="schema-toggle" onclick={handleSchemaToggle} title="Toggle DB schema (old user_sync_data vs new typed tables)">
-  {schemaVersion === 'new' ? 'NEW' : 'OLD'}
-</button>
 
 <style>
   .page-content {
@@ -308,29 +297,4 @@
     color: #d32f2f;
   }
 
-  .schema-toggle {
-    position: fixed;
-    top: 0.5rem;
-    left: 0.5rem;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    background: var(--schema-toggle-bg, #6b7280);
-    color: white;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    z-index: 50;
-    font-size: 0.65rem;
-    font-weight: 700;
-    line-height: 1;
-    opacity: 0.6;
-  }
-
-  .schema-toggle:hover {
-    opacity: 1;
-  }
 </style>
