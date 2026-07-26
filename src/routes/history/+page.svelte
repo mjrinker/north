@@ -289,7 +289,7 @@
     </thead>
     <tbody>
       {#each habits as habit (habit.id)}
-        <tr onclick={() => editingHabit = habit}>
+        <tr>
           {#each dateColumns as date}
             {@const entry = getDayEntry(habit.id, date)}
             <td class="day-cell {cellClass(entry)}" class:today={isToday(date)}>
@@ -409,9 +409,6 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  tr {
-    cursor: pointer;
   }
   tr:hover td:not(.name-col) { background: var(--hover-bg, rgba(0,0,0,0.02)); }
   tr:hover td.name-col { filter: brightness(0.97); }
