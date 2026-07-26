@@ -91,9 +91,23 @@ function clearPalette() {
   for (const p of props) body.style.removeProperty(p);
 }
 
-function getContrastText(hexColor: string): string {
-  const { l } = hexToHsl(hexColor);
-  return l > 55 ? '#000000' : '#ffffff';
+function getContrastText(hex: string): string {
+  const h = hex.replace('#', '');
+  let r = 0, g = 0, b = 0;
+  if (h.length === 3) {
+    r = parseInt(h[0] + h[0], 16) / 255;
+    g = parseInt(h[1] + h[1], 16) / 255;
+    b = parseInt(h[2] + h[2], 16) / 255;
+  } else if (h.length >= 6) {
+    r = parseInt(h.substring(0, 2), 16) / 255;
+    g = parseInt(h.substring(2, 4), 16) / 255;
+    b = parseInt(h.substring(4, 6), 16) / 255;
+  }
+  r = r <= 0.04045 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
+  g = g <= 0.04045 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
+  b = b <= 0.04045 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 0.179 ? '#000000' : '#ffffff';
 }
 
 function applyTheme() {
