@@ -173,3 +173,13 @@ button {
 input, textarea, select {
   font-size: 16px;
 }
+
+input, textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+body {
+  user-select: none;
+  -webkit-user-select: none;
+}
