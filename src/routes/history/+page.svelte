@@ -294,7 +294,12 @@
             {@const entry = getDayEntry(habit.id, date)}
             <td class="day-cell {cellClass(entry)}" class:today={isToday(date)}>
               {#if habit.type === 'binary'}
-                <input type="checkbox" checked={entry?.value === 1} onclick={(e) => e.stopPropagation()} onchange={() => handleBinary(habit, date)} />
+                <label class="hist-check-wrap" class:checked={entry?.value === 1} onclick={(e) => e.stopPropagation()}>
+                  <input type="checkbox" checked={entry?.value === 1} onchange={() => handleBinary(habit, date)} />
+                  {#if entry?.value === 1}
+                    <Icon icon="mdi:check" class="hist-check-icon" />
+                  {/if}
+                </label>
               {:else if habit.type === 'quantity'}
                 <button class="cell-btn"
                   onclick={(e) => cellClick(e, habit, date)}
@@ -419,10 +424,30 @@
   .day-cell.today { background: var(--today-bg, rgba(0,102,204,0.06)); }
   .day-cell.standard-met { background: rgba(46,125,50,0.08); }
   .day-cell.target-met { background: rgba(46,125,50,0.15); }
-  .day-cell input[type="checkbox"] {
-    width: 1rem;
-    height: 1rem;
+  .hist-check-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--input-bg, #f5f5f5);
+    border-radius: 4px;
+    height: 1.6rem;
+    width: 1.6rem;
     cursor: pointer;
+    position: relative;
+    vertical-align: middle;
+  }
+  .hist-check-wrap input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+  .hist-check-icon {
+    font-size: 1.4rem;
+    color: var(--text-primary, #222);
+    pointer-events: none;
+    line-height: 1;
   }
   .cell-btn {
     background: none;

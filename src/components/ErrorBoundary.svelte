@@ -43,7 +43,7 @@
 
   let copied = $state(false);
   async function copyError() {
-    const text = `Error: ${errorMessage}${errorStack ? '\n\nStack:\n' + errorStack : ''}`;
+    const text = `Error: ${decodeURIComponent(errorMessage)}${errorStack ? '\n\nStack:\n' + decodeURIComponent(errorStack) : ''}`;
     try {
       await navigator.clipboard.writeText(text);
       copied = true;

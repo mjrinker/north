@@ -67,15 +67,12 @@
   let tagGroups = $derived.by(() => {
     const groups: { tag: string; habits: Habit[] }[] = [];
     const tags = Array.from(new Set(habits.flatMap(h => h.tags ?? []))).sort();
-    let order: string[] = [];
-    if (sortMode === 'custom') {
-      order = customOrder.filter(id => habits.some(h => h.id === id));
-    }
+    const co = customOrder ?? [];
     for (const tag of tags) {
       let tagged = habits.filter(h => (h.tags ?? []).includes(tag));
       if (sortMode === 'custom') {
-        const ordered = customOrder.filter(id => tagged.some(h => h.id === id)).map(id => tagged.find(h => h.id === id)!).filter(Boolean);
-        const remaining = tagged.filter(h => !customOrder.includes(h.id));
+        const ordered = co.filter(id => tagged.some(h => h.id === id)).map(id => tagged.find(h => h.id === id)!).filter(Boolean);
+        const remaining = tagged.filter(h => !co.includes(h.id));
         tagged = [...ordered, ...remaining];
       } else if (sortMode === 'name') tagged = tagged.sort((a, b) => a.title.localeCompare(b.title));
       else if (sortMode === 'type') tagged = tagged.sort((a, b) => a.type.localeCompare(b.type));
@@ -84,8 +81,8 @@
     let untagged = habits.filter(h => (h.tags ?? []).length === 0);
     if (untagged.length > 0) {
       if (sortMode === 'custom') {
-        const ordered = customOrder.filter(id => untagged.some(h => h.id === id)).map(id => untagged.find(h => h.id === id)!).filter(Boolean);
-        const remaining = untagged.filter(h => !customOrder.includes(h.id));
+        const ordered = co.filter(id => untagged.some(h => h.id === id)).map(id => untagged.find(h => h.id === id)!).filter(Boolean);
+        const remaining = untagged.filter(h => !co.includes(h.id));
         untagged = [...ordered, ...remaining];
       } else if (sortMode === 'name') untagged = untagged.sort((a, b) => a.title.localeCompare(b.title));
       else if (sortMode === 'type') untagged = untagged.sort((a, b) => a.type.localeCompare(b.type));
@@ -105,7 +102,7 @@
   let rawEntries = $state<import('../../types').HabitEntry[]>([]);
   let unsubEntries = entriesStore.subscribe(v => rawEntries = v);
   onDestroy(() => unsubEntries());
-  let allEntries = $derived(rawEntries.filter(e => e.date === viewDate));
+  let allEntries = $derived((rawEntries ?? []).filter(e => e.date === viewDate));
   let completedHabitIds = $derived.by(() => {
     const ids = new Set<string>();
     for (const e of allEntries) {
@@ -113,7 +110,7 @@
     }
     return ids;
   });
-  let filteredSuggested = $derived(viewDate === today ? suggestedHabits.filter(h => !completedHabitIds.has(h.id)) : []);
+  let filteredSuggested = $derived(viewDate === today ? (suggestedHabits ?? []).filter(h => !completedHabitIds.has(h.id)) : []);
   let suggestedCollapsed = $state(false);
 
   let allNotes = $state<import('../../types').HabitNote[]>([]);
@@ -154,7 +151,7 @@
   function reorder(fromId: string, targetId: string) {
     if (!fromId || fromId === targetId) return;
     const allIds = habits.map(h => h.id);
-    const baseOrder = customOrder.length > 0 ? customOrder.filter(id => allIds.includes(id)) : [...allIds];
+    const baseOrder = (customOrder ?? []).length > 0 ? (customOrder ?? []).filter(id => allIds.includes(id)) : [...allIds];
     let fromIdx = baseOrder.indexOf(fromId);
     let toIdx = baseOrder.indexOf(targetId);
     if (fromIdx === -1) { baseOrder.push(fromId); fromIdx = baseOrder.length - 1; }
