@@ -119,7 +119,7 @@
   let notesCountMap = $derived.by(() => {
     const map = new Map<string, number>();
     for (const n of allNotes) {
-      if (n.date === viewDate) map.set(n.habitId, (map.get(n.habitId) ?? 0) + 1);
+      if (n.date === viewDate && n.status !== 'deleted') map.set(n.habitId, (map.get(n.habitId) ?? 0) + 1);
     }
     return map;
   });
