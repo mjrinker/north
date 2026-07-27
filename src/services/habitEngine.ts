@@ -46,7 +46,7 @@ export class HabitEngine {
       }
       return [...list.filter(e => !(e.habitId === entry.habitId && e.date === entry.date)), entry];
     });
-    pushRecord('entries', entry.id, entry);
+    await pushRecord('entries', entry.id, entry);
   }
 
   async logCompletion(date: string, value: number, notes?: string): Promise<void> {

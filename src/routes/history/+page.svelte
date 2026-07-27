@@ -167,10 +167,11 @@
     }
   }
 
-  function handleCellTap(habit: Habit, date: string) {
+  async function handleCellTap(habit: Habit, date: string) {
     const entry = getDayEntry(habit.id, date);
     const current = entry?.value ?? 0;
-    HabitEngine.logCompletion(habit, date, current + 1).then(() => afterLogCompletion(habit, date));
+    await HabitEngine.logCompletion(habit, date, current + 1);
+    await afterLogCompletion(habit, date);
   }
 
   function cellClick(e: MouseEvent, habit: Habit, date: string) {

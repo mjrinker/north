@@ -209,7 +209,7 @@
         _v: ++entryVersion,
       };
     }
-    HabitEngine.logCompletion(habit, date, value).catch(e => console.error('logCompletion error:', e));
+    try { await HabitEngine.logCompletion(habit, date, value); } catch (e) { console.error('logCompletion error:', e); }
   }
 
   function clearTimerInterval() {
