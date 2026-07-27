@@ -132,9 +132,28 @@
 
   let initialHex = $derived(colorToHex(currentHex) ?? currentHex.toLowerCase());
   let tab = $state<'circles' | 'spectrum'>('circles');
+  let initialScrollDone = $state(false);
 
   $effect(() => {
     if (!allPaletteColors.includes(initialHex)) tab = 'spectrum';
+  });
+
+  $effect(() => {
+    if (tab === 'circles' && !initialScrollDone) {
+      const matchIdx = palette.findIndex(h => h === initialHex);
+      if (matchIdx !== -1) {
+        selectedHex = palette[matchIdx];
+        requestAnimationFrame(() => {
+          if (!scrollEl) return;
+          const padLeft = parseFloat(getComputedStyle(scrollEl).paddingLeft) || 0;
+          const firstCenter = padLeft + CIRCLE_D / 2;
+          const targetLeft = firstCenter + matchIdx * SPACING - scrollEl.clientWidth / 2;
+          scrollEl.scrollLeft = Math.max(0, targetLeft);
+          updateTransforms();
+        });
+      }
+      initialScrollDone = true;
+    }
   });
   let selectedHex = $state(currentHex);
 
@@ -148,7 +167,18 @@
 
   $effect(() => {
     if (tab === 'circles') {
-      selectedHex = palette[Math.round((hue / 360) * palette.length) % palette.length];
+      const matchIdx = palette.findIndex(h => h === initialHex);
+      if (matchIdx !== -1) {
+        selectedHex = palette[matchIdx];
+        requestAnimationFrame(() => {
+          if (!scrollEl) return;
+          const padLeft = parseFloat(getComputedStyle(scrollEl).paddingLeft) || 0;
+          const firstCenter = padLeft + CIRCLE_D / 2;
+          const targetLeft = firstCenter + matchIdx * SPACING - scrollEl.clientWidth / 2;
+          scrollEl.scrollLeft = Math.max(0, targetLeft);
+          updateTransforms();
+        });
+      }
     }
   });
 
