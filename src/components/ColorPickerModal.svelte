@@ -132,10 +132,14 @@
 
   function buildAccentPalette(): string[] {
     const arr: string[] = [];
-    for (const lightness of [65, 50, 35]) {
-      for (let i = 0; i < 40; i++) {
-        const h = Math.round(i * 9);
-        arr.push(hslToHex(h, 70, lightness));
+    const huesPerGroup = 5;
+    const groups = 8;
+    for (let g = 0; g < groups; g++) {
+      for (const lightness of [65, 50, 35]) {
+        for (let i = 0; i < huesPerGroup; i++) {
+          const h = Math.round((g * huesPerGroup + i) * 9);
+          arr.push(hslToHex(h, 70, lightness));
+        }
       }
     }
     return arr;
