@@ -15,19 +15,41 @@
     onClose: () => void;
   } = $props();
 
-  function hexToHsv(hex: string): { h: number; s: number; v: number } {
-    const h = hex.replace('#', '');
-    let r = 0, g = 0, b = 0;
-    if (h.length === 3) {
-      r = parseInt(h[0] + h[0], 16);
-      g = parseInt(h[1] + h[1], 16);
-      b = parseInt(h[2] + h[2], 16);
-    } else if (h.length >= 6) {
-      r = parseInt(h.substring(0, 2), 16);
-      g = parseInt(h.substring(2, 4), 16);
-      b = parseInt(h.substring(4, 6), 16);
+  function parseColor(color: string): { r: number; g: number; b: number } | null {
+    const hslMatch = color.trim().match(/^hsl\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%\s*\)$/);
+    if (hslMatch) {
+      const h$ = parseInt(hslMatch[1]) / 360;
+      const s = parseInt(hslMatch[2]) / 100;
+      const l = parseInt(hslMatch[3]) / 100;
+      const a = s * Math.min(l, 1 - l);
+      const f = (n: number) => {
+        const k = (n + h$ * 12) % 12;
+        return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+      };
+      return { r: f(0), g: f(8), b: f(4) };
     }
-    r /= 255; g /= 255; b /= 255;
+    const hex = color.replace('#', '');
+    if (hex.length === 3) {
+      return {
+        r: parseInt(hex[0] + hex[0], 16) / 255,
+        g: parseInt(hex[1] + hex[1], 16) / 255,
+        b: parseInt(hex[2] + hex[2], 16) / 255,
+      };
+    }
+    if (hex.length >= 6) {
+      return {
+        r: parseInt(hex.substring(0, 2), 16) / 255,
+        g: parseInt(hex.substring(2, 4), 16) / 255,
+        b: parseInt(hex.substring(4, 6), 16) / 255,
+      };
+    }
+    return null;
+  }
+
+  function hexToHsv(color: string): { h: number; s: number; v: number } {
+    const rgb = parseColor(color);
+    if (!rgb) return { h: 0, s: 0, v: 0.5 };
+    let { r, g, b } = rgb;
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
     const d = max - min;
     let h$ = 0;
@@ -55,6 +77,18 @@
     else { r = c; b = x; }
     const toHex = (n: number) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  }
+
+  function hslToHex(h: number, s: number, l: number): string {
+    s /= 100;
+    l /= 100;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n: number) => {
+      const k = (n + h / 30) % 12;
+      const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+      return Math.round(255 * color).toString(16).padStart(2, '0');
+    };
+    return `#${f(0)}${f(8)}${f(4)}`;
   }
 
   function hexToHsl(hex: string): { h: number; s: number; l: number } {
@@ -89,7 +123,7 @@
     const arr: string[] = [];
     for (let i = 0; i < count; i++) {
       const h = Math.round((i / count) * 360);
-      arr.push(`hsl(${h}, ${s}%, ${l}%)`);
+      arr.push(hslToHex(h, s, l));
     }
     return arr;
   });

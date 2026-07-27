@@ -11,19 +11,42 @@ function getAdaptiveTheme(): 'light' | 'dark' {
   return (hour >= 7 && hour < 20) ? 'light' : 'dark';
 }
 
-function hexToHsl(hex: string): { h: number; s: number; l: number } {
-  let r = 0, g = 0, b = 0;
-  const h = hex.replace('#', '');
-  if (h.length === 3) {
-    r = parseInt(h[0] + h[0], 16);
-    g = parseInt(h[1] + h[1], 16);
-    b = parseInt(h[2] + h[2], 16);
-  } else if (h.length >= 6) {
-    r = parseInt(h.substring(0, 2), 16);
-    g = parseInt(h.substring(2, 4), 16);
-    b = parseInt(h.substring(4, 6), 16);
+function parseColor(color: string): { r: number; g: number; b: number } | null {
+  const h = color.trim();
+  const hslMatch = h.match(/^hsl\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%\s*\)$/);
+  if (hslMatch) {
+    const h$ = parseInt(hslMatch[1]) / 360;
+    const s = parseInt(hslMatch[2]) / 100;
+    const l = parseInt(hslMatch[3]) / 100;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n: number) => {
+      const k = (n + h$ * 12) % 12;
+      return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    };
+    return { r: f(0), g: f(8), b: f(4) };
   }
-  r /= 255; g /= 255; b /= 255;
+  const hex = h.replace('#', '');
+  if (hex.length === 3) {
+    return {
+      r: parseInt(hex[0] + hex[0], 16) / 255,
+      g: parseInt(hex[1] + hex[1], 16) / 255,
+      b: parseInt(hex[2] + hex[2], 16) / 255,
+    };
+  }
+  if (hex.length >= 6) {
+    return {
+      r: parseInt(hex.substring(0, 2), 16) / 255,
+      g: parseInt(hex.substring(2, 4), 16) / 255,
+      b: parseInt(hex.substring(4, 6), 16) / 255,
+    };
+  }
+  return null;
+}
+
+function hexToHsl(color: string): { h: number; s: number; l: number } {
+  const rgb = parseColor(color);
+  if (!rgb) return { h: 0, s: 0, l: 50 };
+  let { r, g, b } = rgb;
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
   let h$ = 0, s = 0, l = (max + min) / 2;
   if (max !== min) {
@@ -123,18 +146,10 @@ function clearPalette() {
   for (const p of props) body.style.removeProperty(p);
 }
 
-function getContrastText(hex: string): string {
-  const h = hex.replace('#', '');
-  let r = 0, g = 0, b = 0;
-  if (h.length === 3) {
-    r = parseInt(h[0] + h[0], 16) / 255;
-    g = parseInt(h[1] + h[1], 16) / 255;
-    b = parseInt(h[2] + h[2], 16) / 255;
-  } else if (h.length >= 6) {
-    r = parseInt(h.substring(0, 2), 16) / 255;
-    g = parseInt(h.substring(2, 4), 16) / 255;
-    b = parseInt(h.substring(4, 6), 16) / 255;
-  }
+function getContrastText(color: string): string {
+  const rgb = parseColor(color);
+  if (!rgb) return '#ffffff';
+  let { r, g, b } = rgb;
   r = r <= 0.04045 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
   g = g <= 0.04045 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
   b = b <= 0.04045 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
