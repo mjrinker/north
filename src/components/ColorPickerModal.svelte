@@ -115,6 +115,14 @@
 
   let detectedMode = $state(themeMode);
 
+  function buildRainbowPalette(s: number, l: number): string[] {
+    const arr: string[] = [];
+    for (let i = 0; i < 120; i++) {
+      arr.push(hslToHex(Math.round((i / 120) * 360), s, l));
+    }
+    return arr;
+  }
+
   function buildMainPalette(light: boolean): string[] {
     const count = 100;
     const arr: string[] = [];
@@ -130,24 +138,9 @@
     return arr;
   }
 
-  function buildAccentPalette(): string[] {
-    const arr: string[] = [];
-    const huesPerGroup = 5;
-    const groups = 8;
-    for (let g = 0; g < groups; g++) {
-      for (const lightness of [65, 50, 35]) {
-        for (let i = 0; i < huesPerGroup; i++) {
-          const h = Math.round((g * huesPerGroup + i) * 9);
-          arr.push(hslToHex(h, 70, lightness));
-        }
-      }
-    }
-    return arr;
-  }
+  const allPaletteColors = $derived(pickerType === 'accent' ? buildRainbowPalette(72, 55) : [...buildMainPalette(true), ...buildMainPalette(false)]);
 
-  const allPaletteColors = $derived(pickerType === 'accent' ? buildAccentPalette() : [...buildMainPalette(true), ...buildMainPalette(false)]);
-
-  const palette = $derived(pickerType === 'accent' ? buildAccentPalette() : buildMainPalette(detectedMode === 'light'));
+  const palette = $derived(pickerType === 'accent' ? buildRainbowPalette(72, 55) : buildMainPalette(detectedMode === 'light'));
 
   let initialHex = $derived(colorToHex(currentHex) ?? currentHex.toLowerCase());
   let tab = $state<'circles' | 'spectrum'>('circles');
