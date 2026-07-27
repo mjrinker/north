@@ -22,7 +22,7 @@ export function updateNote(id: string, content: string) {
   }
 }
 
-export function removeNote(id: string) {
-  notesStore.remove(id);
-  removeRecord('notes', id);
+export async function removeNote(id: string) {
+  await notesStore.remove(id);
+  await removeRecord('notes', id);
 }

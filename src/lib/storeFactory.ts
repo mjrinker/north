@@ -33,9 +33,9 @@ export function createStore<T extends { id: string }>(
       save(item).catch(console.error);
     },
 
-    remove(id: string) {
+    async remove(id: string) {
       store.update(list => list.filter(i => i.id !== id));
-      del(id).catch(console.error);
+      try { await del(id); } catch (e) { console.error('Delete failed:', e); }
     }
   };
 }

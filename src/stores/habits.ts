@@ -29,7 +29,7 @@ export function updateHabit(habit: Habit) {
   pushRecord('habits', cloned.id, cloned);
 }
 
-export function removeHabit(id: string) {
-  habitsStore.remove(id);
-  removeRecord('habits', id);
+export async function removeHabit(id: string) {
+  await habitsStore.remove(id);
+  await removeRecord('habits', id);
 }

@@ -15,7 +15,7 @@ export function updateIdentity(id: Identity) {
   pushRecord('identities', id.id, id);
 }
 
-export function removeIdentity(id: string) {
-  identitiesStore.remove(id);
-  removeRecord('identities', id);
+export async function removeIdentity(id: string) {
+  await identitiesStore.remove(id);
+  await removeRecord('identities', id);
 }
