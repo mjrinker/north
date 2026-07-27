@@ -118,10 +118,10 @@
   function buildMainPalette(light: boolean): string[] {
     const count = 100;
     const arr: string[] = [];
-    const l = light ? 90 : 15;
-    const s = light ? 45 : 50;
+    const s = light ? 42 : 52;
     for (let i = 0; i < count; i++) {
       const h = Math.round((i / count) * 360);
+      const l = light ? (i % 2 === 0 ? 90 : 82) : (i % 2 === 0 ? 18 : 28);
       arr.push(hslToHex(h, s, l));
     }
     for (let g = 0; g < 20; g++) {
@@ -134,9 +134,9 @@
     const arr: string[] = [];
     for (let i = 0; i < 40; i++) {
       const h = Math.round(i * 9);
-      arr.push(hslToHex(h, 65, 25));
-      arr.push(hslToHex(h, 65, 55));
-      arr.push(hslToHex(h, 65, 85));
+      arr.push(hslToHex(h, 70, 35));
+      arr.push(hslToHex(h, 70, 50));
+      arr.push(hslToHex(h, 70, 65));
     }
     return arr;
   }
@@ -154,20 +154,27 @@
   });
 
   $effect(() => {
-    if (tab === 'circles' && !initialScrollDone) {
-      const matchIdx = palette.findIndex(h => h === initialHex);
-      if (matchIdx !== -1) {
-        selectedHex = palette[matchIdx];
+    if (tab === 'circles') {
+      if (!initialScrollDone) {
+        const matchIdx = palette.findIndex(h => h === initialHex);
         requestAnimationFrame(() => {
           if (!scrollEl) return;
-          const padLeft = parseFloat(getComputedStyle(scrollEl).paddingLeft) || 0;
-          const firstCenter = padLeft + CIRCLE_D / 2;
-          const targetLeft = firstCenter + matchIdx * SPACING - scrollEl.clientWidth / 2;
-          scrollEl.scrollLeft = Math.max(0, targetLeft);
+          if (matchIdx !== -1) {
+            selectedHex = palette[matchIdx];
+            const padLeft = parseFloat(getComputedStyle(scrollEl).paddingLeft) || 0;
+            const firstCenter = padLeft + CIRCLE_D / 2;
+            const targetLeft = firstCenter + matchIdx * SPACING - scrollEl.clientWidth / 2;
+            scrollEl.scrollLeft = Math.max(0, targetLeft);
+          }
+          updateTransforms();
+        });
+        initialScrollDone = true;
+      } else {
+        requestAnimationFrame(() => {
+          if (!scrollEl) return;
           updateTransforms();
         });
       }
-      initialScrollDone = true;
     }
   });
   let selectedHex = $state(currentHex);
