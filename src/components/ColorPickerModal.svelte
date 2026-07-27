@@ -165,23 +165,6 @@
   let scales: number[] = $state(new Array(palette.length).fill(0.5));
   let zIndexes: number[] = $state(new Array(palette.length).fill(50));
 
-  $effect(() => {
-    if (tab === 'circles') {
-      const matchIdx = palette.findIndex(h => h === initialHex);
-      if (matchIdx !== -1) {
-        selectedHex = palette[matchIdx];
-        requestAnimationFrame(() => {
-          if (!scrollEl) return;
-          const padLeft = parseFloat(getComputedStyle(scrollEl).paddingLeft) || 0;
-          const firstCenter = padLeft + CIRCLE_D / 2;
-          const targetLeft = firstCenter + matchIdx * SPACING - scrollEl.clientWidth / 2;
-          scrollEl.scrollLeft = Math.max(0, targetLeft);
-          updateTransforms();
-        });
-      }
-    }
-  });
-
   let rafId = $state(0);
 
   function handleScroll() {
