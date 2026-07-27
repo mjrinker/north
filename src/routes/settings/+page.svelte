@@ -152,9 +152,10 @@
 
 {#if pickerMode}
   <ColorPickerModal
-    mode={pickerMode}
+    title={pickerMode === 'circles' ? 'Accent Color' : 'Main Color'}
     currentHex={pickerMode === 'circles' ? (s.accentColor || '#0066cc') : (s.mainColor || '#1a1a2e')}
     themeMode={s.themeMode === 'light' || s.themeMode === 'dark' ? s.themeMode : 'light'}
+    showTabs={pickerMode === 'spectrum'}
     onConfirm={handlePickerConfirm}
     onClose={handlePickerClose}
   />
