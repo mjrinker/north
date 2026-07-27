@@ -1,7 +1,7 @@
 import type { HabitNote } from '../types';
 import { getAllNotes, saveNote, deleteNote as deleteNoteFromDB } from '../services/storage';
 import { createStore } from '../lib/storeFactory';
-import { pushRecord, removeRecord } from '../services/sync';
+import { pushRecord } from '../services/sync';
 
 export const notesStore = createStore<HabitNote>(getAllNotes, saveNote, deleteNoteFromDB);
 
@@ -23,6 +23,13 @@ export function updateNote(id: string, content: string) {
 }
 
 export async function removeNote(id: string) {
-  await notesStore.remove(id);
-  await removeRecord('notes', id);
+  let found: HabitNote | undefined;
+  notesStore.update(list => list.map(n => {
+    if (n.id === id) { found = { ...n, status: 'deleted' }; return found; }
+    return n;
+  }));
+  if (found) {
+    await saveNote(found);
+    await pushRecord('notes', id, found);
+  }
 }

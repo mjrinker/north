@@ -4,4 +4,5 @@ export interface HabitNote {
   date: string;
   content: string;
   createdAt: Date;
+  status?: 'active' | 'deleted';
 }

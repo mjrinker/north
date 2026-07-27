@@ -18,7 +18,7 @@
   let allNotes = $state<HabitNote[]>([]);
   notesStore.subscribe(v => allNotes = v);
 
-  let notes = $derived(allNotes.filter(n => n.habitId === habitId && n.date === date));
+  let notes = $derived(allNotes.filter(n => n.habitId === habitId && n.date === date && n.status !== 'deleted'));
   let expandedId = $state<string | null>(null);
   let editingId = $state<string | null>(null);
   let adding = $state(false);

@@ -59,6 +59,7 @@ function toNewRow(collection: string, userId: string, data: any) {
         habit_id: data.habitId,
         date: data.date,
         content: data.content,
+        status: data.status ?? 'active',
         created_at: data.createdAt instanceof Date ? data.createdAt.toISOString() : data.createdAt,
       }
     case 'identities':
@@ -121,6 +122,7 @@ function fromNewRow(collection: string, row: any) {
         habitId: row.habit_id,
         date: row.date,
         content: row.content,
+        status: row.status ?? 'active',
         createdAt: row.created_at,
       }
     case 'identities':

@@ -165,7 +165,8 @@ export async function getNotesByHabitDate(habitId: string, date: string): Promis
 }
 
 export async function getAllNotes(): Promise<HabitNote[]> {
-  return await idbGetAll<HabitNote>('notes');
+  const all = await idbGetAll<HabitNote>('notes');
+  return all.filter(n => n.status !== 'deleted');
 }
 
 export async function deleteNote(id: string): Promise<void> {
