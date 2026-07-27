@@ -1,14 +1,24 @@
 import { appSettings } from '../lib/settings';
 
+export function resolveThemeMode(mode: 'light' | 'dark' | 'system' | 'adaptive'): 'light' | 'dark' {
+  if (mode === 'system') {
+    if (typeof window === 'undefined') return 'light';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  if (mode === 'adaptive') {
+    if (typeof window === 'undefined') return 'light';
+    const hour = new Date().getHours();
+    return (hour >= 7 && hour < 20) ? 'light' : 'dark';
+  }
+  return mode;
+}
+
 function getSystemTheme(): 'light' | 'dark' {
-  if (typeof window === 'undefined') return 'light';
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return resolveThemeMode('system');
 }
 
 function getAdaptiveTheme(): 'light' | 'dark' {
-  if (typeof window === 'undefined') return 'light';
-  const hour = new Date().getHours();
-  return (hour >= 7 && hour < 20) ? 'light' : 'dark';
+  return resolveThemeMode('adaptive');
 }
 
 function parseColor(color: string): { r: number; g: number; b: number } | null {
@@ -161,15 +171,7 @@ function applyTheme() {
   if (typeof document === 'undefined') return;
   const unsub = appSettings.subscribe(s => {
     const body = document.body;
-    let resolved: 'light' | 'dark';
-
-    if (s.themeMode === 'adaptive') {
-      resolved = getAdaptiveTheme();
-    } else if (s.themeMode === 'system') {
-      resolved = getSystemTheme();
-    } else {
-      resolved = s.themeMode;
-    }
+    let resolved = resolveThemeMode(s.themeMode);
 
     const isOled = s.oled && resolved === 'dark';
 

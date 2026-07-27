@@ -4,6 +4,7 @@
   import { get } from 'svelte/store'
   import { appSettings, updateSettings, type AppSettings, type ThemeMode, type LaunchScreen } from '../../lib/settings'
   import ColorPickerModal from '../../components/ColorPickerModal.svelte'
+  import { resolveThemeMode } from '../../stores/theme'
 
   let currentUser = $state<any>(null)
   let syncing = $state(false)
@@ -22,15 +23,25 @@
   }
 
   let pickerType = $state<'accent' | 'main' | null>(null);
+  let prevAccentColor = $state('');
+  let prevMainColor = $state('');
+  let undoAccent = $state(false);
+  let undoMain = $state(false);
 
   function openPicker(type: 'accent' | 'main') {
+    prevAccentColor = s.accentColor || '#0066cc';
+    prevMainColor = s.mainColor || '#1a1a2e';
+    undoAccent = false;
+    undoMain = false;
     pickerType = type;
   }
 
   function handlePickerConfirm(hex: string, newMode: 'light' | 'dark') {
     if (pickerType === 'accent') {
+      if (hex !== prevAccentColor) undoAccent = true;
       update({ accentColor: hex });
     } else {
+      if (hex !== prevMainColor || newMode !== resolveThemeMode(s.themeMode)) undoMain = true;
       update({ mainColor: hex, themeMode: newMode });
     }
     pickerType = null;
@@ -38,6 +49,16 @@
 
   function handlePickerClose() {
     pickerType = null;
+  }
+
+  function undoAccentColor() {
+    update({ accentColor: prevAccentColor });
+    undoAccent = false;
+  }
+
+  function undoMainColor() {
+    update({ mainColor: prevMainColor });
+    undoMain = false;
   }
 
   user.subscribe(async (u) => { currentUser = u })
@@ -88,10 +109,15 @@
     </div>
     <div class="setting-row">
       <span class="setting-label">Accent color</span>
-      <button class="color-btn" onclick={() => openPicker('accent')} aria-label="Choose accent color">
-        <span class="color-swatch" style="background: {s.accentColor || '#0066cc'};"></span>
-        <span class="color-label">{s.accentColor || '#0066cc'}</span>
-      </button>
+      <div class="color-row">
+        <button class="color-btn" onclick={() => openPicker('accent')} aria-label="Choose accent color">
+          <span class="color-swatch" style="background: {s.accentColor || '#0066cc'};"></span>
+          <span class="color-label">{s.accentColor || '#0066cc'}</span>
+        </button>
+        {#if undoAccent}
+          <button class="btn-undo" onclick={undoAccentColor}>Undo</button>
+        {/if}
+      </div>
     </div>
     <div class="setting-row">
       <span class="setting-label">Main color</span>
@@ -102,6 +128,9 @@
         </button>
         {#if s.mainColor}
           <button class="btn-reset" onclick={() => update({ mainColor: '' })}>Reset</button>
+        {/if}
+        {#if undoMain}
+          <button class="btn-undo" onclick={undoMainColor}>Undo</button>
         {/if}
       </div>
     </div>
@@ -154,7 +183,7 @@
   <ColorPickerModal
     title={pickerType === 'accent' ? 'Accent Color' : 'Main Color'}
     currentHex={pickerType === 'accent' ? (s.accentColor || '#0066cc') : (s.mainColor || '#1a1a2e')}
-    themeMode={s.themeMode === 'light' || s.themeMode === 'dark' ? s.themeMode : 'light'}
+    themeMode={resolveThemeMode(s.themeMode)}
     onConfirm={handlePickerConfirm}
     onClose={handlePickerClose}
   />
@@ -259,6 +288,16 @@
     color: var(--text-secondary, #888);
   }
   .btn-reset:hover { background: var(--btn-secondary-bg, #eee); }
+  .btn-undo {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--accent, #0066cc);
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--accent, #0066cc);
+  }
+  .btn-undo:hover { background: var(--accent, #0066cc); color: var(--accent-text, #fff); }
   .toggle {
     position: relative;
     display: inline-block;
