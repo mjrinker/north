@@ -3,12 +3,14 @@
     title = 'Color',
     currentHex = '#0066cc',
     themeMode = 'light',
+    pickerType = 'main',
     onConfirm,
     onClose,
   }: {
     title?: string;
     currentHex?: string;
     themeMode?: 'light' | 'dark';
+    pickerType?: 'accent' | 'main';
     onConfirm: (hex: string, newMode: 'light' | 'dark') => void;
     onClose: () => void;
   } = $props();
@@ -113,22 +115,35 @@
 
   let detectedMode = $state(themeMode);
 
-  function buildPalette(lightness: number): string[] {
-    const s = 72;
-    const count = 120;
+  function buildMainPalette(light: boolean): string[] {
+    const count = 100;
     const arr: string[] = [];
+    const l = light ? 90 : 15;
+    const s = light ? 45 : 50;
     for (let i = 0; i < count; i++) {
       const h = Math.round((i / count) * 360);
-      arr.push(hslToHex(h, s, lightness));
+      arr.push(hslToHex(h, s, l));
+    }
+    for (let g = 0; g < 20; g++) {
+      arr.push(hslToHex(0, 0, light ? 95 - g * 1.5 : 5 + g * 1.5));
     }
     return arr;
   }
 
-  const allPaletteColors = $derived([...buildPalette(60), ...buildPalette(35)]);
+  function buildAccentPalette(): string[] {
+    const arr: string[] = [];
+    for (let i = 0; i < 40; i++) {
+      const h = Math.round(i * 9);
+      arr.push(hslToHex(h, 65, 25));
+      arr.push(hslToHex(h, 65, 55));
+      arr.push(hslToHex(h, 65, 85));
+    }
+    return arr;
+  }
 
-  let palette: string[] = $derived.by(() => {
-    return buildPalette(detectedMode === 'light' ? 60 : 35);
-  });
+  const allPaletteColors = $derived(pickerType === 'accent' ? buildAccentPalette() : [...buildMainPalette(true), ...buildMainPalette(false)]);
+
+  const palette = $derived(pickerType === 'accent' ? buildAccentPalette() : buildMainPalette(detectedMode === 'light'));
 
   let initialHex = $derived(colorToHex(currentHex) ?? currentHex.toLowerCase());
   let tab = $state<'circles' | 'spectrum'>('circles');
@@ -221,8 +236,10 @@
     sat = x;
     val = 1 - y;
     selectedHex = hsvToHex(hue, sat, val);
-    const hsl = hexToHsl(selectedHex);
-    detectedMode = hsl.l > 50 ? 'light' : 'dark';
+    if (pickerType === 'main') {
+      const hsl = hexToHsl(selectedHex);
+      detectedMode = hsl.l > 50 ? 'light' : 'dark';
+    }
   }
 
   function pickFromHueBar(clientX: number) {
@@ -231,8 +248,10 @@
     const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     hue = Math.round(x * 360);
     selectedHex = hsvToHex(hue, sat, val);
-    const hsl = hexToHsl(selectedHex);
-    detectedMode = hsl.l > 50 ? 'light' : 'dark';
+    if (pickerType === 'main') {
+      const hsl = hexToHsl(selectedHex);
+      detectedMode = hsl.l > 50 ? 'light' : 'dark';
+    }
   }
 
   let draggingField = false;
@@ -345,7 +364,9 @@
     <div class="preview-row">
       <div class="preview-swatch" style="background: {selectedHex};"></div>
       <span class="preview-hex">{selectedHex.toUpperCase()}</span>
-      <span class="mode-tag" class:light={detectedMode === 'light'}>{detectedMode === 'light' ? 'Light mode' : 'Dark mode'}</span>
+      {#if pickerType === 'main'}
+        <span class="mode-tag" class:light={detectedMode === 'light'}>{detectedMode === 'light' ? 'Light mode' : 'Dark mode'}</span>
+      {/if}
     </div>
 
     <div class="actions">

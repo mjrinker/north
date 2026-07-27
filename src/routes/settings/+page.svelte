@@ -184,6 +184,7 @@
     title={pickerType === 'accent' ? 'Accent Color' : 'Main Color'}
     currentHex={pickerType === 'accent' ? (s.accentColor || '#0066cc') : (s.mainColor || '#1a1a2e')}
     themeMode={resolveThemeMode(s.themeMode)}
+    pickerType={pickerType}
     onConfirm={handlePickerConfirm}
     onClose={handlePickerClose}
   />
