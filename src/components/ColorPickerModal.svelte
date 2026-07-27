@@ -89,6 +89,13 @@
     return `#${f(0)}${f(8)}${f(4)}`;
   }
 
+  function colorToHex(color: string): string | null {
+    const rgb = parseColor(color);
+    if (!rgb) return null;
+    const toHex = (n: number) => Math.round(n * 255).toString(16).padStart(2, '0');
+    return `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
+  }
+
   function hexToHsl(hex: string): { h: number; s: number; l: number } {
     const hsv = hexToHsv(hex);
     const l = hsv.v * (1 - hsv.s / 2);
@@ -106,20 +113,29 @@
 
   let detectedMode = $state(themeMode);
 
-  let palette: string[] = $derived.by(() => {
-    const isLight = detectedMode === 'light';
-    const l = isLight ? 60 : 35;
+  function buildPalette(lightness: number): string[] {
     const s = 72;
     const count = 120;
     const arr: string[] = [];
     for (let i = 0; i < count; i++) {
       const h = Math.round((i / count) * 360);
-      arr.push(hslToHex(h, s, l));
+      arr.push(hslToHex(h, s, lightness));
     }
     return arr;
+  }
+
+  const allPaletteColors = $derived([...buildPalette(60), ...buildPalette(35)]);
+
+  let palette: string[] = $derived.by(() => {
+    return buildPalette(detectedMode === 'light' ? 60 : 35);
   });
 
-  let tab = $state<'circles' | 'spectrum'>(palette.includes(currentHex.toLowerCase()) ? 'circles' : 'spectrum');
+  let initialHex = $derived(colorToHex(currentHex) ?? currentHex.toLowerCase());
+  let tab = $state<'circles' | 'spectrum'>('circles');
+
+  $effect(() => {
+    if (!allPaletteColors.includes(initialHex)) tab = 'spectrum';
+  });
   let selectedHex = $state(currentHex);
 
   let { h: initH, s: initS, v: initV } = hexToHsv(currentHex);
