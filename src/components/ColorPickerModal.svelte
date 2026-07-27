@@ -3,14 +3,12 @@
     title = 'Color',
     currentHex = '#0066cc',
     themeMode = 'light',
-    showTabs = false,
     onConfirm,
     onClose,
   }: {
     title?: string;
     currentHex?: string;
     themeMode?: 'light' | 'dark';
-    showTabs?: boolean;
     onConfirm: (hex: string, newMode: 'light' | 'dark') => void;
     onClose: () => void;
   } = $props();
@@ -98,15 +96,6 @@
     return { h: hsv.h, s: Math.round(s * 100), l: Math.round(l * 100) };
   }
 
-  let tab = $state<'circles' | 'spectrum'>('circles');
-  let selectedHex = $state(currentHex);
-
-  let { h: initH, s: initS, v: initV } = hexToHsv(currentHex);
-  let hue = $state(initH);
-  let sat = $state(initS);
-  let val = $state(initV);
-
-  let detectedMode = $state(themeMode);
   let scrollEl = $state<HTMLElement | null>(null);
   let fieldEl = $state<HTMLElement | null>(null);
   let hueBarEl = $state<HTMLElement | null>(null);
@@ -114,6 +103,8 @@
   const CIRCLE_D = 48;
   const OVERLAP = 22;
   const SPACING = CIRCLE_D - OVERLAP;
+
+  let detectedMode = $state(themeMode);
 
   let palette: string[] = $derived.by(() => {
     const isLight = detectedMode === 'light';
@@ -127,6 +118,14 @@
     }
     return arr;
   });
+
+  let tab = $state<'circles' | 'spectrum'>(palette.includes(currentHex.toLowerCase()) ? 'circles' : 'spectrum');
+  let selectedHex = $state(currentHex);
+
+  let { h: initH, s: initS, v: initV } = hexToHsv(currentHex);
+  let hue = $state(initH);
+  let sat = $state(initS);
+  let val = $state(initV);
 
   let scales: number[] = $state(new Array(palette.length).fill(0.5));
   let zIndexes: number[] = $state(new Array(palette.length).fill(50));
@@ -255,12 +254,10 @@
       <button class="close-btn" onclick={onClose} aria-label="Close">&times;</button>
     </div>
 
-    {#if showTabs}
-      <div class="tabs">
-        <button class="tab" class:active={tab === 'circles'} onclick={() => tab = 'circles'}>Circles</button>
-        <button class="tab" class:active={tab === 'spectrum'} onclick={() => tab = 'spectrum'}>Spectrum</button>
-      </div>
-    {/if}
+    <div class="tabs">
+      <button class="tab" class:active={tab === 'circles'} onclick={() => tab = 'circles'}>Circles</button>
+      <button class="tab" class:active={tab === 'spectrum'} onclick={() => tab = 'spectrum'}>Spectrum</button>
+    </div>
 
     {#if tab === 'circles'}
       <div class="circles-area">
@@ -319,9 +316,7 @@
     <div class="preview-row">
       <div class="preview-swatch" style="background: {selectedHex};"></div>
       <span class="preview-hex">{selectedHex.toUpperCase()}</span>
-      {#if showTabs}
-        <span class="mode-tag" class:light={detectedMode === 'light'}>{detectedMode === 'light' ? 'Light mode' : 'Dark mode'}</span>
-      {/if}
+      <span class="mode-tag" class:light={detectedMode === 'light'}>{detectedMode === 'light' ? 'Light mode' : 'Dark mode'}</span>
     </div>
 
     <div class="actions">

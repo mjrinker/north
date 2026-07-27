@@ -21,23 +21,23 @@
     updateSettings(partial)
   }
 
-  let pickerMode = $state<'circles' | 'spectrum' | null>(null);
+  let pickerType = $state<'accent' | 'main' | null>(null);
 
-  function openPicker(mode: 'circles' | 'spectrum') {
-    pickerMode = mode;
+  function openPicker(type: 'accent' | 'main') {
+    pickerType = type;
   }
 
   function handlePickerConfirm(hex: string, newMode: 'light' | 'dark') {
-    if (pickerMode === 'circles') {
+    if (pickerType === 'accent') {
       update({ accentColor: hex });
     } else {
       update({ mainColor: hex, themeMode: newMode });
     }
-    pickerMode = null;
+    pickerType = null;
   }
 
   function handlePickerClose() {
-    pickerMode = null;
+    pickerType = null;
   }
 
   user.subscribe(async (u) => { currentUser = u })
@@ -88,7 +88,7 @@
     </div>
     <div class="setting-row">
       <span class="setting-label">Accent color</span>
-      <button class="color-btn" onclick={() => openPicker('circles')} aria-label="Choose accent color">
+      <button class="color-btn" onclick={() => openPicker('accent')} aria-label="Choose accent color">
         <span class="color-swatch" style="background: {s.accentColor || '#0066cc'};"></span>
         <span class="color-label">{s.accentColor || '#0066cc'}</span>
       </button>
@@ -96,7 +96,7 @@
     <div class="setting-row">
       <span class="setting-label">Main color</span>
       <div class="color-row">
-        <button class="color-btn" onclick={() => openPicker('spectrum')} aria-label="Choose main color">
+        <button class="color-btn" onclick={() => openPicker('main')} aria-label="Choose main color">
           <span class="color-swatch" style="background: {s.mainColor || '#1a1a2e'};"></span>
           <span class="color-label">{s.mainColor || 'None'}</span>
         </button>
@@ -150,12 +150,11 @@
   </section>
 </div>
 
-{#if pickerMode}
+{#if pickerType}
   <ColorPickerModal
-    title={pickerMode === 'circles' ? 'Accent Color' : 'Main Color'}
-    currentHex={pickerMode === 'circles' ? (s.accentColor || '#0066cc') : (s.mainColor || '#1a1a2e')}
+    title={pickerType === 'accent' ? 'Accent Color' : 'Main Color'}
+    currentHex={pickerType === 'accent' ? (s.accentColor || '#0066cc') : (s.mainColor || '#1a1a2e')}
     themeMode={s.themeMode === 'light' || s.themeMode === 'dark' ? s.themeMode : 'light'}
-    showTabs={pickerMode === 'spectrum'}
     onConfirm={handlePickerConfirm}
     onClose={handlePickerClose}
   />
