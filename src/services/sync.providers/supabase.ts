@@ -426,7 +426,11 @@ class SupabaseSyncProvider implements SyncProvider {
           try {
             const data = fromNewRow('notes', row)
             const idx = merged.findIndex(n => n.id === data.id)
-            if (idx >= 0) merged[idx] = data; else merged.push(data)
+            if (idx >= 0) {
+              if (merged[idx].status !== 'deleted') merged[idx] = data;
+            } else {
+              merged.push(data)
+            }
           } catch {}
         }
         notesStore.set(merged)
