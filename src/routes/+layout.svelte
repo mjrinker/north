@@ -13,6 +13,7 @@
   import { showCreateHabit } from '../stores/createHabit';
   import ErrorBoundary from '../components/ErrorBoundary.svelte';
   import Icon from '@iconify/svelte';
+  import { iconDataUrl } from '../lib/icon';
   let { children }: { children: any } = $props();
   let currentUser = $state<any>(null);
 
@@ -96,6 +97,10 @@
     }
   });
 </script>
+
+<svelte:head>
+  <link rel="icon" type="image/svg+xml" href={iconDataUrl(settings.mainColor || '#1a1a2e', settings.accentColor || '#0066cc')} />
+</svelte:head>
 
 <svelte:window on:keydown={handleMenuKeydown} />
 

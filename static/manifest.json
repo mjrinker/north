@@ -4,6 +4,14 @@
   "start_url": "/today",
   "display": "standalone",
   "scope": "/",
-  "background_color": "#ffffff",
-  "theme_color": "#0066cc"
+  "background_color": "#1a1a2e",
+  "theme_color": "#0066cc",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }
