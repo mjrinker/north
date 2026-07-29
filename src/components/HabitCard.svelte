@@ -157,13 +157,14 @@
     addLog(habit.id, 'resume');
   }
 
-  async function doneTimer() {
+  function doneTimer() {
     const s = allTimerStates[habit.id];
     if (!s) return;
     clearTimerInterval();
-    await logAndRefresh(s.elapsed / 60);
-    await addLog(habit.id, 'complete');
+    const minutes = s.elapsed / 60;
     clearTimerState(habit.id);
+    logAndRefresh(minutes);
+    addLog(habit.id, 'complete');
   }
 
   function cancelTimer() {
