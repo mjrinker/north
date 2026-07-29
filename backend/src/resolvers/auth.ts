@@ -1,3 +1,4 @@
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { hashPassword, verifyPassword, createToken } from '../auth';
 import type { GraphQLContext } from '../context';
 
@@ -6,6 +7,37 @@ interface UserRow {
   email: string;
   password_hash: string;
   created_at: string;
+}
+
+const googleJWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'));
+
+async function verifyGoogleToken(idToken: string): Promise<{ email: string; sub: string }> {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) throw new Error('GOOGLE_CLIENT_ID not configured');
+
+  const { payload } = await jwtVerify(idToken, googleJWKS, {
+    issuer: ['accounts.google.com', 'https://accounts.google.com'],
+    audience: clientId,
+  });
+
+  if (!payload.email || typeof payload.email !== 'string') {
+    throw new Error('Google token missing email');
+  }
+
+  return { email: payload.email, sub: payload.sub as string };
+}
+
+async function findOrCreateGoogleUser(ctx: GraphQLContext, email: string): Promise<UserRow> {
+  const { data: existing } = await ctx.db.from('users').select('*').eq('email', email).maybeSingle();
+  if (existing) return existing as UserRow;
+
+  const { data, error } = await ctx.db.from('users').insert({
+    email: email.toLowerCase().trim(),
+    password_hash: '',
+  }).select('*').single();
+
+  if (error) throw new Error(error.message);
+  return data as UserRow;
 }
 
 export const authResolvers = {
@@ -51,9 +83,18 @@ export const authResolvers = {
       if (error || !data) throw new Error('Invalid email or password');
 
       const user = data as UserRow;
+      if (!user.password_hash) throw new Error('This account uses Google Sign-In');
+
       const valid = await verifyPassword(args.password, user.password_hash);
       if (!valid) throw new Error('Invalid email or password');
 
+      const token = await createToken(user.id);
+      return { token, user: { id: user.id, email: user.email, createdAt: user.created_at } };
+    },
+
+    googleSignIn: async (_: unknown, args: { idToken: string }, ctx: GraphQLContext) => {
+      const { email } = await verifyGoogleToken(args.idToken);
+      const user = await findOrCreateGoogleUser(ctx, email);
       const token = await createToken(user.id);
       return { token, user: { id: user.id, email: user.email, createdAt: user.created_at } };
     },

@@ -148,6 +148,7 @@ export const schema = createSchema<GraphQLContext>({
     type Mutation {
       signup(email: String!, password: String!): AuthPayload!
       login(email: String!, password: String!): AuthPayload!
+      googleSignIn(idToken: String!): AuthPayload!
       createHabit(input: CreateHabitInput!): Habit!
       updateHabit(id: ID!, input: UpdateHabitInput!): Habit
       deleteHabit(id: ID!): Boolean!
