@@ -1,0 +1,7 @@
+{
+  "name": "north-api",
+  "functions": {
+    "src/index.ts": { "maxDuration": 10 }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/src/index.ts" }]
+}

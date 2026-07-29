@@ -1,0 +1,70 @@
+import type { GraphQLContext } from '../context';
+
+interface IdentityRow {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  goals: string[] | null;
+}
+
+function toIdentity(row: IdentityRow) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    description: row.description,
+    goals: row.goals ?? [],
+  };
+}
+
+export const identityResolvers = {
+  Query: {
+    identities: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      const { data, error } = await ctx.db.from('identities').select('*').eq('user_id', ctx.userId).order('name');
+      if (error) throw new Error(error.message);
+      return (data as IdentityRow[]).map(toIdentity);
+    },
+
+    identity: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      const { data, error } = await ctx.db.from('identities').select('*').eq('id', args.id).single();
+      if (error) return null;
+      return toIdentity(data as IdentityRow);
+    },
+  },
+
+  Mutation: {
+    createIdentity: async (_: unknown, args: { name: string; description?: string; goals?: string[] }, ctx: GraphQLContext) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      const { data, error } = await ctx.db.from('identities').insert({
+        id: crypto.randomUUID(),
+        user_id: ctx.userId,
+        name: args.name,
+        description: args.description,
+        goals: args.goals,
+      }).select('*').single();
+      if (error) throw new Error(error.message);
+      return toIdentity(data as IdentityRow);
+    },
+
+    updateIdentity: async (_: unknown, args: { id: string; name?: string; description?: string; goals?: string[] }, ctx: GraphQLContext) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      const updates: Record<string, unknown> = {};
+      if (args.name !== undefined) updates.name = args.name;
+      if (args.description !== undefined) updates.description = args.description;
+      if (args.goals !== undefined) updates.goals = args.goals;
+      const { data, error } = await ctx.db.from('identities').update(updates).eq('id', args.id).eq('user_id', ctx.userId).select('*').single();
+      if (error) throw new Error(error.message);
+      return toIdentity(data as IdentityRow);
+    },
+
+    deleteIdentity: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      const { error } = await ctx.db.from('identities').delete().eq('id', args.id).eq('user_id', ctx.userId);
+      if (error) throw new Error(error.message);
+      return true;
+    },
+  },
+};
