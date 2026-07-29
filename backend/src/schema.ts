@@ -1,5 +1,6 @@
 import { createSchema } from 'graphql-yoga';
 import type { GraphQLContext } from './context';
+import { authResolvers } from './resolvers/auth';
 import { habitResolvers } from './resolvers/habits';
 import { entryResolvers } from './resolvers/entries';
 import { noteResolvers } from './resolvers/notes';
@@ -10,6 +11,17 @@ export const schema = createSchema<GraphQLContext>({
   typeDefs: /* GraphQL */ `
     scalar DateTime
     scalar JSON
+
+    type User {
+      id: ID!
+      email: String!
+      createdAt: DateTime
+    }
+
+    type AuthPayload {
+      token: String!
+      user: User!
+    }
 
     type Habit {
       id: ID!
@@ -122,6 +134,7 @@ export const schema = createSchema<GraphQLContext>({
     }
 
     type Query {
+      me: User
       habits(userId: String, status: String, tags: [String!]): [Habit!]!
       habit(id: ID!): Habit
       entries(habitId: String, date: String, dateFrom: String, dateTo: String): [HabitEntry!]!
@@ -133,6 +146,8 @@ export const schema = createSchema<GraphQLContext>({
     }
 
     type Mutation {
+      signup(email: String!, password: String!): AuthPayload!
+      login(email: String!, password: String!): AuthPayload!
       createHabit(input: CreateHabitInput!): Habit!
       updateHabit(id: ID!, input: UpdateHabitInput!): Habit
       deleteHabit(id: ID!): Boolean!
@@ -148,6 +163,7 @@ export const schema = createSchema<GraphQLContext>({
   `,
   resolvers: [
     { DateTime: Date },
+    authResolvers,
     habitResolvers,
     entryResolvers,
     noteResolvers,
