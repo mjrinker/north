@@ -1,8 +1,7 @@
 <script lang="ts">
   import { userHasPermission } from '../../../lib/featureFlags';
   import { goto } from '$app/navigation';
-  import { supabase } from '../../../lib/supabase';
-  import { userRoles } from '../../../stores/roles';
+  import { userRoles, getAllUsersWithRoles, setUserRoles } from '../../../stores/roles';
 
   let roles = $state<string[]>([]);
   userRoles.subscribe(v => { roles = v; if (!userHasPermission(roles, 'manage_roles')) goto('/admin'); });
@@ -13,16 +12,16 @@
 
   async function loadUsers() {
     loading = true;
-    const { data, error } = await supabase.rpc('get_all_users_with_roles');
-    if (!error && data) {
+    try {
+      const data = await getAllUsersWithRoles();
       users = data.map((u: any) => ({
         id: u.id,
-        email: u.email ?? '',
-        name: '',
+        email: u.email,
+        name: u.name ?? '',
         roles: u.roles ?? [],
       }));
-    } else {
-      console.error('loadUsers error:', error?.message);
+    } catch (e: any) {
+      console.error('loadUsers error:', e?.message);
       users = [];
     }
     loading = false;
@@ -38,22 +37,13 @@
     const has = u.roles.includes(role);
     const newRoles = has ? u.roles.filter(r => r !== role) : [...u.roles, role];
 
-    const { error: delErr } = await supabase
-      .from('user_roles')
-      .delete()
-      .eq('user_id', userId);
-    if (delErr) { console.error(delErr); saving = null; return; }
-
-    if (newRoles.length > 0) {
-      const rows = newRoles.map(role_name => ({ user_id: userId, role_name }));
-      const { error: insErr } = await supabase
-        .from('user_roles')
-        .insert(rows);
-      if (insErr) { console.error(insErr); saving = null; return; }
+    try {
+      await setUserRoles(userId, newRoles);
+      u.roles = newRoles;
+      users = [...users];
+    } catch (e) {
+      console.error('setUserRoles error:', e);
     }
-
-    u.roles = newRoles;
-    users = [...users];
     saving = null;
   }
 </script>

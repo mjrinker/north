@@ -1,6 +1,6 @@
 <script lang="ts">
   import { user, signInWithGoogle, signOut } from '../../stores/auth'
-  import { supabaseSyncProvider } from '../../services/sync.providers/supabase'
+  import { getActiveProvider } from '../../services/sync'
   import { get } from 'svelte/store'
   import { appSettings, updateSettings, type AppSettings, type ThemeMode, type LaunchScreen } from '../../lib/settings'
   import ColorPickerModal from '../../components/ColorPickerModal.svelte'
@@ -68,9 +68,10 @@
     syncing = true
     syncStatus = 'Downloading…'
     try {
-      await supabaseSyncProvider.downloadAll()
+      const provider = await getActiveProvider()
+      await provider.downloadAll()
       syncStatus = 'Uploading…'
-      const result = await supabaseSyncProvider.uploadAll()
+      const result = await provider.uploadAll()
       syncStatus = result.status === 'success' ? 'Synced successfully' : `Sync error: ${result.status}`
       lastSynced = new Date().toLocaleTimeString()
     } catch (e: any) {

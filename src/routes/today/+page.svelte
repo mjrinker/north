@@ -2,7 +2,7 @@
   import { get } from 'svelte/store';
   import { flip } from 'svelte/animate';
   import { habitsStore, updateHabit } from '../../stores/habits';
-  import { supabaseSyncProvider } from '../../services/sync.providers/supabase';
+  import { pushRecord } from '../../services/sync';
   import { user } from '../../stores/auth';
   import type { Habit } from '../../types';
   import HabitCard from '../../components/HabitCard.svelte';
@@ -353,7 +353,7 @@
     const updated = { ...habit, status: 'archived' as const, updatedAt: new Date() };
     updateHabit(updated);
     if (get(user)) {
-      supabaseSyncProvider.saveRecord('habits', updated.id, updated).catch(console.error);
+      pushRecord('habits', updated.id, updated).catch(console.error);
     }
   }
 
@@ -363,7 +363,7 @@
     const updated = { ...habit, status: 'deleted' as const, updatedAt: new Date() };
     updateHabit(updated);
     if (get(user)) {
-      supabaseSyncProvider.saveRecord('habits', updated.id, updated).catch(console.error);
+      pushRecord('habits', updated.id, updated).catch(console.error);
     }
   }
 

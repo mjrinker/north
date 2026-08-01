@@ -68,6 +68,7 @@ export const habitResolvers = {
     createHabit: async (_: unknown, args: { input: Record<string, unknown> }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       const { data, error } = await ctx.db.from('habits').insert({
+        id: crypto.randomUUID(),
         user_id: ctx.userId,
         title: args.input.title,
         description: args.input.description,

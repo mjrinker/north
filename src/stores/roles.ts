@@ -1,7 +1,8 @@
 // src/stores/roles.ts
 import { writable } from 'svelte/store'
 import { user } from './auth'
-import { supabase } from '../lib/supabase'
+import { isNewBackend } from '../lib/backend'
+import { gql } from '../lib/api'
 
 export const userRoles = writable<string[]>([])
 
@@ -20,6 +21,13 @@ user.subscribe(async (u) => {
 
 async function fetchRoles(userId: string) {
   try {
+    if (isNewBackend()) {
+      const data = await gql<{ myRoles: string[] }>(`query { myRoles }`)
+      userRoles.set(data?.myRoles ?? [])
+      return
+    }
+
+    const { supabase } = await import('../lib/supabase')
     const { data, error } = await supabase
       .from('user_roles')
       .select('role_name')
@@ -36,6 +44,18 @@ async function fetchRoles(userId: string) {
 }
 
 export async function setUserRoles(targetUserId: string, roles: string[]) {
+  if (isNewBackend()) {
+    await gql(`mutation ($userId: ID!, $roles: [String!]!) { setRoles(userId: $userId, roles: $roles) }`, {
+      userId: targetUserId,
+      roles,
+    })
+    if (targetUserId === currentUserId) {
+      userRoles.set(roles)
+    }
+    return
+  }
+
+  const { supabase } = await import('../lib/supabase')
   const { error: delErr } = await supabase
     .from('user_roles')
     .delete()
@@ -61,6 +81,14 @@ export async function setUserRoles(targetUserId: string, roles: string[]) {
 }
 
 export async function getAllUsersWithRoles(): Promise<{ id: string; email: string; roles: string[] }[]> {
+  if (isNewBackend()) {
+    const data = await gql<{ usersWithRoles: { id: string; email: string; name?: string | null; roles: string[] }[] }>(
+      `query { usersWithRoles { id email name roles } }`,
+    )
+    return (data?.usersWithRoles ?? []).map(u => ({ id: u.id, email: u.email, roles: u.roles }))
+  }
+
+  const { supabase } = await import('../lib/supabase')
   const { data, error } = await supabase.rpc('get_all_users_with_roles')
   if (error) {
     console.error('Failed to get users:', error.message)
