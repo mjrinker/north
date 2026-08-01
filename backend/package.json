@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc",
-    "start": "node dist/src/index.js"
+    "start": "node dist/backend/src/index.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

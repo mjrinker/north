@@ -1,33 +1,34 @@
 import { createSchema } from 'graphql-yoga';
 import { GraphQLScalarType, Kind } from 'graphql';
-import type { GraphQLContext } from './context.js';
 import { authResolvers } from './resolvers/auth.js';
 import { habitResolvers } from './resolvers/habits.js';
 import { entryResolvers } from './resolvers/entries.js';
 import { noteResolvers } from './resolvers/notes.js';
 import { identityResolvers } from './resolvers/identities.js';
 import { settingsResolvers } from './resolvers/settings.js';
-
 const DateTimeScalar = new GraphQLScalarType({
-  name: 'DateTime',
-  description: 'ISO-8601 date time string',
-  serialize(value: unknown): string {
-    if (value instanceof Date) return value.toISOString();
-    if (typeof value === 'string') return value;
-    if (typeof value === 'number') return new Date(value).toISOString();
-    return String(value);
-  },
-  parseValue(value: unknown): unknown {
-    if (typeof value === 'string') return value;
-    return value;
-  },
-  parseLiteral(ast): unknown {
-    return ast.kind === Kind.STRING ? ast.value : undefined;
-  },
+    name: 'DateTime',
+    description: 'ISO-8601 date time string',
+    serialize(value) {
+        if (value instanceof Date)
+            return value.toISOString();
+        if (typeof value === 'string')
+            return value;
+        if (typeof value === 'number')
+            return new Date(value).toISOString();
+        return String(value);
+    },
+    parseValue(value) {
+        if (typeof value === 'string')
+            return value;
+        return value;
+    },
+    parseLiteral(ast) {
+        return ast.kind === Kind.STRING ? ast.value : undefined;
+    },
 });
-
-export const schema = createSchema<GraphQLContext>({
-  typeDefs: /* GraphQL */ `
+export const schema = createSchema({
+    typeDefs: /* GraphQL */ `
     scalar DateTime
     scalar JSON
 
@@ -181,13 +182,14 @@ export const schema = createSchema<GraphQLContext>({
       upsertSettings(input: UpsertSettingsInput!): UserSettings!
     }
   `,
-  resolvers: [
-    { DateTime: DateTimeScalar },
-    authResolvers,
-    habitResolvers,
-    entryResolvers,
-    noteResolvers,
-    identityResolvers,
-    settingsResolvers,
-  ] as any,
+    resolvers: [
+        { DateTime: DateTimeScalar },
+        authResolvers,
+        habitResolvers,
+        entryResolvers,
+        noteResolvers,
+        identityResolvers,
+        settingsResolvers,
+    ],
 });
+//# sourceMappingURL=schema.js.map
