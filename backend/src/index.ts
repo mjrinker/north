@@ -13,7 +13,7 @@ const yoga = createYoga<GraphQLContext>({
   context: buildContext,
   cors: false,
   graphiql: !isProd,
-  maskedErrors: isProd,
+  maskedErrors: false,
 });
 
 const app = new Hono();
