@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
 import { handle } from 'hono/vercel';
 import { createYoga } from 'graphql-yoga';
-import type { GraphQLContext } from './context';
-import { schema } from './schema';
-import { buildContext } from './context';
-import { getDb } from './db';
+import type { GraphQLContext } from './context.js';
+import { schema } from './schema.js';
+import { buildContext } from './context.js';
+import { getDb } from './db.js';
 
 const isProd = process.env.NODE_ENV === 'production';
 

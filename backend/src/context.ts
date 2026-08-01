@@ -1,7 +1,7 @@
 import type { YogaInitialContext } from 'graphql-yoga';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getDb } from './db';
-import { authenticate } from './auth';
+import { getDb } from './db.js';
+import { authenticate } from './auth.js';
 
 export interface GraphQLContext {
   userId: string | null;

@@ -1,11 +1,11 @@
 import { createSchema } from 'graphql-yoga';
-import type { GraphQLContext } from './context';
-import { authResolvers } from './resolvers/auth';
-import { habitResolvers } from './resolvers/habits';
-import { entryResolvers } from './resolvers/entries';
-import { noteResolvers } from './resolvers/notes';
-import { identityResolvers } from './resolvers/identities';
-import { settingsResolvers } from './resolvers/settings';
+import type { GraphQLContext } from './context.js';
+import { authResolvers } from './resolvers/auth.js';
+import { habitResolvers } from './resolvers/habits.js';
+import { entryResolvers } from './resolvers/entries.js';
+import { noteResolvers } from './resolvers/notes.js';
+import { identityResolvers } from './resolvers/identities.js';
+import { settingsResolvers } from './resolvers/settings.js';
 
 export const schema = createSchema<GraphQLContext>({
   typeDefs: /* GraphQL */ `

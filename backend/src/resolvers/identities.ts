@@ -1,4 +1,4 @@
-import type { GraphQLContext } from '../context';
+import type { GraphQLContext } from '../context.js';
 
 interface IdentityRow {
   id: string;

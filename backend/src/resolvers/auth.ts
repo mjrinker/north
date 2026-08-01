@@ -1,6 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
-import { hashPassword, verifyPassword, createToken } from '../auth';
-import type { GraphQLContext } from '../context';
+import { hashPassword, verifyPassword, createToken } from '../auth.js';
+import type { GraphQLContext } from '../context.js';
 
 interface UserRow {
   id: string;
