@@ -36,15 +36,15 @@ export const noteResolvers = {
   },
 
   Mutation: {
-    addNote: async (_: unknown, args: { input: { habitId: string; date: string; content?: string } }, ctx: GraphQLContext) => {
+    addNote: async (_: unknown, args: { input: { id?: string; habitId: string; date: string; content?: string } }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const { data, error } = await ctx.db.from('notes').insert({
-        id: crypto.randomUUID(),
+      const { data, error } = await ctx.db.from('notes').upsert({
+        id: args.input.id ?? crypto.randomUUID(),
         user_id: ctx.userId,
         habit_id: args.input.habitId,
         date: args.input.date,
         content: args.input.content,
-      }).select('*').single();
+      }, { onConflict: 'id' }).select('*').single();
       if (error) throw new Error(error.message);
       return toNote(data as NoteRow);
     },

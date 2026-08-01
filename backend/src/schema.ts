@@ -7,6 +7,7 @@ import { entryResolvers } from './resolvers/entries.js';
 import { noteResolvers } from './resolvers/notes.js';
 import { identityResolvers } from './resolvers/identities.js';
 import { settingsResolvers } from './resolvers/settings.js';
+import { userResolvers } from './resolvers/users.js';
 
 const DateTimeScalar = new GraphQLScalarType({
   name: 'DateTime',
@@ -34,7 +35,17 @@ export const schema = createSchema<GraphQLContext>({
     type User {
       id: ID!
       email: String!
+      name: String
+      avatar: String
       createdAt: DateTime
+    }
+
+    type UserWithRoles {
+      id: ID!
+      email: String!
+      name: String
+      avatar: String
+      roles: [String!]!
     }
 
     type AuthPayload {
@@ -112,6 +123,7 @@ export const schema = createSchema<GraphQLContext>({
       metadata: JSON
       identityId: String
       tags: [String!]
+      sortOrder: Int
     }
 
     input UpdateHabitInput {
@@ -134,10 +146,13 @@ export const schema = createSchema<GraphQLContext>({
       habitId: String!
       date: String!
       value: Float!
+      standardMet: Boolean
+      targetMet: Boolean
       notes: String
     }
 
     input AddNoteInput {
+      id: ID
       habitId: String!
       date: String!
       content: String
@@ -154,6 +169,8 @@ export const schema = createSchema<GraphQLContext>({
 
     type Query {
       me: User
+      myRoles: [String!]!
+      usersWithRoles: [UserWithRoles!]!
       habits(userId: String, status: String, tags: [String!]): [Habit!]!
       habit(id: ID!): Habit
       entries(habitId: String, date: String, dateFrom: String, dateTo: String): [HabitEntry!]!
@@ -168,6 +185,7 @@ export const schema = createSchema<GraphQLContext>({
       signup(email: String!, password: String!): AuthPayload!
       login(email: String!, password: String!): AuthPayload!
       googleSignIn(idToken: String!): AuthPayload!
+      setRoles(userId: ID!, roles: [String!]!): Boolean!
       createHabit(input: CreateHabitInput!): Habit!
       updateHabit(id: ID!, input: UpdateHabitInput!): Habit
       deleteHabit(id: ID!): Boolean!
@@ -189,5 +207,6 @@ export const schema = createSchema<GraphQLContext>({
     noteResolvers,
     identityResolvers,
     settingsResolvers,
+    userResolvers,
   ] as any,
 });

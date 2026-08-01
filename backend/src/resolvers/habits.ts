@@ -79,6 +79,7 @@ export const habitResolvers = {
         metadata: args.input.metadata,
         identity_id: args.input.identityId,
         tags: args.input.tags,
+        sort_order: args.input.sortOrder,
       }).select('*').single();
       if (error) throw new Error(error.message);
       return toHabit(data as HabitRow);
