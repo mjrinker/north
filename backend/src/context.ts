@@ -1,13 +1,20 @@
 import type { YogaInitialContext } from 'graphql-yoga';
-import { db } from './db';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { getDb } from './db';
 import { authenticate } from './auth';
 
 export interface GraphQLContext {
   userId: string | null;
-  db: typeof db;
+  db: SupabaseClient;
 }
 
 export async function buildContext(initial: YogaInitialContext): Promise<GraphQLContext> {
   const auth = await authenticate(initial.request);
+  let db: SupabaseClient;
+  try {
+    db = getDb();
+  } catch (e) {
+    throw new Error(`Database not configured: ${(e as Error).message}`);
+  }
   return { userId: auth.userId, db };
 }
