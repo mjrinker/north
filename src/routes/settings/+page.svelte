@@ -1,6 +1,6 @@
 <script lang="ts">
   import { user, signInWithGoogle, signOut } from '../../stores/auth'
-  import { getActiveProvider } from '../../services/sync'
+  import { apiSyncProvider } from '../../services/sync.providers/api'
   import { get } from 'svelte/store'
   import { appSettings, updateSettings, type AppSettings, type ThemeMode, type LaunchScreen } from '../../lib/settings'
   import ColorPickerModal from '../../components/ColorPickerModal.svelte'
@@ -68,10 +68,9 @@
     syncing = true
     syncStatus = 'Downloading…'
     try {
-      const provider = await getActiveProvider()
-      await provider.downloadAll()
+      await apiSyncProvider.downloadAll()
       syncStatus = 'Uploading…'
-      const result = await provider.uploadAll()
+      const result = await apiSyncProvider.uploadAll()
       syncStatus = result.status === 'success' ? 'Synced successfully' : `Sync error: ${result.status}`
       lastSynced = new Date().toLocaleTimeString()
     } catch (e: any) {
@@ -163,7 +162,7 @@
 
   <section class="card">
     <h2>Cloud Sync</h2>
-    <p>Sync your habits, entries, and identities to Supabase for backup.</p>
+    <p>Sync your habits, entries, and identities to the cloud for backup.</p>
     {#if currentUser}
       <button class="btn" onclick={syncNow} disabled={syncing}>
         {syncing ? 'Syncing…' : 'Sync Now'}

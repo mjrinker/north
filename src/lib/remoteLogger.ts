@@ -13,44 +13,32 @@ let timer: ReturnType<typeof setTimeout> | null = null
 
 const FLUSH_INTERVAL = 400
 
-function endpoint(): string {
-  if (import.meta.env?.DEV) {
-    return `http://${window.location.hostname}:3001`
-  }
-  return '/api/log'
-}
+const GRAPHQL_URL =
+  (import.meta.env.PUBLIC_API_URL || 'https://north-api-rho.vercel.app').replace(/\/+$/, '') + '/graphql'
 
-function isDev() {
-  return !!(import.meta.env?.DEV)
-}
-
-function send(body: string): void {
-  if (isDev()) {
-    fetch(endpoint(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-      keepalive: true,
-    }).catch(() => {})
-  } else {
-    fetch(endpoint(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-      keepalive: true,
-    }).catch(() => {})
-  }
-}
-
-function sendBeacon(body: string): void {
-  if (isDev()) return
-  navigator.sendBeacon(endpoint(), body)
+function send(batch: LogEntry[]): void {
+  const entries = batch.map((e) => ({
+    level: e.level,
+    message: e.message,
+    stack: e.stack,
+    url: e.url,
+    timestamp: e.timestamp,
+  }))
+  fetch(GRAPHQL_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query: `mutation ($entries: [ClientLogInput!]!) { clientLogs(entries: $entries) }`,
+      variables: { entries },
+    }),
+    keepalive: true,
+  }).catch(() => {})
 }
 
 function flush() {
   if (queue.length === 0) return
   const batch = queue.splice(0)
-  send(JSON.stringify(batch))
+  send(batch)
 }
 
 function lsPush(level: string, msg: string, stack?: string) {
@@ -181,7 +169,7 @@ export function initRemoteLogger(): void {
 
   window.addEventListener('beforeunload', () => {
     if (queue.length === 0) return
-    sendBeacon(JSON.stringify(queue.splice(0)))
+    send(queue.splice(0))
   })
 
 }

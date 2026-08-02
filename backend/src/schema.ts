@@ -8,6 +8,7 @@ import { noteResolvers } from './resolvers/notes.js';
 import { identityResolvers } from './resolvers/identities.js';
 import { settingsResolvers } from './resolvers/settings.js';
 import { userResolvers } from './resolvers/users.js';
+import { logResolvers } from './resolvers/logs.js';
 
 const DateTimeScalar = new GraphQLScalarType({
   name: 'DateTime',
@@ -167,6 +168,14 @@ export const schema = createSchema<GraphQLContext>({
       launchScreen: String
     }
 
+    input ClientLogInput {
+      level: String
+      message: String!
+      stack: String
+      url: String
+      timestamp: DateTime
+    }
+
     type Query {
       me: User
       myRoles: [String!]!
@@ -197,6 +206,7 @@ export const schema = createSchema<GraphQLContext>({
       updateIdentity(id: ID!, name: String, description: String, goals: [String!]): Identity
       deleteIdentity(id: ID!): Boolean!
       upsertSettings(input: UpsertSettingsInput!): UserSettings!
+      clientLogs(entries: [ClientLogInput!]!): Boolean!
     }
   `,
   resolvers: [
@@ -208,5 +218,6 @@ export const schema = createSchema<GraphQLContext>({
     identityResolvers,
     settingsResolvers,
     userResolvers,
+    logResolvers,
   ] as any,
 });

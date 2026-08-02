@@ -14,8 +14,6 @@
   import ErrorBoundary from '../components/ErrorBoundary.svelte';
   import Icon from '@iconify/svelte';
   import { iconDataUrl } from '../lib/icon';
-  import { toggleBackendMode, getBackendMode } from '../lib/backend';
-  let backend = $state<'new' | 'old'>(getBackendMode());
   let { children }: { children: any } = $props();
   let currentUser = $state<any>(null);
 
@@ -66,13 +64,6 @@
   async function handleLogout() {
     showAvatarMenu = false;
     await signOut();
-  }
-
-  async function handleToggleBackend() {
-    await signOut();
-    const next = toggleBackendMode();
-    backend = next;
-    window.location.reload();
   }
 
   function handleSwitchUser() {
@@ -171,15 +162,6 @@
     {/if}
   </div>
 </nav>
-
-<button
-  class="backend-toggle"
-  onclick={handleToggleBackend}
-  title="Backend: {backend === 'new' ? 'north-api (GraphQL)' : 'Supabase (legacy)'}. Click to switch."
-  aria-label="Switch backend"
->
-  {backend === 'new' ? 'API' : 'LEGACY'}
-</button>
 
 <style>
   .page-content {
@@ -318,27 +300,6 @@
 
   .menu-item--danger {
     color: #d32f2f;
-  }
-
-  .backend-toggle {
-    position: fixed;
-    left: 0.6rem;
-    bottom: 5rem;
-    z-index: 60;
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    padding: 0.3rem 0.55rem;
-    border-radius: 999px;
-    border: 1px solid var(--card-border, #ccc);
-    background: var(--card-bg, #fff);
-    color: var(--text-secondary, #666);
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  }
-
-  .backend-toggle:hover {
-    color: var(--accent, #0066cc);
   }
 
 </style>
