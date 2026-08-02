@@ -306,13 +306,22 @@
 </script>
 
 <div class="habit-card" role="button" tabindex="0"
+  style="--habit-color: {habit.metadata?.color || 'transparent'};"
   use:useLongPressStart
   onclick={() => { if (!longPressFired) onEdit?.(); }}
   onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit?.(); } }}>
   <div class="card-top">
     <div class="card-left">
       <div class="title-row">
+        {#if habit.metadata?.emoji}
+          <span class="habit-glyph">{habit.metadata.emoji}</span>
+        {:else if habit.metadata?.icon}
+          <span class="habit-glyph"><Icon icon={habit.metadata.icon} style="color: inherit" /></span>
+        {/if}
         <h3>{habit.title}</h3>
+        {#if habit.metadata?.category}
+          <span class="category-badge" class:build={habit.metadata.category === 'build'}>{habit.metadata.category === 'build' ? 'Build' : 'Break'}</span>
+        {/if}
         {#if habit.dependsOn && habit.dependsOn.habitIds.length > 0}
           <div class="dep-wrap">
             <button class="dep-badge" onclick={openDepPopover} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDepPopover(e); }}}>
@@ -377,6 +386,9 @@
           />
         </div>
         <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(1); }} class="btn small">+</button>
+        {#if habit.unit}
+          <span class="qty-unit">{habit.unit}</span>
+        {/if}
       </div>
     {:else if habit.type === 'duration'}
       <div class="action-control">
@@ -444,6 +456,7 @@
     position: relative;
     background: var(--card-bg);
     border: 1px solid var(--card-border, #e0e0e0);
+    border-left: 4px solid var(--habit-color, transparent);
     border-radius: 8px;
     padding: 0.75rem 1rem;
     display: flex;
@@ -471,6 +484,25 @@
     font-size: 1rem;
     color: var(--text-primary, #222);
   }
+  .habit-glyph {
+    display: inline-flex;
+    align-items: center;
+    font-size: 1.15rem;
+    line-height: 1;
+    color: var(--text-primary, #222);
+  }
+  .habit-glyph :global(svg), .habit-glyph :global(.iconify) { font-size: 1.15rem; color: inherit; }
+  .category-badge {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 1px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .category-badge.build { background: rgba(46, 125, 50, 0.14); color: #2e7d32; }
+  .category-badge.break { background: rgba(230, 81, 0, 0.14); color: #e65100; }
   .desc {
     font-size: 0.8rem;
     color: var(--text-secondary, #666);
@@ -612,6 +644,14 @@
   }
   .qty-input::-webkit-outer-spin-button,
   .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .qty-unit {
+    font-size: 0.7rem;
+    color: var(--text-secondary, #888);
+    max-width: 3.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .qty-input.standard-met { color: #2e7d32; }
   .qty-input.target-met {
     color: #2e7d32;

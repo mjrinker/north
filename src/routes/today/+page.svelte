@@ -19,6 +19,7 @@
   import { appSettings, updateSettings } from '../../lib/settings';
   import { showCreateHabit } from '../../stores/createHabit';
   import { onDestroy } from 'svelte';
+  import { isHabitPaused, isHabitActive, resumeHabit, expiredPausedHabits, pauseLabel } from '../../lib/habitUtils';
 
   let today = getLocalDateString();
   let viewDate = $state(today);
@@ -27,7 +28,22 @@
   let unsubHabits = habitsStore.subscribe(v => allHabits = v);
   onDestroy(() => unsubHabits());
 
-  let habits = $derived(allHabits.filter(h => h.status === 'active'));
+  let habits = $derived(allHabits.filter(h => isHabitActive(h)));
+  let pausedHabits = $derived(allHabits.filter(h => isHabitPaused(h)));
+  let pausedCollapsed = $state(false);
+
+  // Auto-resume habits whose pauseUntil date has passed
+  $effect(() => {
+    const list = allHabits;
+    const expired = expiredPausedHabits(list);
+    if (expired.length > 0) {
+      for (const h of expired) updateHabit(resumeHabit(h));
+    }
+  });
+
+  function handleResume(habit: Habit) {
+    updateHabit(resumeHabit(habit));
+  }
 
   function shiftDate(dir: number) {
     const d = new Date(viewDate + 'T12:00:00');
@@ -571,6 +587,33 @@
   </div>
 {/each}
 
+{#if pausedHabits.length > 0}
+  <section class="tag-section paused-section">
+    <button class="tag-header" on:click={() => pausedCollapsed = !pausedCollapsed}>
+      <span class="collapse-arrow">{pausedCollapsed ? '▶' : '▼'}</span>
+      Paused ({pausedHabits.length})
+    </button>
+    {#if !pausedCollapsed}
+    <div class="habits-grid">
+      {#each pausedHabits as habit (habit.id)}
+        <div class="paused-card" role="button" tabindex="0" on:click={() => openEdit(habit)} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(habit); } }}>
+          {#if habit.metadata?.emoji}
+            <span class="paused-glyph">{habit.metadata.emoji}</span>
+          {:else if habit.metadata?.icon}
+            <span class="paused-glyph"><Icon icon={habit.metadata.icon} style="color: inherit" /></span>
+          {/if}
+          <div class="paused-body">
+            <span class="paused-title">{habit.title}</span>
+            <span class="paused-info">{pauseLabel(habit)}</span>
+          </div>
+          <button class="paused-resume" on:click={(e) => { e.stopPropagation(); handleResume(habit); }}>Resume</button>
+        </div>
+      {/each}
+    </div>
+    {/if}
+  </section>
+{/if}
+
 </div>
 
 <style>
@@ -655,6 +698,36 @@
     gap: 1rem;
     margin-bottom: 2rem;
   }
+  .paused-card {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--card-bg, #fff);
+    border: 1px dashed var(--card-border, #ccc);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    cursor: pointer;
+    opacity: 0.75;
+  }
+  .paused-card:hover { opacity: 1; border-color: var(--text-secondary, #888); }
+  .paused-glyph { font-size: 1.15rem; line-height: 1; }
+  .paused-glyph :global(svg), .paused-glyph :global(.iconify) { font-size: 1.15rem; color: inherit; }
+  .paused-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .paused-title { font-size: 0.9rem; font-weight: 600; color: var(--text-primary, #222); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .paused-info { font-size: 0.75rem; color: var(--text-secondary, #888); }
+  .paused-resume {
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--accent, #0066cc);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--accent, #0066cc);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .paused-resume:hover { background: var(--accent, #0066cc); color: var(--accent-text, #fff); }
+  .paused-section .habits-grid { margin-bottom: 0; }
   .suggested-section {
     margin-bottom: 1.5rem;
   }

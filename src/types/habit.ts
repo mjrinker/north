@@ -36,9 +36,15 @@ export interface Habit {
 	updatedAt: Date;
 }
 
+export type HabitCategory = 'build' | 'break';
+
 export interface HabitMetadata {
 	color?: string;
 	icon?: string;
+	emoji?: string;
+	category?: HabitCategory;
+	// ISO date (YYYY-MM-DD) the habit auto-resumes on/after while paused; undefined = indefinite pause
+	pauseUntil?: string;
 	remindersEnabled: boolean;
 	reminderAdvanceMinutes: number;
 	streakFreezeDays: number;

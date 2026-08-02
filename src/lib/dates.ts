@@ -27,13 +27,21 @@ function getStoredResetTime(): string | null {
   return null;
 }
 
-export function getWeekStart(d: Date): Date {
+export function getWeekStart(d: Date, startOfWeek: number = 1): Date {
   const date = new Date(d);
   const day = date.getDay();
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-  date.setDate(diff);
+  const diff = (day - startOfWeek + 7) % 7;
+  date.setDate(date.getDate() - diff);
   date.setHours(0, 0, 0, 0);
   return date;
+}
+
+// Plain local YYYY-MM-DD (no reset-time shift)
+export function toDateStr(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function parseLocalDate(dateStr: string): Date {

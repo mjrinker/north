@@ -10,6 +10,9 @@ export interface Schedule {
 	startDate: Date;
 	endDate?: Date;
 	preferredTime?: string; // HH:MM 24h format
+
+	// Day the week starts on for weekly streaks: 0=Sunday ... 6=Saturday (default 1=Monday)
+	startOfWeek?: number;
 	
 	// For complex recurrence patterns (e.g., iCal RRULE)
 	customRule?: string; 

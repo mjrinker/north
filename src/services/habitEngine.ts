@@ -68,10 +68,11 @@ export class HabitEngine {
   }
 
   private static async getWeeklyStreak(habit: Habit, entries: HabitEntry[]): Promise<number> {
+    const startOfWeek = habit.schedule.startOfWeek ?? 1;
     const weekCounts = new Map<string, number>();
     for (const e of entries) {
       const d = new Date(e.date);
-      const weekStart = getWeekStart(d);
+      const weekStart = getWeekStart(d, startOfWeek);
       const key = getLocalDateString(weekStart);
       weekCounts.set(key, (weekCounts.get(key) || 0) + 1);
     }
@@ -80,13 +81,13 @@ export class HabitEngine {
     let streak = 0;
     const date = new Date();
     date.setHours(0, 0, 0, 0);
-    const currentWeekStart = getWeekStart(date);
+    const currentWeekStart = getWeekStart(date, startOfWeek);
     const currentKey = getLocalDateString(currentWeekStart);
     if ((weekCounts.get(currentKey) || 0) < daysPerWeek) {
       date.setDate(date.getDate() - 7);
     }
     while (true) {
-      const ws = getWeekStart(date);
+      const ws = getWeekStart(date, startOfWeek);
       const key = getLocalDateString(ws);
       if ((weekCounts.get(key) || 0) >= daysPerWeek) {
         streak++;

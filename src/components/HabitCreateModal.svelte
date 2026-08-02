@@ -1,10 +1,12 @@
 <script lang="ts">
-  import type { Habit, DependsOn } from '../types';
+  import type { Habit, DependsOn, HabitCategory } from '../types';
   import { addHabit } from '../stores/habits';
   import Modal from './Modal.svelte';
   import TagInput from './TagInput.svelte';
   import DependencyPicker from './DependencyPicker.svelte';
   import ModalActions from './ModalActions.svelte';
+  import HabitColorPicker from './HabitColorPicker.svelte';
+  import HabitIconPicker from './HabitIconPicker.svelte';
 
   let {
     habits,
@@ -27,6 +29,20 @@
   let showStandard = $derived(type !== 'binary');
   let existingTags = $derived(Array.from(new Set(habits.flatMap(h => h.tags ?? []))));
 
+  let category = $state<HabitCategory>('build');
+  let color = $state('');
+  let icon = $state('');
+  let emoji = $state('');
+  let unit = $state('times');
+  let unitDefaulted = $state(true);
+  let startOfWeek = $state(1);
+  let showStartOfWeek = $derived(frequency === 'weekly' || frequency === 'days_per_week');
+
+  $effect(() => {
+    if (!unitDefaulted) return;
+    unit = type === 'duration' ? 'minutes' : 'times';
+  });
+
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     if (!title.trim()) return;
@@ -42,14 +58,19 @@
       standard,
       target: (type !== 'binary' && target) ? target : undefined,
       type,
-      unit: type === 'duration' ? 'minutes' : 'times',
+      unit: unit.trim() || (type === 'duration' ? 'minutes' : 'times'),
       schedule: {
         frequency: frequency as 'daily' | 'weekly' | 'monthly' | 'custom' | 'days_per_week',
         interval,
         daysPerWeek: frequency === 'days_per_week' ? interval : undefined,
+        startOfWeek,
         startDate: new Date()
       },
       metadata: {
+        category,
+        color: color || undefined,
+        icon: icon || undefined,
+        emoji: emoji || undefined,
         remindersEnabled: false,
         reminderAdvanceMinutes: 0,
         streakFreezeDays: 0,
@@ -77,6 +98,18 @@
     <label for="description">Description (optional, supports Markdown)</label>
     <textarea bind:value={description} placeholder="Add details about this habit..." class="desc-input"></textarea>
 
+    <span class="field-label">Color</span>
+    <HabitColorPicker bind:color />
+
+    <span class="field-label">Icon or Emoji</span>
+    <HabitIconPicker bind:icon bind:emoji />
+
+    <label for="category">Category</label>
+    <select bind:value={category}>
+      <option value="build">Build</option>
+      <option value="break">Break</option>
+    </select>
+
     <label for="type">Type</label>
     <select bind:value={type} required>
       <option value="binary">Binary (Done / Not Done)</option>
@@ -85,6 +118,8 @@
     </select>
 
     {#if showStandard}
+      <label for="unit">Unit</label>
+      <input type="text" bind:value={unit} placeholder={type === 'duration' ? 'minutes' : 'times'} oninput={() => unitDefaulted = false} />
       <label for="standard">Standard</label>
       <input type="number" bind:value={standard} placeholder="Standard value" min="1" />
       <label for="target">Goal</label>
@@ -96,7 +131,6 @@
       <option value="daily">Daily</option>
       <option value="days_per_week">X Days/Week</option>
       <option value="weekly">Weekly</option>
-      <option value="biweekly">Biweekly</option>
       <option value="monthly">Monthly</option>
       <option value="custom">Every X Days</option>
     </select>
@@ -107,6 +141,19 @@
     {:else}
       <label for="interval">Every</label>
       <input type="number" bind:value={interval} min="1" />
+    {/if}
+
+    {#if showStartOfWeek}
+      <label for="startOfWeek">Start of week</label>
+      <select bind:value={startOfWeek}>
+        <option value="0">Sunday</option>
+        <option value="1">Monday</option>
+        <option value="2">Tuesday</option>
+        <option value="3">Wednesday</option>
+        <option value="4">Thursday</option>
+        <option value="5">Friday</option>
+        <option value="6">Saturday</option>
+      </select>
     {/if}
 
     {#if type === 'binary'}

@@ -5,11 +5,33 @@
   import { appSettings, updateSettings, type AppSettings, type ThemeMode, type LaunchScreen } from '../../lib/settings'
   import ColorPickerModal from '../../components/ColorPickerModal.svelte'
   import { resolveThemeMode } from '../../stores/theme'
+  import { habitsStore } from '../../stores/habits'
+  import { pauseAllHabits, resumeAllHabits } from '../../lib/habitUtils'
+  import { onDestroy } from 'svelte'
 
   let currentUser = $state<any>(null)
   let syncing = $state(false)
   let syncStatus = $state('')
   let lastSynced = $state<string | null>(null)
+
+  let allHabitsNow = $state<any[]>([])
+  let unsubHabits = habitsStore.subscribe(v => allHabitsNow = v)
+  onDestroy(() => unsubHabits())
+  let pausedCount = $derived(allHabitsNow.filter((h: any) => h.status === 'paused').length)
+  let pauseAllUntil = $state('')
+  let pauseAllIndefinite = $state(false)
+  let pauseMsg = $state('')
+
+  function handlePauseAll() {
+    const until = pauseAllIndefinite ? undefined : (pauseAllUntil || undefined)
+    pauseAllHabits(until)
+    pauseMsg = until ? `All habits paused until ${until}.` : 'All habits paused indefinitely.'
+  }
+
+  function handleResumeAll() {
+    resumeAllHabits()
+    pauseMsg = 'All habits resumed.'
+  }
 
   let s = $state<AppSettings>(get(appSettings))
 
@@ -177,6 +199,31 @@
       <p class="muted">Sign in above to enable cloud sync.</p>
     {/if}
   </section>
+
+  <section class="card">
+    <h2>Pause All Habits</h2>
+    <p>Temporarily pause every active habit at once.</p>
+    <div class="pause-controls">
+      <label class="pause-until-label">
+        Until
+        <input type="date" bind:value={pauseAllUntil} disabled={pauseAllIndefinite} />
+      </label>
+      <label class="pause-indef">
+        <input type="checkbox" bind:checked={pauseAllIndefinite} />
+        Indefinitely
+      </label>
+    </div>
+    <div class="pause-btns">
+      <button class="btn" onclick={handlePauseAll}>Pause all habits</button>
+      <button class="btn" onclick={handleResumeAll} disabled={pausedCount === 0}>Resume all habits</button>
+    </div>
+    {#if pausedCount > 0}
+      <p class="muted">{pausedCount} habit(s) currently paused.</p>
+    {/if}
+    {#if pauseMsg}
+      <p class="status">{pauseMsg}</p>
+    {/if}
+  </section>
 </div>
 
 {#if pickerType}
@@ -327,4 +374,41 @@
   }
   .toggle input:checked + .toggle-slider { background: var(--text-secondary, #888); }
   .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+  .pause-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+  }
+  .pause-until-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-primary, #222);
+  }
+  .pause-until-label input[type="date"] {
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    background: var(--input-bg, #fff);
+    color: var(--text-primary, #222);
+  }
+  .pause-until-label input[type="date"]:disabled { opacity: 0.5; }
+  .pause-indef {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    color: var(--text-primary, #222);
+    cursor: pointer;
+  }
+  .pause-btns {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
 </style>
