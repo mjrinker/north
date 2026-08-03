@@ -5,7 +5,7 @@
   import { applyThemeEffect } from '../stores/theme';
   import { initRemoteLogger } from '../lib/remoteLogger';
   initRemoteLogger();
-  import { user, signInWithGoogle, signOut } from '../stores/auth';
+  import { user, signOut } from '../stores/auth';
   import { userRoles } from '../stores/roles';
   import { userHasPermission } from '../lib/featureFlags';
   import { page } from '$app/stores';
@@ -156,9 +156,9 @@
         </div>
       {/if}
     {:else}
-      <button class="bar-link" onclick={signInWithGoogle} aria-label="Sign in">
-        <Icon icon="mdi:login" />
-      </button>
+      <a href="/settings" class="bar-link" class:active={isActive('/settings')} aria-label="Settings">
+        <Icon icon="mdi:cog" />
+      </a>
     {/if}
   </div>
 </nav>
