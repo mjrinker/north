@@ -417,6 +417,7 @@
   const PULL_THRESHOLD = 80;
 
   function handlePullStart(e: TouchEvent) {
+    if (showCreate || editingHabit !== null || notesHabitId !== null || depPopover !== null) return;
     if (window.scrollY > 0) return;
     pullRefreshDistance = 0;
     pullRefreshStartY = e.touches[0].clientY;
