@@ -146,34 +146,43 @@ async function completeGoogleSignIn(idToken: string) {
 }
 
 export function renderGoogleButton(el: HTMLElement) {
-  if (!GOOGLE_CLIENT_ID) {
-    console.error('PUBLIC_GOOGLE_CLIENT_ID is not set')
+  function showError(msg: string) {
     el.innerHTML = ''
-    const b = document.createElement('button')
-    b.className = 'btn'
-    b.textContent = 'Sign in with Google'
-    el.appendChild(b)
+    const p = document.createElement('p')
+    p.className = 'google-signin-error'
+    p.textContent = msg
+    el.appendChild(p)
+  }
+  if (!GOOGLE_CLIENT_ID) {
+    showError('Google sign-in is not configured: missing PUBLIC_GOOGLE_CLIENT_ID in the build environment.')
+    console.error('PUBLIC_GOOGLE_CLIENT_ID is not set')
     return
   }
   loadGoogleIdentity()
     .then((google) => {
-      google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        auto_select: false,
-        callback: async (resp: any) => {
-          if (resp?.credential) await completeGoogleSignIn(resp.credential)
-        },
-      })
-      google.accounts.id.renderButton(el, {
-        type: 'standard',
-        theme: 'outline',
-        size: 'large',
-        width: 240,
-        shape: 'rectangular',
-        text: 'signin_with',
-      })
+      try {
+        google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          auto_select: false,
+          callback: async (resp: any) => {
+            if (resp?.credential) await completeGoogleSignIn(resp.credential)
+          },
+        })
+        google.accounts.id.renderButton(el, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          width: 240,
+          shape: 'rectangular',
+          text: 'signin_with',
+        })
+      } catch (e: any) {
+        showError('Google sign-in failed to render: ' + (e?.message ?? String(e)))
+      }
     })
-    .catch((e) => console.error('Google sign-in error:', e.message))
+    .catch((e: any) => {
+      showError('Could not load Google sign-in SDK. Check your connection or ad-blocker, then reload. ' + (e?.message ?? String(e)))
+    })
 }
 
 export async function signOut() {

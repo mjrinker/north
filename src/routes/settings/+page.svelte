@@ -282,6 +282,12 @@
     border-radius: 8px;
     overflow: hidden;
   }
+  .google-btn-wrap :global(.google-signin-error) {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #d32f2f;
+    line-height: 1.4;
+  }
   .setting-row {
     display: flex;
     align-items: center;
