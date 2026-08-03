@@ -1,6 +1,7 @@
 // src/stores/auth.ts
 import { writable, get } from 'svelte/store'
 import { getToken, setToken, gql } from '../lib/api'
+import { PUBLIC_GOOGLE_CLIENT_ID } from '$env/static/public'
 import type { AppAuthUser } from '../types/user'
 
 export const user = writable<AppAuthUser | null>(null)
@@ -96,7 +97,7 @@ async function init() {
 
 init()
 
-const GOOGLE_CLIENT_ID = import.meta.env.PUBLIC_GOOGLE_CLIENT_ID || ''
+const GOOGLE_CLIENT_ID = PUBLIC_GOOGLE_CLIENT_ID || ''
 
 function loadGoogleIdentity(): Promise<any> {
   return new Promise((resolve, reject) => {
