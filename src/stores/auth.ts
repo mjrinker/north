@@ -100,13 +100,24 @@ const GOOGLE_CLIENT_ID = import.meta.env.PUBLIC_GOOGLE_CLIENT_ID || ''
 
 function loadGoogleIdentity(): Promise<any> {
   return new Promise((resolve, reject) => {
-    if ((window as any).google?.accounts) return resolve((window as any).google)
+    const check = () => (window as any).google?.accounts && resolve((window as any).google)
+    if (check()) return
     const s = document.createElement('script')
     s.src = 'https://accounts.google.com/gsi/client'
     s.async = true
-    s.onload = () => resolve((window as any).google)
+    s.onload = check
     s.onerror = () => reject(new Error('Failed to load Google Identity Services'))
     document.head.appendChild(s)
+    let tries = 0
+    const timer = window.setInterval(() => {
+      tries++
+      if ((window as any).google?.accounts) {
+        window.clearInterval(timer)
+        resolve((window as any).google)
+      } else if (tries > 100) {
+        window.clearInterval(timer)
+      }
+    }, 100)
   })
 }
 
@@ -134,9 +145,14 @@ async function completeGoogleSignIn(idToken: string) {
   isLoading.set(false)
 }
 
-export function signInWithGoogle() {
+export function renderGoogleButton(el: HTMLElement) {
   if (!GOOGLE_CLIENT_ID) {
     console.error('PUBLIC_GOOGLE_CLIENT_ID is not set')
+    el.innerHTML = ''
+    const b = document.createElement('button')
+    b.className = 'btn'
+    b.textContent = 'Sign in with Google'
+    el.appendChild(b)
     return
   }
   loadGoogleIdentity()
@@ -148,7 +164,14 @@ export function signInWithGoogle() {
           if (resp?.credential) await completeGoogleSignIn(resp.credential)
         },
       })
-      google.accounts.id.prompt()
+      google.accounts.id.renderButton(el, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        width: 240,
+        shape: 'rectangular',
+        text: 'signin_with',
+      })
     })
     .catch((e) => console.error('Google sign-in error:', e.message))
 }

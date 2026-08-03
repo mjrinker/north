@@ -16,7 +16,6 @@
   import { entriesStore } from '../../stores/entries';
   import { HabitEngine } from '../../services/habitEngine';
   import { getLocalDateString } from '../../lib/dates';
-  import { appSettings, updateSettings } from '../../lib/settings';
   import { showCreateHabit } from '../../stores/createHabit';
   import { onDestroy } from 'svelte';
   import { isHabitPaused, isHabitActive, resumeHabit, expiredPausedHabits, pauseLabel } from '../../lib/habitUtils';
@@ -71,36 +70,20 @@
     try { localStorage.setItem('sortMode', sortMode); } catch {}
   });
 
-  let customOrder = $state<string[]>([]);
-  let unsubSettings = appSettings.subscribe(v => customOrder = v.habitOrder);
-  onDestroy(() => unsubSettings());
-
-  function saveCustomOrder(order: string[]) {
-    customOrder = order;
-    updateSettings({ habitOrder: order });
-  }
-
   let tagGroups = $derived.by(() => {
     const groups: { tag: string; habits: Habit[] }[] = [];
     const tags = Array.from(new Set(habits.flatMap(h => h.tags ?? []))).sort();
-    const co = customOrder ?? [];
     for (const tag of tags) {
       let tagged = habits.filter(h => (h.tags ?? []).includes(tag));
-      if (sortMode === 'custom') {
-        const ordered = co.filter(id => tagged.some(h => h.id === id)).map(id => tagged.find(h => h.id === id)!).filter(Boolean);
-        const remaining = tagged.filter(h => !co.includes(h.id));
-        tagged = [...ordered, ...remaining];
-      } else if (sortMode === 'name') tagged = tagged.sort((a, b) => a.title.localeCompare(b.title));
+      if (sortMode === 'custom') tagged = tagged.sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
+      else if (sortMode === 'name') tagged = tagged.sort((a, b) => a.title.localeCompare(b.title));
       else if (sortMode === 'type') tagged = tagged.sort((a, b) => a.type.localeCompare(b.type));
       groups.push({ tag, habits: tagged });
     }
     let untagged = habits.filter(h => (h.tags ?? []).length === 0);
     if (untagged.length > 0) {
-      if (sortMode === 'custom') {
-        const ordered = co.filter(id => untagged.some(h => h.id === id)).map(id => untagged.find(h => h.id === id)!).filter(Boolean);
-        const remaining = untagged.filter(h => !co.includes(h.id));
-        untagged = [...ordered, ...remaining];
-      } else if (sortMode === 'name') untagged = untagged.sort((a, b) => a.title.localeCompare(b.title));
+      if (sortMode === 'custom') untagged = untagged.sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
+      else if (sortMode === 'name') untagged = untagged.sort((a, b) => a.title.localeCompare(b.title));
       else if (sortMode === 'type') untagged = untagged.sort((a, b) => a.type.localeCompare(b.type));
       groups.push({ tag: 'Untagged', habits: untagged });
     }
@@ -164,17 +147,26 @@
 
   let dragHabitId = $state<string | null>(null);
 
+  function applyOrder(ids: string[]) {
+    const byId = new Map(habits.map(h => [h.id, h]));
+    ids.forEach((id, idx) => {
+      const h = byId.get(id);
+      if (h && h.sortOrder !== idx) {
+        updateHabit({ ...h, sortOrder: idx });
+      }
+    });
+  }
+
   function reorder(fromId: string, targetId: string) {
     if (!fromId || fromId === targetId) return;
-    const allIds = habits.map(h => h.id);
-    const baseOrder = (customOrder ?? []).length > 0 ? (customOrder ?? []).filter(id => allIds.includes(id)) : [...allIds];
-    let fromIdx = baseOrder.indexOf(fromId);
-    let toIdx = baseOrder.indexOf(targetId);
-    if (fromIdx === -1) { baseOrder.push(fromId); fromIdx = baseOrder.length - 1; }
-    if (toIdx === -1) { baseOrder.push(targetId); toIdx = baseOrder.length - 1; }
-    baseOrder.splice(fromIdx, 1);
-    baseOrder.splice(toIdx, 0, fromId);
-    saveCustomOrder(baseOrder);
+    const ids = habits.map(h => h.id);
+    let fromIdx = ids.indexOf(fromId);
+    let toIdx = ids.indexOf(targetId);
+    if (fromIdx === -1) { ids.push(fromId); fromIdx = ids.length - 1; }
+    if (toIdx === -1) { ids.push(targetId); toIdx = ids.length - 1; }
+    ids.splice(fromIdx, 1);
+    ids.splice(toIdx, 0, fromId);
+    applyOrder(ids);
   }
 
   // HTML5 drag-and-drop (desktop)

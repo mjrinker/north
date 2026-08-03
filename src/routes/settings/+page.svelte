@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { user, signInWithGoogle, signOut } from '../../stores/auth'
+  import { user, renderGoogleButton, signOut } from '../../stores/auth'
   import { apiSyncProvider } from '../../services/sync.providers/api'
   import { get } from 'svelte/store'
   import { appSettings, updateSettings, type AppSettings, type ThemeMode, type LaunchScreen } from '../../lib/settings'
@@ -84,6 +84,12 @@
   }
 
   user.subscribe(async (u) => { currentUser = u })
+
+  let googleBtnEl = $state<HTMLDivElement | null>(null)
+
+  $effect(() => {
+    if (googleBtnEl) renderGoogleButton(googleBtnEl)
+  })
 
   async function syncNow() {
     if (!currentUser) return
@@ -178,7 +184,7 @@
       <button class="btn" onclick={signOut}>Sign Out</button>
     {:else}
       <p>Sign in to enable cloud sync.</p>
-      <button class="btn" onclick={signInWithGoogle}>Sign in with Google</button>
+      <div class="google-btn-wrap" bind:this={googleBtnEl}></div>
     {/if}
   </section>
 
@@ -267,6 +273,15 @@
     font-weight: 500;
   }
   .btn:disabled { opacity: 0.5; cursor: default; }
+  .google-btn-wrap {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 0.5rem;
+  }
+  .google-btn-wrap :global(div) {
+    border-radius: 8px;
+    overflow: hidden;
+  }
   .setting-row {
     display: flex;
     align-items: center;

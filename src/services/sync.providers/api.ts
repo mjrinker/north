@@ -11,7 +11,7 @@ import { appSettings, type AppSettings } from '../../lib/settings';
 import { get } from 'svelte/store';
 import { gql, ApiError, getToken } from '../../lib/api';
 
-const HABIT_FIELDS = `id title description type standard target unit schedule metadata dependsOn identityId tags status createdAt updatedAt`;
+const HABIT_FIELDS = `id title description type standard target unit schedule metadata dependsOn identityId tags status sortOrder createdAt updatedAt`;
 const ENTRY_FIELDS = `id habitId date value standardMet targetMet notes updatedAt`;
 const NOTE_FIELDS = `id habitId date content status createdAt`;
 const IDENTITY_FIELDS = `id name description goals`;
@@ -39,7 +39,7 @@ function toApiHabitInput(h: Habit) {
     metadata: h.metadata,
     identityId: h.identityId ?? null,
     tags: h.tags ?? [],
-    sortOrder: (h as any).sortOrder ?? null,
+    sortOrder: h.sortOrder ?? null,
   };
 }
 

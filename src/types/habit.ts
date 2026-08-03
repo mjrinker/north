@@ -32,6 +32,8 @@ export interface Habit {
 	tags: string[];
 	
 	status: HabitStatus;
+	// Optional global sort position used when the user picks custom ordering
+	sortOrder?: number;
 	createdAt: Date;
 	updatedAt: Date;
 }
