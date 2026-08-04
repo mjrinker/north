@@ -62,5 +62,6 @@ app.notFound((c) => c.json({ ok: false, error: 'not_found', path: c.req.path }, 
 
 export const GET = handle(app);
 export const POST = handle(app);
+export const OPTIONS = handle(app);
 
 export const config = { runtime: 'nodejs' };
