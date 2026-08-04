@@ -5,20 +5,49 @@ const API_BASE = (import.meta.env.PUBLIC_API_URL || 'https://north-api-rho.verce
 export const GRAPHQL_URL = API_BASE + '/graphql';
 
 const TOKEN_KEY = 'north_token';
+const TOKEN_COOKIE = 'north_token';
+const TOKEN_MAX_AGE = 30 * 24 * 60 * 60;
 
-export function getToken(): string | null {
+function readCookieToken(): string | null {
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    const m = document.cookie.match(/(?:^|;\s*)north_token=([^;]*)/);
+    return m && m[1] ? decodeURIComponent(m[1]) : null;
   } catch {
     return null;
   }
 }
 
-export function setToken(token: string | null) {
+export function getToken(): string | null {
+  let t: string | null = null;
   try {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    else localStorage.removeItem(TOKEN_KEY);
+    t = localStorage.getItem(TOKEN_KEY);
   } catch {}
+  if (t) return t;
+  const c = readCookieToken();
+  if (c) {
+    try {
+      localStorage.setItem(TOKEN_KEY, c);
+    } catch {}
+  }
+  return c;
+}
+
+export function setToken(token: string | null) {
+  const value = token || '';
+  try {
+    if (value) localStorage.setItem(TOKEN_KEY, value);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch (e) {
+    console.error('[auth] localStorage write failed', e);
+  }
+  try {
+    const cookie = value
+      ? `${TOKEN_COOKIE}=${encodeURIComponent(value)}; path=/; max-age=${TOKEN_MAX_AGE}; samesite=lax${typeof location !== 'undefined' && location.protocol === 'https:' ? '; secure' : ''}`
+      : `${TOKEN_COOKIE}=; path=/; max-age=0; samesite=lax`;
+    document.cookie = cookie;
+  } catch (e) {
+    console.error('[auth] cookie write failed', e);
+  }
 }
 
 export function clearToken() {
