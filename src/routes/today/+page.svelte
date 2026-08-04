@@ -328,8 +328,8 @@
     const first = e.touches[0];
     if (first.clientY > window.innerHeight - 40) return;
     const wrap = (e.currentTarget as HTMLElement).closest('.habit-wrapper');
-    const l = wrap?.querySelector('.left-reveal');
-    const r = wrap?.querySelector('.swipe-actions');
+    const l = wrap?.querySelector<HTMLElement>('.left-reveal');
+    const r = wrap?.querySelector<HTMLElement>('.swipe-actions');
     handlePx = l?.offsetWidth ?? 0;
     actionsPx = r?.offsetWidth ?? 0;
     dragStartOffset = currentOffset(habitId);

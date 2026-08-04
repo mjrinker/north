@@ -51,5 +51,7 @@ export interface HabitMetadata {
 	reminderAdvanceMinutes: number;
 	streakFreezeDays: number;
 	allowBackdating: boolean;
+	// quick log-step amounts: count for quantity habits, seconds for duration habits
+	quickSteps?: number[];
 	externalIds?: Record<string, string>;
 }

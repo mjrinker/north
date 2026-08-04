@@ -8,6 +8,7 @@
   import ModalActions from './ModalActions.svelte';
   import HabitColorPicker from './HabitColorPicker.svelte';
   import HabitIconPicker from './HabitIconPicker.svelte';
+  import HabitLogTab from './HabitLogTab.svelte';
 
   let {
     habit,
@@ -20,6 +21,7 @@
   } = $props();
 
   let title = $state(habit.title);
+  let tab = $state<'log' | 'settings'>('log');
   let description = $state(habit.description ?? '');
   let standard = $state(habit.standard);
   let target = $state<number | undefined>(habit.target);
@@ -83,7 +85,18 @@
 </script>
 
 <Modal {onClose}>
-  <h2>{habit.title}</h2>
+  <div class="modal-head">
+    <h2>{habit.title}</h2>
+    <button class="modal-close" onclick={onClose} aria-label="Close">×</button>
+  </div>
+  <div class="tabs" role="tablist">
+    <button class:active={tab === 'log'} onclick={() => tab = 'log'} role="tab">Log</button>
+    <button class:active={tab === 'settings'} onclick={() => tab = 'settings'} role="tab">Settings</button>
+  </div>
+
+  {#if tab === 'log'}
+    <HabitLogTab {habit} />
+  {:else}
   <div class="form-grid">
     <label>Title <input bind:value={title} /></label>
 
@@ -176,10 +189,52 @@
 
     <ModalActions onSave={handleSave} onCancel={onClose} onDelete={handleDelete} />
   </div>
+  {/if}
 </Modal>
 
 <style>
-  h2 { margin: 0 0 1rem; color: var(--text-primary, #222); }
+  h2 { margin: 0; color: var(--text-primary, #222); font-size: 1.1rem; }
+  .modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .modal-close {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary, #888);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+  }
+  .tabs {
+    display: flex;
+    gap: 0.25rem;
+    background: var(--input-bg, #f5f5f5);
+    border-radius: 8px;
+    padding: 0.25rem;
+    margin-bottom: 1rem;
+  }
+  .tabs button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary, #666);
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .tabs button.active {
+    background: var(--card-bg, #fff);
+    color: var(--text-primary, #222);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
   .form-grid { display: flex; flex-direction: column; gap: 0.75rem; }
   label {
     font-weight: 500;
