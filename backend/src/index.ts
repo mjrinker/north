@@ -8,10 +8,20 @@ import { getDb } from './db.js';
 
 const isProd = process.env.NODE_ENV === 'production';
 
+const frontendOrigins = (process.env.FRONTEND_ORIGINS || 'https://north-mu.vercel.app,http://localhost:5173')
+  .split(',')
+  .map((s: string) => s.trim())
+  .filter(Boolean);
+
 const yoga = createYoga<GraphQLContext>({
   schema,
   context: buildContext,
-  cors: false,
+  cors: {
+    origin: frontendOrigins,
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+  },
   graphiql: !isProd,
   maskedErrors: isProd,
 });
