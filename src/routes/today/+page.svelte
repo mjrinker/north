@@ -304,64 +304,73 @@
     }
   }
 
-  const SWIPE_THRESHOLD = 80;
-  let touchStartX = $state(0);
-  let touchStartY = $state(0);
-  let touchDx = $state(0);
-  let swipedHabitId = $state<string | null>(null);
-  let swipedRightHabitId = $state<string | null>(null);
-  let swipingHabitId = $state<string | null>(null);
+  let handlePx = 0;
+  let actionsPx = 0;
+  let dragId = $state<string | null>(null);
+  let dragStartX = 0;
+  let dragStartOffset = 0;
+  let dragOffsetX = $state(0);
+  let swipedActionsId = $state<string | null>(null);
+  let swipedHandleId = $state<string | null>(null);
+
+  function currentOffset(id: string): number {
+    if (dragId === id) {
+      return Math.max(-actionsPx, Math.min(handlePx, dragStartOffset + dragOffsetX));
+    }
+    if (swipedActionsId === id) return -actionsPx;
+    if (swipedHandleId === id) return handlePx;
+    return 0;
+  }
 
   function handleTouchStart(e: TouchEvent, habitId: string) {
-    if (swipedHabitId && swipedHabitId !== habitId) {
-      swipedHabitId = null;
-    }
-    if (swipedRightHabitId && swipedRightHabitId !== habitId) {
-      swipedRightHabitId = null;
-    }
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-    if (touchStartY > window.innerHeight - 40) return;
-    touchDx = 0;
-    swipingHabitId = habitId;
+    if (swipedActionsId && swipedActionsId !== habitId) swipedActionsId = null;
+    if (swipedHandleId && swipedHandleId !== habitId) swipedHandleId = null;
+    const first = e.touches[0];
+    if (first.clientY > window.innerHeight - 40) return;
+    const wrap = (e.currentTarget as HTMLElement).closest('.habit-wrapper');
+    const l = wrap?.querySelector('.left-reveal');
+    const r = wrap?.querySelector('.swipe-actions');
+    handlePx = l?.offsetWidth ?? 0;
+    actionsPx = r?.offsetWidth ?? 0;
+    dragStartOffset = currentOffset(habitId);
+    dragStartX = first.clientX;
+    dragOffsetX = 0;
+    dragId = habitId;
+    if (swipedActionsId === habitId) swipedActionsId = null;
+    if (swipedHandleId === habitId) swipedHandleId = null;
   }
 
   function handleTouchMove(e: TouchEvent, habitId: string) {
-    if (swipingHabitId !== habitId) return;
-    touchDx = e.touches[0].clientX - touchStartX;
+    if (dragId !== habitId) return;
+    dragOffsetX = e.touches[0].clientX - dragStartX;
   }
 
   function handleTouchEnd(e: TouchEvent, habitId: string) {
-    if (swipingHabitId !== habitId) return;
-    swipingHabitId = null;
-    const dy = e.changedTouches[0].clientY - touchStartY;
-    if (Math.abs(touchDx) > Math.abs(dy) * 3) {
-      if (touchDx < -SWIPE_THRESHOLD / 2) {
-        swipedHabitId = habitId;
-        swipedRightHabitId = null;
-      } else if (touchDx > SWIPE_THRESHOLD / 2) {
-        swipedRightHabitId = habitId;
-        swipedHabitId = null;
-      } else {
-        swipedHabitId = null;
-        swipedRightHabitId = null;
-      }
+    if (dragId !== habitId) return;
+    const off = currentOffset(habitId);
+    dragId = null;
+    dragOffsetX = 0;
+    if (off > handlePx * 0.5) {
+      swipedHandleId = habitId;
+      swipedActionsId = null;
+    } else if (off < -actionsPx * 0.5) {
+      swipedActionsId = habitId;
+      swipedHandleId = null;
     } else {
-      swipedHabitId = null;
-      swipedRightHabitId = null;
+      swipedActionsId = null;
+      swipedHandleId = null;
     }
-    touchDx = 0;
   }
 
   function openEdit(habit: Habit) {
-    swipedHabitId = null;
-    swipedRightHabitId = null;
+    swipedActionsId = null;
+    swipedHandleId = null;
     editingHabit = habit;
   }
 
   async function archiveHabit(habit: Habit) {
-    swipedHabitId = null;
-    swipedRightHabitId = null;
+    swipedActionsId = null;
+    swipedHandleId = null;
     const updated = { ...habit, status: 'archived' as const, updatedAt: new Date() };
     updateHabit(updated);
     if (get(user)) {
@@ -370,8 +379,8 @@
   }
 
   function deleteHabit(habit: Habit) {
-    swipedHabitId = null;
-    swipedRightHabitId = null;
+    swipedActionsId = null;
+    swipedHandleId = null;
     const updated = { ...habit, status: 'deleted' as const, updatedAt: new Date() };
     updateHabit(updated);
     if (get(user)) {
@@ -379,32 +388,10 @@
     }
   }
 
-  function sliderTransform(habitId: string): string {
-    if (swipedRightHabitId === habitId) return `translateX(${SWIPE_THRESHOLD}px)`;
-    if (swipedHabitId === habitId) return `translateX(${-SWIPE_THRESHOLD}px)`;
-    if (swipingHabitId === habitId) {
-      if (touchDx > 0) return `translateX(${Math.min(touchDx, SWIPE_THRESHOLD)}px)`;
-      if (touchDx < 0) return `translateX(${Math.max(touchDx, -SWIPE_THRESHOLD)}px)`;
-    }
-    return '';
-  }
-
-  function actionsTransform(habitId: string): string {
-    if (swipedHabitId === habitId) return 'translateX(0)';
-    if (swipingHabitId === habitId && touchDx < 0) {
-      const reveal = Math.min(Math.abs(touchDx) / SWIPE_THRESHOLD, 1);
-      return `translateX(${(1 - reveal) * 100}%)`;
-    }
-    return 'translateX(100%)';
-  }
-
-  function leftRevealTransform(habitId: string): string {
-    if (swipedRightHabitId === habitId) return 'translateX(0)';
-    if (swipingHabitId === habitId && touchDx > 0) {
-      const reveal = Math.min(touchDx / SWIPE_THRESHOLD, 1);
-      return `translateX(${-(1 - reveal) * 100}%)`;
-    }
-    return 'translateX(-100%)';
+  function sliderTransform(id: string): string {
+    const off = currentOffset(id);
+    if (off === 0) return '';
+    return `translateX(${off}px)`;
   }
 
   let pullRefreshDistance = $state(0);
@@ -544,7 +531,7 @@
       {#each group.habits as habit (habit.id)}
         <div animate:flip={{ duration: 200 }}>
           <div class="habit-wrapper" data-habit-id={habit.id}>
-            <div class="left-reveal" style="transform: {leftRevealTransform(habit.id)}">
+            <div class="left-reveal">
               {#if sortMode === 'custom'}
                 <span
                   class="drag-handle"
@@ -565,10 +552,7 @@
             >
               <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} />
             </div>
-            <div
-              class="swipe-actions"
-              style="transform: {actionsTransform(habit.id)}"
-            >
+            <div class="swipe-actions">
               <button class="swipe-btn archive" on:click={() => archiveHabit(habit)} aria-label="Archive">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
               </button>
@@ -774,7 +758,6 @@
     display: flex;
     align-items: stretch;
     z-index: 0;
-    transition: transform 0.2s ease;
   }
 
   .habit-slider {
@@ -806,7 +789,6 @@
     align-items: stretch;
     z-index: 0;
     gap: 2px;
-    transition: transform 0.2s ease;
   }
   .swipe-btn {
     border: none;
