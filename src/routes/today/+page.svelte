@@ -159,7 +159,10 @@
 
   function reorder(fromId: string, targetId: string) {
     if (!fromId || fromId === targetId) return;
-    const ids = habits.map(h => h.id);
+    const ids = habits
+      .slice()
+      .sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity))
+      .map(h => h.id);
     let fromIdx = ids.indexOf(fromId);
     let toIdx = ids.indexOf(targetId);
     if (fromIdx === -1) { ids.push(fromId); fromIdx = ids.length - 1; }
@@ -171,6 +174,7 @@
 
   // HTML5 drag-and-drop (desktop)
   function handleDragStart(e: DragEvent, habitId: string) {
+    if (sortMode !== 'custom') return;
     dragHabitId = habitId;
     e.dataTransfer!.effectAllowed = 'move';
     e.dataTransfer!.setData('text/plain', habitId);
