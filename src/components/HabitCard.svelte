@@ -353,7 +353,8 @@
     {:else if habit.type === 'quantity'}
       <div class="action-control">
         <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(-1); }} class="btn small">−</button>
-        <div class="qty-input-wrap" onclick={(e) => e.stopPropagation()}>
+        <div class="qty-num-wrap">
+          <div class="qty-input-wrap" onclick={(e) => e.stopPropagation()}>
           <input
             type="number"
             value={todayEntry?.value ?? 0}
@@ -385,10 +386,11 @@
             }}
           />
         </div>
-        <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(1); }} class="btn small">+</button>
         {#if habit.unit}
           <span class="qty-unit">{habit.unit}</span>
         {/if}
+        </div>
+        <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(1); }} class="btn small">+</button>
       </div>
     {:else if habit.type === 'duration'}
       <div class="action-control">
@@ -406,7 +408,7 @@
         {#if todayEntry && todayEntry.value > 0 && !timerState.running}
           <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn-icon restart" aria-label="Reset"><Icon icon="mdi:restart" style="color: inherit" /></button>
         {/if}
-        <div class="dur-input-wrap" class:running={timerState.running} style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
+        <div class="dur-input-wrap" class:running={timerState.running} class:standard-met={isStandardMet} style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
           {#if (timerState.running ? timerHrs : durHours) > 0}
             <input
               type="text"
@@ -643,13 +645,25 @@
   }
   .qty-input::-webkit-outer-spin-button,
   .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .qty-num-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    height: 2.4rem;
+    justify-content: flex-start;
+  }
+  .qty-num-wrap .qty-input-wrap { height: 1.85rem; }
+  .qty-num-wrap .qty-input { height: 1.85rem; font-size: 0.85rem; }
   .qty-unit {
-    font-size: 0.7rem;
+    font-size: 0.6rem;
+    line-height: 0.9;
     color: var(--text-secondary, #888);
     max-width: 3.5rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    margin-top: 1px;
   }
   .qty-input.standard-met { color: #2e7d32; }
   .qty-input.target-met {
@@ -684,6 +698,9 @@
   .dur-input:last-child { text-align: left; }
   .dur-input-wrap.running { border: 1px solid var(--card-border, #ccc); padding: 0 0.4rem; background: transparent; }
   .dur-input-wrap.running .dur-input:disabled { background: transparent; }
+  .dur-input-wrap.standard-met:not(.running) .dur-input { color: #2e7d32; }
+  .dur-input-wrap.standard-met:not(.running) .dur-input::placeholder { color: #2e7d32; }
+  .dur-input-wrap.standard-met:not(.running) .dur-sep { color: #2e7d32; }
 
 
   .dur-input::-webkit-outer-spin-button,
