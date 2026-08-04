@@ -37,7 +37,7 @@
   let color = $state(habit.metadata?.color ?? '');
   let icon = $state(habit.metadata?.icon ?? '');
   let emoji = $state(habit.metadata?.emoji ?? '');
-  let unit = $state(habit.unit || (habit.type === 'duration' ? 'minutes' : 'times'));
+  let unit = $state(habit.unit || (habit.type === 'duration' ? 'minute' : 'time'));
   let startOfWeek = $state(habit.schedule.startOfWeek ?? 1);
   let showStartOfWeek = $derived(frequency === 'weekly' || frequency === 'days_per_week');
 
@@ -113,7 +113,7 @@
     </label>
 
     {#if showStandard}
-      <label>Unit <input type="text" bind:value={unit} /></label>
+      <label>Unit <input type="text" bind:value={unit} placeholder="singular, e.g. cup" /></label>
       <label>Standard <input type="number" bind:value={standard} /></label>
       <label>Goal <input type="number" bind:value={target} /></label>
     {/if}
