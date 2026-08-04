@@ -353,8 +353,7 @@
     {:else if habit.type === 'quantity'}
       <div class="action-control">
         <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(-1); }} class="btn small">−</button>
-        <div class="qty-num-wrap">
-          <div class="qty-input-wrap" onclick={(e) => e.stopPropagation()}>
+        <div class="qty-input-wrap" onclick={(e) => e.stopPropagation()}>
           <input
             type="number"
             value={todayEntry?.value ?? 0}
@@ -386,11 +385,10 @@
             }}
           />
         </div>
+        <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(1); }} class="btn small">+</button>
         {#if habit.unit}
           <span class="qty-unit">{habit.unit}</span>
         {/if}
-        </div>
-        <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(1); }} class="btn small">+</button>
       </div>
     {:else if habit.type === 'duration'}
       <div class="action-control">
@@ -563,6 +561,7 @@
     display: flex;
     align-items: center;
     gap: 0.35rem;
+    position: relative;
   }
   .btn {
     border: none;
@@ -645,24 +644,20 @@
   }
   .qty-input::-webkit-outer-spin-button,
   .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .qty-num-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0;
-    height: 2.4rem;
-    justify-content: flex-start;
-  }
-  .qty-num-wrap .qty-input-wrap { height: 1.85rem; }
-  .qty-num-wrap .qty-input { height: 1.85rem; font-size: 0.85rem; }
+  .qty-num-wrap { display: none; }
   .qty-unit {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
     font-size: 0.6rem;
-    line-height: 0.9;
+    line-height: 1;
     color: var(--text-secondary, #888);
-    max-width: 3.5rem;
+    max-width: 4rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    pointer-events: none;
     margin-top: 1px;
   }
   .qty-input.standard-met { color: #2e7d32; }
