@@ -306,7 +306,7 @@
 </script>
 
 <div class="habit-card" role="button" tabindex="0"
-  style="--habit-color: {habit.metadata?.color || 'var(--text-primary)'};"
+  style="--habit-color: {habit.metadata?.color || 'transparent'}; --habit-ink: {habit.metadata?.color || 'var(--text-primary)'};"
   use:useLongPressStart
   onclick={() => { if (!longPressFired) onEdit?.(); }}
   onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit?.(); } }}>
@@ -452,11 +452,11 @@
 </div>
 
 <style>
-  .habit-card {
+.habit-card {
     position: relative;
-    background: color-mix(in srgb, var(--habit-color) 9%, var(--card-bg));
+    background: var(--card-bg);
     border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 8px;
+    border-left: 4px solid var(--habit-color, transparent);
     padding: 0.75rem 1rem;
     display: flex;
     flex-direction: column;
@@ -488,7 +488,7 @@
     align-items: center;
     font-size: 1.15rem;
     line-height: 1;
-    color: var(--habit-color, var(--text-primary, #222));
+    color: var(--habit-ink, var(--text-primary, #222));
   }
   .habit-glyph :global(svg), .habit-glyph :global(.iconify) { font-size: 1.15rem; color: inherit; }
   .category-badge {
