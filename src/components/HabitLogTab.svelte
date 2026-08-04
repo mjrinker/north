@@ -86,6 +86,7 @@
   let steps = $state<number[]>([...(habit.metadata?.quickSteps ?? [])]);
   let stepInput = $state('');
   let stepUnit = $state<'min' | 'sec'>('min');
+  let stepSign = $state<'inc' | 'dec'>('inc');
   let showAddStep = $state(false);
 
   function persistSteps(next: number[]) {
@@ -95,8 +96,8 @@
   function handleAddStep() {
     const n = parseInt(stepInput);
     if (isNaN(n) || n <= 0) return;
-    const sec = habit.type === 'duration' ? (stepUnit === 'min' ? n * 60 : n) : n;
-    persistSteps([...steps, sec]);
+    const amt = habit.type === 'duration' ? (stepUnit === 'min' ? n * 60 : n) : n;
+    persistSteps([...steps, stepSign === 'dec' ? -amt : amt]);
     stepInput = '';
     showAddStep = false;
   }
@@ -107,13 +108,15 @@
     const amt = habit.type === 'duration' ? sec / 60 : sec;
     await log(entryValue + amt);
   }
-  function fmtStep(sec: number): string {
-    if (habit.type === 'quantity') return String(sec);
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    if (m > 0 && s > 0) return `${m}m ${s}s`;
-    if (m > 0) return `${m}m`;
-    return `${s}s`;
+  function fmtStep(v: number): string {
+    const sign = v < 0 ? '−' : '+';
+    const abs = Math.abs(v);
+    if (habit.type === 'quantity') return sign + abs;
+    const m = Math.floor(abs / 60);
+    const s = abs % 60;
+    if (m > 0 && s > 0) return `${sign}${m}m ${s}s`;
+    if (m > 0) return `${sign}${m}m`;
+    return `${sign}${s}s`;
   }
 
   // ---- Duration timer ----
@@ -233,29 +236,34 @@
 
   {#if habit.type !== 'binary'}
     <div class="stepper">
-      <button class="step-btn minus" onclick={dec} aria-label="Decrease"><Icon icon="mdi:minus" /></button>
-      {#each steps as sec, i (sec + '-' + i)}
-        <div class="step-wrap">
-          <button class="step-btn custom" onclick={() => applyStep(sec)}>{fmtStep(sec)}</button>
-          <button class="step-del" aria-label="Remove step" onclick={() => removeStep(i)}>×</button>
-        </div>
-      {/each}
-      {#if !showAddStep}
-        <button class="step-btn add" onclick={() => showAddStep = true} aria-label="Add custom step"><Icon icon="mdi:plus" /></button>
-      {:else}
-        <div class="add-step">
-          <input type="number" min="0" placeholder={habit.type === 'duration' ? 'e.g. 5' : 'e.g. 3'} bind:value={stepInput} onkeydown={(e) => { if (e.key === 'Enter') handleAddStep(); }} />
-          {#if habit.type === 'duration'}
-            <select bind:value={stepUnit}>
-              <option value="min">min</option>
-              <option value="sec">sec</option>
-            </select>
-          {/if}
-          <button class="step-btn add-ok" onclick={handleAddStep}>Add</button>
-          <button class="step-btn add-close" onclick={() => { showAddStep = false; stepInput = ''; }}>×</button>
-        </div>
-      {/if}
-      <button class="step-btn plus" onclick={inc} aria-label="Increase"><Icon icon="mdi:plus" /></button>
+      <div class="stepper-default">
+        <button class="step-btn step-default minus" onclick={dec} aria-label="Decrease"><Icon icon="mdi:minus" /></button>
+        <button class="step-btn step-default plus" onclick={inc} aria-label="Increase"><Icon icon="mdi:plus" /></button>
+      </div>
+      <div class="stepper-custom">
+        {#each steps as sec, i (sec + '-' + i)}
+          <div class="step-wrap">
+            <button class="step-btn custom" onclick={() => applyStep(sec)}>{fmtStep(sec)}</button>
+            <button class="step-del" aria-label="Remove step" onclick={() => removeStep(i)}>×</button>
+          </div>
+        {/each}
+        {#if !showAddStep}
+          <button class="step-fab" onclick={() => showAddStep = true} aria-label="Add custom step"><Icon icon="mdi:bookmark-plus-outline" /></button>
+        {:else}
+          <div class="add-step">
+            <button class="sign-toggle" onclick={() => stepSign = stepSign === 'inc' ? 'dec' : 'inc'} aria-label="Toggle sign">{stepSign === 'inc' ? '+' : '−'}</button>
+            <input type="number" min="0" placeholder={habit.type === 'duration' ? 'e.g. 5' : 'e.g. 3'} bind:value={stepInput} onkeydown={(e) => { if (e.key === 'Enter') handleAddStep(); }} />
+            {#if habit.type === 'duration'}
+              <select bind:value={stepUnit}>
+                <option value="min">min</option>
+                <option value="sec">sec</option>
+              </select>
+            {/if}
+            <button class="add-ok" onclick={handleAddStep}>Add</button>
+            <button class="step-btn add-close" onclick={() => { showAddStep = false; stepInput = ''; }}>×</button>
+          </div>
+        {/if}
+      </div>
     </div>
   {/if}
 
@@ -361,10 +369,22 @@
   .dial-actions .act.restart { background: var(--card-border, #bbb); }
   .stepper {
     display: flex;
+    flex-direction: column;
     align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+  }
+  .stepper-default {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .stepper-custom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     flex-wrap: wrap;
-    justify-content: center;
   }
   .step-btn {
     width: 3rem;
@@ -381,9 +401,24 @@
     font-weight: 700;
   }
   .step-btn:disabled { opacity: 0.4; }
-  .step-btn.minus, .step-btn.plus, .step-btn.add { background: var(--btn-secondary-bg, #eee); }
+  .step-default { width: 3.75rem; height: 3.75rem; }
+  .step-default :global(svg), .step-default :global(.iconify) { font-size: 1.8rem; }
+  .step-btn.custom { width: auto; min-width: 2.6rem; height: 2.6rem; padding: 0 0.6rem; border-radius: 999px; font-size: 0.9rem; }
   .step-btn :global(svg), .step-btn :global(.iconify) { font-size: 1.4rem; }
-  .step-btn.custom { width: auto; min-width: 3rem; padding: 0 0.6rem; border-radius: 999px; }
+  .step-fab {
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    border: 1px dashed var(--card-border, #ccc);
+    background: transparent;
+    color: var(--text-secondary, #888);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  .step-fab :global(svg), .step-fab :global(.iconify) { font-size: 1.3rem; }
   .step-wrap { position: relative; }
   .step-del {
     position: absolute;
@@ -419,7 +454,22 @@
     box-sizing: border-box;
   }
   .add-step select { width: 3.6rem; }
-  .step-btn.add-ok { width: auto; padding: 0 0.7rem; border-radius: 999px; background: var(--accent, #0066cc); color: var(--accent-text, #fff); }
+  .sign-toggle {
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    border: 1px solid var(--card-border, #ccc);
+    background: var(--btn-secondary-bg, #eee);
+    color: var(--text-primary, #222);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .add-ok { width: auto; padding: 0 0.7rem; height: 2.2rem; border-radius: 999px; background: var(--accent, #0066cc); color: var(--accent-text, #fff); border: none; font-weight: 600; cursor: pointer; }
   .step-btn.add-close { width: 1.9rem; height: 1.9rem; background: transparent; border: none; }
   .status {
     display: flex;
