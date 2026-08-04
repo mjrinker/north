@@ -117,11 +117,6 @@
   <a href="/history" class="bar-link" class:active={isActive('/history')} aria-label="History">
     <Icon icon="mdi:history" />
   </a>
-  {#if userHasPermission(roles, 'access_admin')}
-    <a href="/admin" class="bar-link" class:active={isActive('/admin')} aria-label="Admin">
-      <Icon icon="mdi:shield-account" />
-    </a>
-  {/if}
 
   <button class="fab" onclick={handleCreateHabit} aria-label="Add Habit">
     <Icon icon="mdi:plus" />
@@ -141,6 +136,12 @@
       </button>
       {#if showAvatarMenu}
         <div class="avatar-menu" role="menu">
+          {#if userHasPermission(roles, 'access_admin')}
+            <a href="/admin" class="menu-item" role="menuitem" onclick={() => showAvatarMenu = false}>
+              <Icon icon="mdi:shield-account" />
+              Admin
+            </a>
+          {/if}
           <a href="/settings" class="menu-item" role="menuitem" onclick={() => showAvatarMenu = false}>
             <Icon icon="mdi:cog" />
             Settings
