@@ -69,6 +69,7 @@ function readCachedUser(): AppAuthUser | null {
 
 async function init() {
   const token = getToken()
+  console.log('[auth] init: token present =', !!token, '| len =', token ? token.length : 0)
   if (!token) {
     user.set(null)
     isLoading.set(false)
@@ -136,6 +137,7 @@ async function completeGoogleSignIn(idToken: string) {
       { auth: false },
     )
     setToken(data.googleSignIn.token)
+    console.log('[auth] sign-in resp keys:', Object.keys(data?.googleSignIn ?? {}), '| token len:', data?.googleSignIn?.token?.length, '| user:', data?.googleSignIn?.user?.email)
     const u = toAppUser(data.googleSignIn.user)
     user.set(u)
     cacheUser(u)
