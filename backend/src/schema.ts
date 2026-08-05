@@ -35,15 +35,15 @@ export const schema = createSchema<GraphQLContext>({
     scalar JSON
 
     enum SortDirection {
-      asc
-      desc
+      ASC
+      DESC
     }
 
     enum HabitSortBy {
-      sortOrder
-      title
-      createdAt
-      updatedAt
+      SORT_ORDER
+      TITLE
+      CREATED_AT
+      UPDATED_AT
     }
 
     type User {

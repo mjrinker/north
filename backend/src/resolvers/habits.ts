@@ -67,11 +67,11 @@ export const habitResolvers = {
       if (args.tags?.length) query = query.contains('tags', args.tags);
       if (args.title) query = query.ilike('title', `%${args.title}%`);
 
-      const sortColumn = (args.sortBy ?? 'sortOrder') === 'sortOrder' ? 'sort_order'
-        : args.sortBy === 'title' ? 'title'
-        : args.sortBy === 'createdAt' ? 'created_at'
+      const sortColumn = (args.sortBy ?? 'SORT_ORDER') === 'SORT_ORDER' ? 'sort_order'
+        : args.sortBy === 'TITLE' ? 'title'
+        : args.sortBy === 'CREATED_AT' ? 'created_at'
         : 'updated_at';
-      const ascending = args.sortDir !== 'desc';
+      const ascending = args.sortDir !== 'DESC';
       query = query.order(sortColumn, { ascending });
 
       const { data, error } = await query;

@@ -17,7 +17,7 @@
     status
   }
 }`,
-      variables: { status: 'active', title: 'water', sortBy: 'title', sortDir: 'asc' },
+      variables: { status: 'active', title: 'water', sortBy: 'TITLE', sortDir: 'ASC' },
       response: `{
   "data": {
     "habits": [
@@ -263,15 +263,15 @@ type UserSettings {
     {
       title: 'Enums',
       code: `enum SortDirection {
-  asc
-  desc
+  ASC
+  DESC
 }
 
 enum HabitSortBy {
-  sortOrder
-  title
-  createdAt
-  updatedAt
+  SORT_ORDER
+  TITLE
+  CREATED_AT
+  UPDATED_AT
 }`,
     },
     {
