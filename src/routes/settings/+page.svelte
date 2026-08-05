@@ -8,6 +8,7 @@
   import { habitsStore } from '../../stores/habits'
   import { pauseAllHabits, resumeAllHabits } from '../../lib/habitUtils'
   import { onDestroy } from 'svelte'
+  import { getMyApiKeys, createMyApiKey, revokeMyApiKey, copyToClipboard, type ApiKey } from '../../lib/apiKeys'
 
   let currentUser = $state<any>(null)
   let syncing = $state(false)
@@ -106,6 +107,57 @@
     }
     syncing = false
   }
+
+  let myKeys = $state<ApiKey[]>([])
+  let newKeyName = $state('')
+  let apiMsg = $state('')
+  let apiBusy = $state(false)
+
+  async function loadMyKeys() {
+    try {
+      myKeys = await getMyApiKeys()
+    } catch (e: any) {
+      apiMsg = `Could not load keys: ${e.message}`
+    }
+  }
+
+  $effect(() => {
+    if (currentUser) loadMyKeys()
+    else myKeys = []
+  })
+
+  async function generateKey() {
+    if (!currentUser || apiBusy) return
+    apiBusy = true
+    apiMsg = ''
+    try {
+      const key = await createMyApiKey(newKeyName.trim() || undefined)
+      await loadMyKeys()
+      newKeyName = ''
+      apiMsg = 'Key created. Copy it now — it is shown in full only on creation.'
+      const ok = await copyToClipboard(key.apiKey)
+      if (ok) apiMsg = 'Key created and copied to clipboard.'
+    } catch (e: any) {
+      apiMsg = `Could not create key: ${e.message}`
+    }
+    apiBusy = false
+  }
+
+  async function copyKey(k: ApiKey) {
+    const ok = await copyToClipboard(k.apiKey)
+    apiMsg = ok ? `Copied key for "${k.name || 'unnamed key'}"` : 'Copy failed'
+  }
+
+  async function revokeKey(k: ApiKey) {
+    if (!confirm(`Revoke key "${k.name || 'unnamed key'}"? External tools using it will stop working.`)) return
+    try {
+      await revokeMyApiKey(k.id)
+      myKeys = myKeys.filter(x => x.id !== k.id)
+      apiMsg = 'Key revoked.'
+    } catch (e: any) {
+      apiMsg = `Could not revoke key: ${e.message}`
+    }
+  }
 </script>
 
 <div class="page">
@@ -203,6 +255,37 @@
       {/if}
     {:else}
       <p class="muted">Sign in above to enable cloud sync.</p>
+    {/if}
+  </section>
+
+  <section class="card">
+    <h2>API Key</h2>
+    <p>Use an API key to connect external tools like iOS Shortcuts. It grants full access to your account data — keep it secret.</p>
+    {#if currentUser}
+      {#if myKeys.length > 0}
+        <div class="api-key-list">
+          {#each myKeys as k (k.id)}
+            <div class="api-key-row">
+              <span class="api-key-name">{k.name || 'Unnamed key'}</span>
+              <div class="api-key-actions">
+                <button class="btn" onclick={() => copyKey(k)}>Copy</button>
+                <button class="btn btn-danger" onclick={() => revokeKey(k)}>Revoke</button>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <p class="muted">You don't have any API keys yet.</p>
+      {/if}
+      <div class="api-key-new">
+        <input type="text" placeholder="Label (optional)" bind:value={newKeyName} disabled={apiBusy} />
+        <button class="btn" onclick={generateKey} disabled={apiBusy}>{apiBusy ? 'Creating…' : 'Generate key'}</button>
+      </div>
+      {#if apiMsg}
+        <p class="status">{apiMsg}</p>
+      {/if}
+    {:else}
+      <p class="muted">Sign in above to manage an API key.</p>
     {/if}
   </section>
 
@@ -431,5 +514,55 @@
     gap: 0.5rem;
     flex-wrap: wrap;
     margin-bottom: 0.5rem;
+  }
+  .api-key-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .api-key-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--input-bg, #f5f5f5);
+    border: 1px solid var(--card-border, #eee);
+    border-radius: 8px;
+  }
+  .api-key-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary, #222);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .api-key-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+  }
+  .btn-danger {
+    background: rgba(211, 47, 47, 0.1);
+    color: #d32f2f;
+    border-color: rgba(211, 47, 47, 0.3);
+  }
+  .api-key-new {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .api-key-new input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    background: var(--input-bg, #fff);
+    color: var(--text-primary, #222);
+    box-sizing: border-box;
   }
 </style>

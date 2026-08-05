@@ -198,6 +198,7 @@ export const schema = createSchema<GraphQLContext>({
       identity(id: ID!): Identity
       identities: [Identity!]!
       settings: UserSettings
+      myApiKeys: [ApiKey!]!
       apiKeys(userId: String): [ApiKey!]!
     }
 
@@ -217,6 +218,8 @@ export const schema = createSchema<GraphQLContext>({
       updateIdentity(id: ID!, name: String, description: String, goals: [String!]): Identity
       deleteIdentity(id: ID!): Boolean!
       upsertSettings(input: UpsertSettingsInput!): UserSettings!
+      createMyApiKey(name: String): ApiKey!
+      revokeMyApiKey(id: ID!): Boolean!
       createApiKey(userId: ID!, name: String): ApiKey!
       revokeApiKey(id: ID!): Boolean!
       clientLogs(entries: [ClientLogInput!]!): Boolean!
