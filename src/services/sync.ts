@@ -1,8 +1,27 @@
 // src/services/sync.ts
+import { writable, get } from 'svelte/store'
 import { ApiError } from '../lib/api';
 import { apiSyncProvider } from './sync.providers/api';
-import { enqueue, dequePending, dequeue, hasPending } from './outbox';
-import type { OutboxItem } from './outbox';
+import { enqueue, dequePending, dequeue, hasPending, pendingCount } from './outbox';
+
+export interface SyncStatus {
+  online: boolean
+  syncing: boolean
+  pending: number
+}
+
+export const syncStatus = writable<SyncStatus>({ online: true, syncing: false, pending: 0 })
+
+async function refreshStatus() {
+  const online = typeof navigator !== 'undefined' ? navigator.onLine : true
+  const pending = await pendingCount()
+  const prev = get(syncStatus)
+  syncStatus.set({ ...prev, online, pending })
+}
+
+function setSyncing(syncing: boolean) {
+  syncStatus.update(s => ({ ...s, syncing }))
+}
 
 let syncEnabled = true
 let retryTimer: ReturnType<typeof setTimeout> | null = null
@@ -30,6 +49,7 @@ export async function pushRecord(collection: string, id: string, data: any) {
       console.error(`Sync save ${collection}/${id} failed:`, e)
     }
   }
+  await refreshStatus()
 }
 
 export async function removeRecord(collection: string, id: string) {
@@ -46,6 +66,7 @@ export async function removeRecord(collection: string, id: string) {
       console.error(`Sync delete ${collection}/${id} failed:`, e)
     }
   }
+  await refreshStatus()
 }
 
 export async function flushOutbox(): Promise<void> {
@@ -54,23 +75,30 @@ export async function flushOutbox(): Promise<void> {
   const pending = await dequePending()
   if (pending.length === 0) return
 
-  for (const item of pending) {
-    const seq = item.seq
-    try {
-      if (item.delete) {
-        await apiSyncProvider.deleteRecord(item.collection, item.id)
-      } else {
-        await apiSyncProvider.saveRecord(item.collection, item.id, item.data)
+  setSyncing(true)
+  try {
+    for (const item of pending) {
+      const seq = item.seq
+      try {
+        if (item.delete) {
+          await apiSyncProvider.deleteRecord(item.collection, item.id)
+        } else {
+          await apiSyncProvider.saveRecord(item.collection, item.id, item.data)
+        }
+        if (seq != null) await dequeue(seq)
+        await refreshStatus()
+      } catch (e) {
+        if (isNetworkError(e)) {
+          scheduleFlush()
+          return
+        }
+        console.error(`Outbox ${item.collection}/${item.id} permanently failed, dropping:`, e)
+        if (seq != null) await dequeue(seq)
+        await refreshStatus()
       }
-      if (seq != null) await dequeue(seq)
-    } catch (e) {
-      if (isNetworkError(e)) {
-        scheduleFlush()
-        return
-      }
-      console.error(`Outbox ${item.collection}/${item.id} permanently failed, dropping:`, e)
-      if (seq != null) await dequeue(seq)
     }
+  } finally {
+    setSyncing(false)
   }
 }
 
@@ -86,8 +114,13 @@ function scheduleFlush() {
 function initOnlineRetry() {
   if (typeof window === 'undefined') return
   window.addEventListener('online', () => {
+    void refreshStatus()
     void flushOutbox()
   })
+  window.addEventListener('offline', () => {
+    void refreshStatus()
+  })
+  void refreshStatus()
 }
 
 initOnlineRetry()

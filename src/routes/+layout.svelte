@@ -12,6 +12,7 @@
   import { goto } from '$app/navigation';
   import { showCreateHabit } from '../stores/createHabit';
   import ErrorBoundary from '../components/ErrorBoundary.svelte';
+  import SyncStatusBadge from '../components/SyncStatusBadge.svelte';
   import Icon from '@iconify/svelte';
   import { iconDataUrl } from '../lib/icon';
   let { children }: { children: any } = $props();
@@ -125,6 +126,7 @@
   <a href="/stats" class="bar-link" class:active={isActive('/stats')} aria-label="Stats">
     <Icon icon="mdi:chart-bar" />
   </a>
+  <SyncStatusBadge />
   <div class="avatar-wrap" bind:this={avatarMenuEl}>
     {#if currentUser}
       <button class="bar-link avatar-btn" onclick={toggleAvatarMenu} onkeydown={handleAvatarKeydown} aria-label="Account" aria-expanded={showAvatarMenu}>

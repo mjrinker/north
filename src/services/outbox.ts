@@ -61,3 +61,13 @@ export async function hasPending(): Promise<boolean> {
     return false;
   }
 }
+
+export async function pendingCount(): Promise<number> {
+  if (!isBrowser) return 0;
+  try {
+    const db = await getDB();
+    return (await db.count(STORE)) || 0;
+  } catch {
+    return 0;
+  }
+}

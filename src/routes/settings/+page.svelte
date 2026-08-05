@@ -214,6 +214,13 @@
         {/if}
       </div>
     </div>
+    <div class="setting-row">
+      <span class="setting-label">Show sync status</span>
+      <label class="toggle">
+        <input type="checkbox" checked={s.showSyncStatus} onchange={(e) => update({ showSyncStatus: (e.target as HTMLInputElement).checked })} />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
   </section>
 
   <section class="card">
