@@ -260,7 +260,7 @@
 
   <section class="card">
     <h2>API Key</h2>
-    <p>Use an API key to connect external tools like iOS Shortcuts. It grants full access to your account data — keep it secret.</p>
+    <p>Use an API key to connect external tools to the North API. It grants full access to your account data — keep it secret. See the <a class="docs-link" href="/api-docs">API documentation</a> for examples.</p>
     {#if currentUser}
       {#if myKeys.length > 0}
         <div class="api-key-list">
@@ -564,5 +564,9 @@
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
     box-sizing: border-box;
+  }
+  .docs-link {
+    color: var(--accent, #0066cc);
+    text-decoration: underline;
   }
 </style>
