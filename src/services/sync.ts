@@ -1,6 +1,4 @@
 // src/services/sync.ts
-import { get } from 'svelte/store'
-import { user } from '../stores/auth'
 import { apiSyncProvider } from './sync.providers/api'
 
 let syncEnabled = true
@@ -11,8 +9,7 @@ export function setSyncEnabled(enabled: boolean) {
 
 export async function pushRecord(collection: string, id: string, data: any) {
   if (!syncEnabled) return
-  const uid = get(user)?.id
-  if (!uid) return
+  if (!(await apiSyncProvider.isAvailable())) return
   try {
     await apiSyncProvider.saveRecord(collection, id, data)
   } catch (e) {
@@ -22,8 +19,7 @@ export async function pushRecord(collection: string, id: string, data: any) {
 
 export async function removeRecord(collection: string, id: string) {
   if (!syncEnabled) return
-  const uid = get(user)?.id
-  if (!uid) return
+  if (!(await apiSyncProvider.isAvailable())) return
   try {
     await apiSyncProvider.deleteRecord(collection, id)
   } catch (e) {
