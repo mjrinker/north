@@ -7,7 +7,14 @@
       description: 'Get metadata for every habit.',
       query: `{
   habits {
-    id title type standard target unit metadata status
+    id
+    title
+    type
+    standard
+    target
+    unit
+    metadata
+    status
   }
 }`,
     },
@@ -16,7 +23,14 @@
       description: 'Get a single habit by its id.',
       query: `query GetHabit($id: ID!) {
   habit(id: $id) {
-    id title type standard target unit metadata status
+    id
+    title
+    type
+    standard
+    target
+    unit
+    metadata
+    status
   }
 }`,
       variables: { id: 'HABIT_ID' },
@@ -26,7 +40,9 @@
       description: 'Get today’s logged value for a habit.',
       query: `query GetEntry($habitId: ID!, $date: String!) {
   entry(habitId: $habitId, date: $date) {
-    value standardMet targetMet
+    value
+    standardMet
+    targetMet
   }
 }`,
       variables: { habitId: 'HABIT_ID', date: '2026-08-04' },
@@ -36,7 +52,9 @@
       description: 'Record a value for a habit. standardMet and targetMet are computed on the server.',
       query: `mutation LogEntry($input: UpsertEntryInput!) {
   upsertEntry(input: $input) {
-    value standardMet targetMet
+    value
+    standardMet
+    targetMet
   }
 }`,
       variables: { input: { habitId: 'HABIT_ID', date: '2026-08-04', value: 2.5 } },
@@ -46,7 +64,10 @@
       description: 'See your API keys and when they were last used.',
       query: `{
   myApiKeys {
-    id name createdAt lastUsedAt
+    id
+    name
+    createdAt
+    lastUsedAt
   }
 }`,
     },
