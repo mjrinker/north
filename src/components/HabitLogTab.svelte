@@ -7,7 +7,7 @@
   import { timerStates, setTimerState, clearTimerState, defaultTimer, type AllTimers } from '../lib/timerStore';
   import { onMount, onDestroy } from 'svelte';
   import Icon from '@iconify/svelte';
-  import pluralize from 'pluralize';
+  import { pluralizeUnit } from '../lib/units';
 
   let { habit, date = getLocalDateString() }: { habit: Habit; date?: string } = $props();
 
@@ -19,7 +19,7 @@
   });
 
   let standardMet = $derived(entryValue >= habit.standard);
-  let unitLabel = $derived(habit.unit ? pluralize(habit.unit, Math.round(entryValue)) : '');
+  let unitLabel = $derived(habit.unit ? pluralizeUnit(habit.unit, Math.round(entryValue)) : '');
 
   async function log(value: number) {
     const v = Math.max(0, value);
@@ -269,7 +269,7 @@
 
   <div class="status">
     <span class="status-dot" class:met={standardMet}></span>
-    <span>{standardMet ? 'Standard met' : 'Not at standard'} · standard {habit.standard}{habit.unit ? ' ' + pluralize(habit.unit, habit.standard) : ''}</span>
+    <span>{standardMet ? 'Standard met' : 'Not at standard'} · standard {habit.standard}{habit.unit ? ' ' + pluralizeUnit(habit.unit, habit.standard) : ''}</span>
   </div>
 </div>
 

@@ -11,7 +11,7 @@
   import { onDestroy } from 'svelte';
   import { tick as svelteTick } from 'svelte';
   import Icon from '@iconify/svelte';
-  import pluralize from 'pluralize';
+  import { pluralizeUnit } from '../lib/units';
   import { addLog } from '../lib/completionLog';
   import { marked } from 'marked';
   import type { DepPopoverState } from '../types';
@@ -33,7 +33,7 @@
   let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + date) : false);
   let isStandardMet = $derived(todayEntry ? todayEntry.value >= habit.standard : false);
   let isTargetMet = $derived(todayEntry && habit.target != null ? todayEntry.value >= habit.target : false);
-  let unitLabel = $derived(habit.unit ? pluralize(habit.unit, Math.round(todayEntry?.value ?? 0)) : '');
+  let unitLabel = $derived(habit.unit ? pluralizeUnit(habit.unit, Math.round(todayEntry?.value ?? 0)) : '');
   let depResults = $state<{ hid: string; met: boolean }[]>([]);
 
   function openDepPopover(e: Event) {

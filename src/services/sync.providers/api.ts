@@ -47,6 +47,14 @@ function toApiHabitInput(h: Habit) {
   };
 }
 
+function mergeMetadata(local: any, server: any) {
+  const meta = { ...server };
+  for (const key of ['color', 'icon', 'emoji', 'category']) {
+    if (!meta[key] && local?.[key]) meta[key] = local[key];
+  }
+  return meta;
+}
+
 function fromApiHabit(h: any): Habit {
   const schedule = h.schedule && typeof h.schedule === 'object' ? { ...h.schedule } : h.schedule;
   if (schedule?.startDate) schedule.startDate = toDate(schedule.startDate);
@@ -323,7 +331,10 @@ class ApiSyncProvider implements SyncProvider {
         try {
           const h = fromApiHabit(row);
           const idx = mergedHabits.findIndex(x => x.id === h.id);
-          if (idx >= 0) mergedHabits[idx] = h;
+          if (idx >= 0) {
+            const local = mergedHabits[idx];
+            mergedHabits[idx] = { ...h, metadata: mergeMetadata(local.metadata, h.metadata) };
+          }
           else mergedHabits.push(h);
         } catch {}
       }
