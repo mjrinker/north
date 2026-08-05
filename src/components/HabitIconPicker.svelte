@@ -152,7 +152,7 @@
     if (!clean) { results = FALLBACK_ICONS; return; }
     searching = true;
     try {
-      const res = await fetch(`https://api.iconify.design/search?query=${encodeURIComponent(clean)}&prefix=mdi&limit=96`);
+      const res = await fetch(`https://api.iconify.design/search?query=${encodeURIComponent(clean)}&limit=96`);
       if (res.ok) {
         const data = await res.json();
         if (data?.icons?.length) { results = data.icons.slice(0, 96); return; }

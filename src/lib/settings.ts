@@ -12,7 +12,6 @@ export interface AppSettings {
   mainColor: string;
   launchScreen: LaunchScreen;
   habitOrder: string[];
-  showSyncStatus: boolean;
 }
 
 const STORAGE_KEY = 'appSettings';
@@ -37,7 +36,6 @@ const defaults: AppSettings = {
   mainColor: '',
   launchScreen: '/today',
   habitOrder: [],
-  showSyncStatus: true,
 };
 
 function createSettingsStore(): Writable<AppSettings> & { init: () => void } {
