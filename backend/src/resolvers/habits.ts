@@ -131,6 +131,7 @@ export const habitResolvers = {
       if (args.input.sortOrder !== undefined) updates.sort_order = args.input.sortOrder;
       const { data, error } = await ctx.db.from('habits').update(updates).eq('id', id).eq('user_id', ctx.userId).select('*').single();
       if (error) throw new Error(error.message);
+      if (!data) throw new Error('Habit not found: no rows returned');
       return toHabit(data as HabitRow);
     },
 

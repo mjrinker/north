@@ -277,20 +277,40 @@ class ApiSyncProvider implements SyncProvider {
       );
 
       const jobs: Promise<void>[] = [];
-      for (const h of habits) jobs.push(this.upsertHabit(h));
-      for (const e of dedupedEntries) jobs.push(this.upsertEntry(e));
+      let failed = 0;
+      let total = 0;
+
+      // Run dependency-ordered phases so parents exist before children
+      // (entries reference habits; habits may reference identities).
+      const run = async (phase: Promise<void>[]) => {
+        total += phase.length;
+        const results = await Promise.allSettled(phase);
+        failed += results.filter(r => r.status === 'rejected').length;
+      };
+
       for (const i of identities) jobs.push(this.upsertIdentity(i));
+
+      await run(jobs.splice(0));
+
+      for (const h of habits) jobs.push(this.upsertHabit(h));
+      await run(jobs.splice(0));
+
+      for (const e of dedupedEntries) jobs.push(this.upsertEntry(e));
+      await run(jobs.splice(0));
+
       for (const n of notes) {
         if (n.status === 'deleted') jobs.push(this.deleteNote(n.id));
         else jobs.push(this.upsertNote(n));
       }
-      jobs.push(this.upsertSettings(settings));
+      await run(jobs.splice(0));
 
-      const results = await Promise.allSettled(jobs);
-      const rejected = results.filter(r => r.status === 'rejected') as PromiseRejectedResult[];
-      if (rejected.length > 0) {
-        console.error(`api uploadAll: ${rejected.length}/${results.length} failed`, rejected.map(r => r.reason));
+      jobs.push(this.upsertSettings(settings));
+      await run(jobs.splice(0));
+
+      if (failed > 0) {
+        console.error(`api uploadAll: ${failed}/${total} failed`);
       }
+
       return { lastSynced: start, status: 'success', conflicts: [] };
     } catch (e) {
       console.error('api uploadAll error:', e);
