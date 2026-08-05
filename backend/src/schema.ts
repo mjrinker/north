@@ -34,6 +34,18 @@ export const schema = createSchema<GraphQLContext>({
     scalar DateTime
     scalar JSON
 
+    enum SortDirection {
+      asc
+      desc
+    }
+
+    enum HabitSortBy {
+      sortOrder
+      title
+      createdAt
+      updatedAt
+    }
+
     type User {
       id: ID!
       email: String!
@@ -73,6 +85,7 @@ export const schema = createSchema<GraphQLContext>({
       sortOrder: Int
       createdAt: DateTime
       updatedAt: DateTime
+      entries(dateFrom: String, dateTo: String, limit: Int): [HabitEntry!]!
     }
 
     type HabitEntry {
@@ -190,7 +203,7 @@ export const schema = createSchema<GraphQLContext>({
       me: User
       myRoles: [String!]!
       usersWithRoles: [UserWithRoles!]!
-      habits(userId: String, status: String, tags: [String!]): [Habit!]!
+      habits(userId: String, status: String, tags: [String!], title: String, type: String, sortBy: HabitSortBy, sortDir: SortDirection): [Habit!]!
       habit(id: ID!): Habit
       entries(habitId: String, date: String, dateFrom: String, dateTo: String): [HabitEntry!]!
       entry(habitId: ID!, date: String!): HabitEntry

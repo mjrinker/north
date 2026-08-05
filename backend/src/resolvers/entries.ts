@@ -1,6 +1,6 @@
 import type { GraphQLContext } from '../context.js';
 
-interface EntryRow {
+export interface EntryRow {
   id: string;
   user_id: string;
   habit_id: string;
@@ -12,7 +12,7 @@ interface EntryRow {
   updated_at: string | null;
 }
 
-function toEntry(row: EntryRow) {
+export function toEntry(row: EntryRow) {
   return {
     id: row.id,
     habitId: row.habit_id,

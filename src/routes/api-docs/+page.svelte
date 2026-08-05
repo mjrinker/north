@@ -4,9 +4,9 @@
   const examples = [
     {
       name: 'Fetch all habits',
-      description: 'Get metadata for every habit.',
-      query: `query GetHabits {
-  habits {
+      description: 'Get metadata for every habit. Optionally filter and sort.',
+      query: `query GetHabits($status: String, $tag: String, $title: String, $sortBy: HabitSortBy, $sortDir: SortDirection) {
+  habits(status: $status, tags: $tag, title: $title, sortBy: $sortBy, sortDir: $sortDir) {
     id
     title
     type
@@ -17,6 +17,26 @@
     status
   }
 }`,
+      variables: { status: 'active', title: 'water', sortBy: 'title', sortDir: 'asc' },
+    },
+    {
+      name: 'Get habits with their log entries',
+      description: 'Fetch habits and each one’s entries in a single query.',
+      query: `query GetHabitsWithEntries($status: String, $dateFrom: String, $dateTo: String) {
+  habits(status: $status) {
+    id
+    title
+    status
+    entries(dateFrom: $dateFrom, dateTo: $dateTo) {
+      habitId
+      date
+      value
+      standardMet
+      targetMet
+    }
+  }
+}`,
+      variables: { status: 'active', dateFrom: '2026-07-28', dateTo: '2026-08-04' },
     },
     {
       name: 'Fetch a habit by ID',

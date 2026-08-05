@@ -1,4 +1,5 @@
 import type { GraphQLContext } from '../context.js';
+import { toEntry, type EntryRow } from './entries.js';
 
 interface HabitRow {
   id: string;
@@ -43,13 +44,36 @@ function toHabit(row: HabitRow) {
 }
 
 export const habitResolvers = {
-  Query: {
-    habits: async (_: unknown, args: { status?: string; tags?: string[] }, ctx: GraphQLContext) => {
+  Habit: {
+    entries: async (habit: { id: string }, args: { dateFrom?: string; dateTo?: string; limit?: number }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      let query = ctx.db.from('habits').select('*').order('sort_order', { ascending: true });
-      query = query.eq('user_id', ctx.userId);
+      let query = ctx.db.from('entries').select('*').eq('habit_id', habit.id).eq('user_id', ctx.userId);
+      if (args.dateFrom) query = query.gte('date', args.dateFrom);
+      if (args.dateTo) query = query.lte('date', args.dateTo);
+      query = query.order('date', { ascending: false });
+      if (args.limit && args.limit > 0) query = query.limit(args.limit);
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+      return (data as EntryRow[]).map(toEntry);
+    },
+  },
+
+  Query: {
+    habits: async (_: unknown, args: { userId?: string; status?: string; tags?: string[]; title?: string; type?: string; sortBy?: string; sortDir?: string }, ctx: GraphQLContext) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      let query = ctx.db.from('habits').select('*').eq('user_id', ctx.userId);
       if (args.status) query = query.eq('status', args.status);
+      if (args.type) query = query.eq('type', args.type);
       if (args.tags?.length) query = query.contains('tags', args.tags);
+      if (args.title) query = query.ilike('title', `%${args.title}%`);
+
+      const sortColumn = (args.sortBy ?? 'sortOrder') === 'sortOrder' ? 'sort_order'
+        : args.sortBy === 'title' ? 'title'
+        : args.sortBy === 'createdAt' ? 'created_at'
+        : 'updated_at';
+      const ascending = args.sortDir !== 'desc';
+      query = query.order(sortColumn, { ascending });
+
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return (data as HabitRow[]).map(toHabit);
