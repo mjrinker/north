@@ -7,6 +7,7 @@
     description?: string;
     query: string;
     variables?: Record<string, unknown>;
+    response?: string;
   }
 
   let { example }: { example: Example } = $props();
@@ -16,6 +17,7 @@
 
   let menuOpen = $state(false);
   let copiedId = $state('');
+  let responseCopied = $state(false);
 
   const bodyJson = JSON.stringify({ query: example.query, variables: example.variables ?? {} });
   const queryString = example.query.trim();
@@ -37,7 +39,7 @@
       case 'graphql':
         return example.query.trim() + '\n';
       case 'json':
-        return bodyPretty + '\n';
+        return JSON.stringify({ query: queryString, variables: example.variables ?? {} }, null, 2) + '\n';
       case 'curl':
         return [
           `curl -s -X POST '${URL}' \\`,
@@ -114,6 +116,15 @@
     }
     menuOpen = false;
   }
+
+  async function copyResponse() {
+    if (!example.response) return;
+    const ok = await copyToClipboard(example.response.trim() + '\n');
+    if (ok) {
+      responseCopied = true;
+      setTimeout(() => { responseCopied = false; }, 1400);
+    }
+  }
 </script>
 
 <div class="api-example">
@@ -142,6 +153,15 @@
     {/if}
   </div>
   <pre class="gql"><code>{example.query.trim()}</code></pre>
+  {#if example.response}
+    <div class="resp-block">
+      <div class="resp-head">
+        <span class="resp-label">Sample response</span>
+        <button class="resp-copy" onclick={copyResponse}>{responseCopied ? 'Copied ✓' : 'Copy'}</button>
+      </div>
+      <pre class="gql resp"><code>{example.response.trim()}</code></pre>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -237,5 +257,36 @@
     line-height: 1.5;
     color: var(--text-primary, #222);
     font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
+  }
+  .resp-block {
+    border-top: 1px solid var(--card-border, #e0e0e0);
+  }
+  .resp-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem 0.5rem;
+  }
+  .resp-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary, #666);
+  }
+  .resp-copy {
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 6px;
+    background: var(--btn-secondary-bg, #eee);
+    color: var(--text-primary, #222);
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .resp-copy:hover { opacity: 0.85; }
+  .gql.resp {
+    border-top: none;
+    padding-top: 0.5rem;
   }
 </style>
