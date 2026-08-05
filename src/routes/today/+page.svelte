@@ -9,6 +9,7 @@
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import NotesModal from '../../components/NotesModal.svelte';
+  import SyncBanner from '../../components/SyncBanner.svelte';
   import Icon from '@iconify/svelte';
   import { computeSuggestions, getCurrentLocation } from '../../lib/completionLog';
   import type { SuggestedPlace, DepPopoverState } from '../../types';
@@ -460,6 +461,8 @@
     </select>
   </label>
 </div>
+
+<SyncBanner />
 
 {#if showCreate}
   <HabitCreateModal {habits} onClose={() => showCreate = false} />
