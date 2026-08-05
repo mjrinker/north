@@ -32,6 +32,9 @@ async function triggerSync() {
     if (hasLocal) {
       await apiSyncProvider.uploadAll()
     }
+
+    const { flushOutbox } = await import('../services/sync')
+    await flushOutbox()
   } catch (e) {
     console.error('Sync failed:', e)
   }
