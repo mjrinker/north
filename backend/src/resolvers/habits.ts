@@ -135,6 +135,33 @@ export const habitResolvers = {
       return toHabit(data as HabitRow);
     },
 
+    upsertHabit: async (_: unknown, args: { id: string; input: Record<string, unknown> }, ctx: GraphQLContext) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      const id = requireGlobalId(args.id, 'Habit');
+      const row = {
+        id,
+        user_id: ctx.userId,
+        title: args.input.title,
+        description: args.input.description ?? null,
+        type: args.input.type,
+        standard: args.input.standard ?? null,
+        target: args.input.target ?? null,
+        unit: args.input.unit ?? null,
+        schedule: args.input.schedule ?? null,
+        metadata: args.input.metadata ?? null,
+        depends_on: decodeDependsOn(args.input.dependsOn),
+        identity_id: requireGlobalIdOptional(args.input.identityId as string | null | undefined, 'Identity'),
+        tags: args.input.tags ?? [],
+        status: args.input.status ?? 'active',
+        sort_order: args.input.sortOrder ?? null,
+        updated_at: new Date().toISOString(),
+      };
+      const { data, error } = await ctx.db.from('habits').upsert(row, { onConflict: 'id' }).select('*').single();
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error('Upsert failed');
+      return toHabit(data as HabitRow);
+    },
+
     deleteHabit: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       const id = requireGlobalId(args.id, 'Habit');

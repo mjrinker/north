@@ -222,6 +222,7 @@ export const schema = createSchema<GraphQLContext>({
       setRoles(userId: ID!, roles: [String!]!): Boolean!
       createHabit(input: CreateHabitInput!): Habit!
       updateHabit(id: ID!, input: UpdateHabitInput!): Habit
+      upsertHabit(id: ID!, input: UpdateHabitInput!): Habit!
       deleteHabit(id: ID!): Boolean!
       upsertEntry(input: UpsertEntryInput!): HabitEntry!
       deleteEntry(habitId: ID!, date: String!): Boolean!
@@ -229,6 +230,7 @@ export const schema = createSchema<GraphQLContext>({
       deleteNote(id: ID!): Boolean!
       createIdentity(name: String!, description: String, goals: [String!]): Identity!
       updateIdentity(id: ID!, name: String, description: String, goals: [String!]): Identity
+      upsertIdentity(id: ID!, name: String!, description: String, goals: [String!]): Identity!
       deleteIdentity(id: ID!): Boolean!
       upsertSettings(input: UpsertSettingsInput!): UserSettings!
       createMyApiKey(name: String): ApiKey!

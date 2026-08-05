@@ -63,6 +63,23 @@ export const identityResolvers = {
       return toIdentity(data as IdentityRow);
     },
 
+    upsertIdentity: async (_: unknown, args: { id: string; name: string; description?: string; goals?: string[] }, ctx: GraphQLContext) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      const id = requireGlobalId(args.id, 'Identity');
+      const row = {
+        id,
+        user_id: ctx.userId,
+        name: args.name,
+        description: args.description ?? null,
+        goals: args.goals ?? [],
+        updated_at: new Date().toISOString(),
+      };
+      const { data, error } = await ctx.db.from('identities').upsert(row, { onConflict: 'id' }).select('*').single();
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error('Upsert failed');
+      return toIdentity(data as IdentityRow);
+    },
+
     deleteIdentity: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       const id = requireGlobalId(args.id, 'Identity');

@@ -38,11 +38,12 @@ function toApiHabitInput(h: Habit) {
     unit: h.unit,
     schedule: h.schedule,
     metadata: h.metadata,
-    identityId: encodeId('Identity', h.identityId) ?? null,
+    identityId: h.identityId ? encodeId('Identity', h.identityId) : null,
     dependsOn: h.dependsOn
       ? { ...h.dependsOn, habitIds: (h.dependsOn.habitIds ?? []).map(hid => encodeId('Habit', hid)) }
       : null,
     tags: h.tags ?? [],
+    status: h.status,
     sortOrder: h.sortOrder ?? null,
   };
 }
@@ -166,16 +167,10 @@ class ApiSyncProvider implements SyncProvider {
   }
 
   private async upsertHabit(h: Habit): Promise<void> {
-    const input = toApiHabitInput(h);
-    try {
-      await gql(`mutation ($id: ID!, $input: UpdateHabitInput!) { updateHabit(id: $id, input: $input) { id } }`, {
-        id: encodeId('Habit', h.id),
-        input,
-      });
-    } catch (e) {
-      if (!isMissingError(e)) throw e;
-      await gql(`mutation ($input: CreateHabitInput!) { createHabit(input: $input) { id } }`, { input });
-    }
+    await gql(
+      `mutation ($id: ID!, $input: UpdateHabitInput!) { upsertHabit(id: $id, input: $input) { id } }`,
+      { id: encodeId('Habit', h.id), input: toApiHabitInput(h) },
+    );
   }
 
   private async upsertEntry(e: HabitEntry): Promise<void> {
@@ -221,22 +216,12 @@ class ApiSyncProvider implements SyncProvider {
   }
 
   private async upsertIdentity(i: Identity): Promise<void> {
-    try {
-      await gql(
-        `mutation ($id: ID!, $name: String!, $description: String, $goals: [String!]) {
-           updateIdentity(id: $id, name: $name, description: $description, goals: $goals) { id }
-         }`,
-        { id: encodeId('Identity', i.id), name: i.name, description: i.description ?? null, goals: i.goals ?? [] },
-      );
-    } catch (e) {
-      if (!isMissingError(e)) throw e;
-      await gql(
-        `mutation ($name: String!, $description: String, $goals: [String!]) {
-           createIdentity(name: $name, description: $description, goals: $goals) { id }
-         }`,
-        { name: i.name, description: i.description ?? null, goals: i.goals ?? [] },
-      );
-    }
+    await gql(
+      `mutation ($id: ID!, $name: String!, $description: String, $goals: [String!]) {
+         upsertIdentity(id: $id, name: $name, description: $description, goals: $goals) { id }
+       }`,
+      { id: encodeId('Identity', i.id), name: i.name, description: i.description ?? null, goals: i.goals ?? [] },
+    );
   }
 
   private async upsertSettings(s: AppSettings): Promise<void> {
