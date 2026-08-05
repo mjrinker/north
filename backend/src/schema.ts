@@ -9,6 +9,7 @@ import { identityResolvers } from './resolvers/identities.js';
 import { settingsResolvers } from './resolvers/settings.js';
 import { userResolvers } from './resolvers/users.js';
 import { logResolvers } from './resolvers/logs.js';
+import { apiKeyResolvers } from './resolvers/apiKeys.js';
 
 const DateTimeScalar = new GraphQLScalarType({
   name: 'DateTime',
@@ -113,6 +114,15 @@ export const schema = createSchema<GraphQLContext>({
       updatedAt: DateTime
     }
 
+    type ApiKey {
+      id: ID!
+      userId: String!
+      apiKey: String!
+      name: String
+      createdAt: DateTime
+      lastUsedAt: DateTime
+    }
+
     input CreateHabitInput {
       title: String!
       description: String
@@ -188,6 +198,7 @@ export const schema = createSchema<GraphQLContext>({
       identity(id: ID!): Identity
       identities: [Identity!]!
       settings: UserSettings
+      apiKeys(userId: String): [ApiKey!]!
     }
 
     type Mutation {
@@ -206,6 +217,8 @@ export const schema = createSchema<GraphQLContext>({
       updateIdentity(id: ID!, name: String, description: String, goals: [String!]): Identity
       deleteIdentity(id: ID!): Boolean!
       upsertSettings(input: UpsertSettingsInput!): UserSettings!
+      createApiKey(userId: ID!, name: String): ApiKey!
+      revokeApiKey(id: ID!): Boolean!
       clientLogs(entries: [ClientLogInput!]!): Boolean!
     }
   `,
@@ -219,5 +232,6 @@ export const schema = createSchema<GraphQLContext>({
     settingsResolvers,
     userResolvers,
     logResolvers,
+    apiKeyResolvers,
   ] as any,
 });

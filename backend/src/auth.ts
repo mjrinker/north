@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
+import { getDb } from './db.js';
 
 const BCRYPT_ROUNDS = 10;
 
@@ -32,10 +33,6 @@ export interface AuthResult {
   authMethod: AuthMethod;
 }
 
-const VALID_API_KEYS = new Set(
-  (process.env.API_KEYS || '').split(',').map((k: string) => k.trim()).filter(Boolean),
-);
-
 function extractBearer(request: Request): string | null {
   const auth = request.headers.get('authorization');
   if (!auth || !auth.startsWith('Bearer ')) return null;
@@ -44,6 +41,26 @@ function extractBearer(request: Request): string | null {
 
 function extractApiKey(request: Request): string | null {
   return request.headers.get('x-api-key');
+}
+
+async function resolveApiKey(apiKey: string): Promise<string | null> {
+  let db;
+  try {
+    db = getDb();
+  } catch {
+    return null;
+  }
+  try {
+    const { data, error } = await db
+      .from('api_keys')
+      .select('user_id')
+      .eq('api_key', apiKey)
+      .maybeSingle();
+    if (error || !data) return null;
+    return (data as { user_id: string }).user_id;
+  } catch {
+    return null;
+  }
 }
 
 export async function authenticate(request: Request): Promise<AuthResult> {
@@ -60,8 +77,15 @@ export async function authenticate(request: Request): Promise<AuthResult> {
   }
 
   const apiKey = extractApiKey(request);
-  if (apiKey && VALID_API_KEYS.has(apiKey)) {
-    return { userId: '__api__', authMethod: 'api_key' };
+  if (apiKey) {
+    const userId = await resolveApiKey(apiKey);
+    if (userId) {
+      try {
+        const db = getDb();
+        await db.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('api_key', apiKey);
+      } catch {}
+      return { userId, authMethod: 'api_key' };
+    }
   }
 
   return { userId: null, authMethod: 'none' };

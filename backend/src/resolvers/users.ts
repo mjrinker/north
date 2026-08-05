@@ -7,7 +7,7 @@ async function getUserEmail(ctx: GraphQLContext): Promise<string | null> {
   return (data as { email: string }).email;
 }
 
-async function isAdmin(ctx: GraphQLContext): Promise<boolean> {
+export async function isAdmin(ctx: GraphQLContext): Promise<boolean> {
   if (!ctx.userId || ctx.userId === '__api__') return false;
   const { data: roleData } = await ctx.db
     .from('app_user_roles')

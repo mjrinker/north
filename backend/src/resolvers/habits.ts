@@ -44,11 +44,10 @@ function toHabit(row: HabitRow) {
 
 export const habitResolvers = {
   Query: {
-    habits: async (_: unknown, args: { userId?: string; status?: string; tags?: string[] }, ctx: GraphQLContext) => {
+    habits: async (_: unknown, args: { status?: string; tags?: string[] }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       let query = ctx.db.from('habits').select('*').order('sort_order', { ascending: true });
-      if (args.userId) query = query.eq('user_id', args.userId);
-      else query = query.eq('user_id', ctx.userId);
+      query = query.eq('user_id', ctx.userId);
       if (args.status) query = query.eq('status', args.status);
       if (args.tags?.length) query = query.contains('tags', args.tags);
       const { data, error } = await query;
@@ -58,7 +57,7 @@ export const habitResolvers = {
 
     habit: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const { data, error } = await ctx.db.from('habits').select('*').eq('id', args.id).single();
+      const { data, error } = await ctx.db.from('habits').select('*').eq('id', args.id).eq('user_id', ctx.userId).single();
       if (error) return null;
       return toHabit(data as HabitRow);
     },

@@ -42,7 +42,7 @@ export const entryResolvers = {
 
     entry: async (_: unknown, args: { habitId: string; date: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const { data, error } = await ctx.db.from('entries').select('*').eq('habit_id', args.habitId).eq('date', args.date).single();
+      const { data, error } = await ctx.db.from('entries').select('*').eq('habit_id', args.habitId).eq('date', args.date).eq('user_id', ctx.userId).single();
       if (error) return null;
       return toEntry(data as EntryRow);
     },
@@ -51,6 +51,15 @@ export const entryResolvers = {
   Mutation: {
     upsertEntry: async (_: unknown, args: { input: { habitId: string; date: string; value: number; standardMet?: boolean; targetMet?: boolean; notes?: string } }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
+      const { data: habit } = await ctx.db.from('habits').select('standard, target').eq('id', args.input.habitId).eq('user_id', ctx.userId).maybeSingle();
+      if (!habit) throw new Error('Habit not found');
+
+      const value = args.input.value;
+      const standard = (habit as { standard: number | null }).standard ?? 0;
+      const target = (habit as { target: number | null }).target;
+      const standardMet = value >= standard;
+      const targetMet = target != null && value >= target;
+
       const existing = await ctx.db.from('entries').select('id').eq('habit_id', args.input.habitId).eq('date', args.input.date).maybeSingle();
       const now = new Date().toISOString();
       const record: Record<string, unknown> = {
@@ -58,11 +67,11 @@ export const entryResolvers = {
         user_id: ctx.userId,
         habit_id: args.input.habitId,
         date: args.input.date,
-        value: args.input.value,
+        value,
+        standard_met: standardMet,
+        target_met: targetMet,
         updated_at: now,
       };
-      if (args.input.standardMet !== undefined) record.standard_met = args.input.standardMet;
-      if (args.input.targetMet !== undefined) record.target_met = args.input.targetMet;
       if (args.input.notes !== undefined) record.notes = args.input.notes;
       const { data, error } = await ctx.db.from('entries').upsert(record).select('*').single();
       if (error) throw new Error(error.message);

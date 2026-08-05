@@ -29,7 +29,7 @@ export const identityResolvers = {
 
     identity: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const { data, error } = await ctx.db.from('identities').select('*').eq('id', args.id).single();
+      const { data, error } = await ctx.db.from('identities').select('*').eq('id', args.id).eq('user_id', ctx.userId).single();
       if (error) return null;
       return toIdentity(data as IdentityRow);
     },
