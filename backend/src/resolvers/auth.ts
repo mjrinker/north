@@ -1,6 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { hashPassword, verifyPassword, createToken } from '../auth.js';
 import type { GraphQLContext } from '../context.js';
+import { toGlobalId } from '../ids.js';
 
 interface UserRow {
   id: string;
@@ -59,7 +60,7 @@ async function findOrCreateGoogleUser(ctx: GraphQLContext, info: { email: string
 
 function toAuthUser(row: UserRow) {
   return {
-    id: row.id,
+    id: toGlobalId('User', row.id),
     email: row.email,
     name: row.name,
     avatar: row.avatar,

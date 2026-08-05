@@ -1,4 +1,5 @@
 import type { GraphQLContext } from '../context.js';
+import { toGlobalId, requireGlobalId } from '../ids.js';
 
 export interface EntryRow {
   id: string;
@@ -14,8 +15,8 @@ export interface EntryRow {
 
 export function toEntry(row: EntryRow) {
   return {
-    id: row.id,
-    habitId: row.habit_id,
+    id: toGlobalId('HabitEntry', row.id),
+    habitId: toGlobalId('Habit', row.habit_id),
     date: row.date,
     value: row.value,
     standardMet: row.standard_met,
@@ -30,7 +31,7 @@ export const entryResolvers = {
     entries: async (_: unknown, args: { habitId?: string; date?: string; dateFrom?: string; dateTo?: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       let query = ctx.db.from('entries').select('*').eq('user_id', ctx.userId);
-      if (args.habitId) query = query.eq('habit_id', args.habitId);
+      if (args.habitId) query = query.eq('habit_id', requireGlobalId(args.habitId, 'Habit'));
       if (args.date) query = query.eq('date', args.date);
       if (args.dateFrom) query = query.gte('date', args.dateFrom);
       if (args.dateTo) query = query.lte('date', args.dateTo);
@@ -42,7 +43,8 @@ export const entryResolvers = {
 
     entry: async (_: unknown, args: { habitId: string; date: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const { data, error } = await ctx.db.from('entries').select('*').eq('habit_id', args.habitId).eq('date', args.date).eq('user_id', ctx.userId).single();
+      const habitId = requireGlobalId(args.habitId, 'Habit');
+      const { data, error } = await ctx.db.from('entries').select('*').eq('habit_id', habitId).eq('date', args.date).eq('user_id', ctx.userId).single();
       if (error) return null;
       return toEntry(data as EntryRow);
     },
@@ -51,7 +53,8 @@ export const entryResolvers = {
   Mutation: {
     upsertEntry: async (_: unknown, args: { input: { habitId: string; date: string; value: number; standardMet?: boolean; targetMet?: boolean; notes?: string } }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const { data: habit } = await ctx.db.from('habits').select('standard, target').eq('id', args.input.habitId).eq('user_id', ctx.userId).maybeSingle();
+      const habitId = requireGlobalId(args.input.habitId, 'Habit');
+      const { data: habit } = await ctx.db.from('habits').select('standard, target').eq('id', habitId).eq('user_id', ctx.userId).maybeSingle();
       if (!habit) throw new Error('Habit not found');
 
       const value = args.input.value;
@@ -60,12 +63,12 @@ export const entryResolvers = {
       const standardMet = value >= standard;
       const targetMet = target != null && value >= target;
 
-      const existing = await ctx.db.from('entries').select('id').eq('habit_id', args.input.habitId).eq('date', args.input.date).maybeSingle();
+      const existing = await ctx.db.from('entries').select('id').eq('habit_id', habitId).eq('date', args.input.date).maybeSingle();
       const now = new Date().toISOString();
       const record: Record<string, unknown> = {
         id: existing?.data?.id ?? crypto.randomUUID(),
         user_id: ctx.userId,
-        habit_id: args.input.habitId,
+        habit_id: habitId,
         date: args.input.date,
         value,
         standard_met: standardMet,
@@ -80,7 +83,8 @@ export const entryResolvers = {
 
     deleteEntry: async (_: unknown, args: { habitId: string; date: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const { error } = await ctx.db.from('entries').delete().eq('habit_id', args.habitId).eq('date', args.date).eq('user_id', ctx.userId);
+      const habitId = requireGlobalId(args.habitId, 'Habit');
+      const { error } = await ctx.db.from('entries').delete().eq('habit_id', habitId).eq('date', args.date).eq('user_id', ctx.userId);
       if (error) throw new Error(error.message);
       return true;
     },

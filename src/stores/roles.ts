@@ -2,6 +2,7 @@
 import { writable } from 'svelte/store'
 import { user } from './auth'
 import { gql } from '../lib/api'
+import { encodeId, decodeId } from '../lib/globalId'
 
 export const userRoles = writable<string[]>([])
 
@@ -29,7 +30,7 @@ async function fetchRoles() {
 
 export async function setUserRoles(targetUserId: string, roles: string[]) {
   await gql(`mutation ($userId: ID!, $roles: [String!]!) { setRoles(userId: $userId, roles: $roles) }`, {
-    userId: targetUserId,
+    userId: encodeId('User', targetUserId),
     roles,
   })
   if (targetUserId === currentUserId) {
@@ -41,5 +42,5 @@ export async function getAllUsersWithRoles(): Promise<{ id: string; email: strin
   const data = await gql<{ usersWithRoles: { id: string; email: string; name?: string | null; roles: string[] }[] }>(
     `query { usersWithRoles { id email name roles } }`,
   )
-  return (data?.usersWithRoles ?? []).map(u => ({ id: u.id, email: u.email, roles: u.roles }))
+  return (data?.usersWithRoles ?? []).map(u => ({ id: decodeId(u.id), email: u.email, roles: u.roles }))
 }

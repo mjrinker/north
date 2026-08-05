@@ -1,4 +1,5 @@
 import type { GraphQLContext } from '../context.js';
+import { toGlobalId, requireGlobalId } from '../ids.js';
 
 async function getUserEmail(ctx: GraphQLContext): Promise<string | null> {
   if (!ctx.userId) return null;
@@ -73,7 +74,7 @@ export const userResolvers = {
         const roles = roleMap.get(u.id) ?? [];
         if (adminEmails.has(u.email) && !roles.includes('admin')) roles.push('admin');
         return {
-          id: u.id,
+          id: toGlobalId('User', u.id),
           email: u.email,
           name: u.name ?? null,
           avatar: u.avatar ?? null,
@@ -87,13 +88,14 @@ export const userResolvers = {
     setRoles: async (_: unknown, args: { userId: string; roles: string[] }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       if (!(await isAdmin(ctx))) throw new Error('Forbidden');
+      const userId = requireGlobalId(args.userId, 'User');
 
       const unique = Array.from(new Set(args.roles));
-      const { error: delErr } = await ctx.db.from('app_user_roles').delete().eq('user_id', args.userId);
+      const { error: delErr } = await ctx.db.from('app_user_roles').delete().eq('user_id', userId);
       if (delErr) throw new Error(delErr.message);
 
       if (unique.length > 0) {
-        const rows = unique.map(role_name => ({ user_id: args.userId, role_name }));
+        const rows = unique.map(role_name => ({ user_id: userId, role_name }));
         const { error: insErr } = await ctx.db.from('app_user_roles').insert(rows);
         if (insErr) throw new Error(insErr.message);
       }

@@ -3,6 +3,7 @@ import { writable, get } from 'svelte/store'
 import { getToken, setToken, gql } from '../lib/api'
 import { PUBLIC_GOOGLE_CLIENT_ID } from '$env/static/public'
 import type { AppAuthUser } from '../types/user'
+import { decodeId } from '../lib/globalId'
 
 export const user = writable<AppAuthUser | null>(null)
 export const isLoading = writable(true)
@@ -38,7 +39,7 @@ async function triggerSync() {
 
 function toAppUser(me: any): AppAuthUser {
   return {
-    id: me.id,
+    id: decodeId(me.id),
     email: me.email ?? null,
     name: me.name ?? null,
     avatar: me.avatar ?? null,

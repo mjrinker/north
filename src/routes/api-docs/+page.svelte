@@ -22,7 +22,7 @@
   "data": {
     "habits": [
       {
-        "id": "de5059e0-ea2f-483e-9418-3b5fd1e2b4f9",
+        "id": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
         "title": "Drink water",
         "type": "quantity",
         "standard": 8,
@@ -57,19 +57,19 @@
   "data": {
     "habits": [
       {
-        "id": "de5059e0-ea2f-483e-9418-3b5fd1e2b4f9",
+        "id": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
         "title": "Drink water",
         "status": "active",
         "entries": [
           {
-            "habitId": "de5059e0-ea2f-483e-9418-3b5fd1e2b4f9",
+            "habitId": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
             "date": "2026-08-04",
             "value": 9,
             "standardMet": true,
             "targetMet": false
           },
           {
-            "habitId": "de5059e0-ea2f-483e-9418-3b5fd1e2b4f9",
+            "habitId": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
             "date": "2026-08-03",
             "value": 8,
             "standardMet": true,
@@ -100,7 +100,7 @@
       response: `{
   "data": {
     "habit": {
-      "id": "de5059e0-ea2f-483e-9418-3b5fd1e2b4f9",
+      "id": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
       "title": "Drink water",
       "type": "quantity",
       "standard": 8,
@@ -169,7 +169,7 @@
   "data": {
     "myApiKeys": [
       {
-        "id": "7c7b9e2a-18d4-4f3e-9b2a-1a2b3c4d5e6f",
+        "id": "QXBpS2V5OjdjN2I5ZTJhLTE4ZDQtNGYzZS05YjJhLTFhMmIzYzRkNWU2Zg==",
         "name": "iOS-Shortcuts",
         "createdAt": "2026-08-05T12:51:34Z",
         "lastUsedAt": "2026-08-05T13:02:11Z"
@@ -338,6 +338,17 @@ revokeMyApiKey(id: ID!): Boolean!`,
     Generate an API key in <a href="/settings">Settings → API Key</a>. Your key grants full access to your
     own account data — treat it like a password.
   </p>
+
+  <h2 class="section-title">Global IDs</h2>
+  <p class="intro">
+    Every <code>id</code>, and every reference such as <code>habitId</code>, <code>userId</code> and
+    <code>identityId</code>, is a <strong>global ID</strong>: the base64 encoding of
+    <code>&lt;TypeName&gt;:&lt;uuid&gt;</code>. Use the ID exactly as returned — pass it straight back into
+    queries and mutations; don’t try to parse or alter it.
+  </p>
+  <pre class="gql"><code># The id for a Habit with uuid 23d82b83-f52a-40a6-8ebe-05126ebc2f55 is:
+base64("Habit:23d82b83-f52a-40a6-8ebe-05126ebc2f55")
+  -> "SGFiaXQ6MjNkODJiODMtZjUyYS00MGE2LThlYmUtMDUxMjZlYmMyZjU1"</code></pre>
 
   <div class="examples">
     {#each examples as ex (ex.name)}

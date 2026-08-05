@@ -1,4 +1,5 @@
 import type { GraphQLContext } from '../context.js';
+import { toGlobalId, requireGlobalId } from '../ids.js';
 
 interface IdentityRow {
   id: string;
@@ -10,8 +11,8 @@ interface IdentityRow {
 
 function toIdentity(row: IdentityRow) {
   return {
-    id: row.id,
-    userId: row.user_id,
+    id: toGlobalId('Identity', row.id),
+    userId: toGlobalId('User', row.user_id),
     name: row.name,
     description: row.description,
     goals: row.goals ?? [],
@@ -29,7 +30,8 @@ export const identityResolvers = {
 
     identity: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const { data, error } = await ctx.db.from('identities').select('*').eq('id', args.id).eq('user_id', ctx.userId).single();
+      const id = requireGlobalId(args.id, 'Identity');
+      const { data, error } = await ctx.db.from('identities').select('*').eq('id', id).eq('user_id', ctx.userId).single();
       if (error) return null;
       return toIdentity(data as IdentityRow);
     },
@@ -51,18 +53,20 @@ export const identityResolvers = {
 
     updateIdentity: async (_: unknown, args: { id: string; name?: string; description?: string; goals?: string[] }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
+      const id = requireGlobalId(args.id, 'Identity');
       const updates: Record<string, unknown> = {};
       if (args.name !== undefined) updates.name = args.name;
       if (args.description !== undefined) updates.description = args.description;
       if (args.goals !== undefined) updates.goals = args.goals;
-      const { data, error } = await ctx.db.from('identities').update(updates).eq('id', args.id).eq('user_id', ctx.userId).select('*').single();
+      const { data, error } = await ctx.db.from('identities').update(updates).eq('id', id).eq('user_id', ctx.userId).select('*').single();
       if (error) throw new Error(error.message);
       return toIdentity(data as IdentityRow);
     },
 
     deleteIdentity: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const { error } = await ctx.db.from('identities').delete().eq('id', args.id).eq('user_id', ctx.userId);
+      const id = requireGlobalId(args.id, 'Identity');
+      const { error } = await ctx.db.from('identities').delete().eq('id', id).eq('user_id', ctx.userId);
       if (error) throw new Error(error.message);
       return true;
     },

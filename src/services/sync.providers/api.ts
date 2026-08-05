@@ -10,6 +10,7 @@ import { notesStore } from '../../stores/notes';
 import { appSettings, type AppSettings } from '../../lib/settings';
 import { get } from 'svelte/store';
 import { gql, ApiError, getToken } from '../../lib/api';
+import { encodeId, decodeId } from '../../lib/globalId';
 
 const HABIT_FIELDS = `id title description type standard target unit schedule metadata dependsOn identityId tags status sortOrder createdAt updatedAt`;
 const ENTRY_FIELDS = `id habitId date value standardMet targetMet notes updatedAt`;
@@ -37,7 +38,10 @@ function toApiHabitInput(h: Habit) {
     unit: h.unit,
     schedule: h.schedule,
     metadata: h.metadata,
-    identityId: h.identityId ?? null,
+    identityId: encodeId('Identity', h.identityId) ?? null,
+    dependsOn: h.dependsOn
+      ? { ...h.dependsOn, habitIds: (h.dependsOn.habitIds ?? []).map(hid => encodeId('Habit', hid)) }
+      : null,
     tags: h.tags ?? [],
     sortOrder: h.sortOrder ?? null,
   };
@@ -47,8 +51,11 @@ function fromApiHabit(h: any): Habit {
   const schedule = h.schedule && typeof h.schedule === 'object' ? { ...h.schedule } : h.schedule;
   if (schedule?.startDate) schedule.startDate = toDate(schedule.startDate);
   if (schedule?.endDate) schedule.endDate = toDate(schedule.endDate);
+  const dependsOn = h.dependsOn && typeof h.dependsOn === 'object' && Array.isArray(h.dependsOn.habitIds)
+    ? { ...h.dependsOn, habitIds: (h.dependsOn.habitIds as string[]).map(decodeId) }
+    : h.dependsOn;
   return {
-    id: h.id,
+    id: decodeId(h.id),
     title: h.title,
     description: h.description ?? undefined,
     type: h.type,
@@ -57,8 +64,8 @@ function fromApiHabit(h: any): Habit {
     unit: h.unit,
     schedule,
     metadata: h.metadata ?? { remindersEnabled: false, reminderAdvanceMinutes: 30, streakFreezeDays: 0, allowBackdating: false },
-    dependsOn: h.dependsOn ?? undefined,
-    identityId: h.identityId ?? undefined,
+    dependsOn,
+    identityId: h.identityId ? decodeId(h.identityId) : undefined,
     tags: h.tags ?? [],
     status: h.status ?? 'active',
     createdAt: toDate(h.createdAt),
@@ -69,8 +76,8 @@ function fromApiHabit(h: any): Habit {
 
 function fromApiEntry(e: any): HabitEntry {
   return {
-    id: e.id,
-    habitId: e.habitId,
+    id: decodeId(e.id),
+    habitId: decodeId(e.habitId),
     date: e.date,
     value: e.value,
     standardMet: e.standardMet,
@@ -82,8 +89,8 @@ function fromApiEntry(e: any): HabitEntry {
 
 function fromApiNote(n: any): HabitNote {
   return {
-    id: n.id,
-    habitId: n.habitId,
+    id: decodeId(n.id),
+    habitId: decodeId(n.habitId),
     date: n.date,
     content: n.content ?? '',
     createdAt: toDate(n.createdAt),
@@ -93,7 +100,7 @@ function fromApiNote(n: any): HabitNote {
 
 function fromApiIdentity(i: any): Identity {
   return {
-    id: i.id,
+    id: decodeId(i.id),
     name: i.name,
     description: i.description ?? undefined,
     goals: i.goals ?? [],
@@ -132,14 +139,14 @@ class ApiSyncProvider implements SyncProvider {
     switch (collection) {
       case 'habits':
         try {
-          await gql(`mutation ($id: ID!) { deleteHabit(id: $id) }`, { id });
+          await gql(`mutation ($id: ID!) { deleteHabit(id: $id) }`, { id: encodeId('Habit', id) });
         } catch (e) {
           if (!isMissingError(e)) throw e;
         }
         break;
       case 'identities':
         try {
-          await gql(`mutation ($id: ID!) { deleteIdentity(id: $id) }`, { id });
+          await gql(`mutation ($id: ID!) { deleteIdentity(id: $id) }`, { id: encodeId('Identity', id) });
         } catch (e) {
           if (!isMissingError(e)) throw e;
         }
@@ -154,7 +161,7 @@ class ApiSyncProvider implements SyncProvider {
     const input = toApiHabitInput(h);
     try {
       await gql(`mutation ($id: ID!, $input: UpdateHabitInput!) { updateHabit(id: $id, input: $input) { id } }`, {
-        id: h.id,
+        id: encodeId('Habit', h.id),
         input,
       });
     } catch (e) {
@@ -170,7 +177,7 @@ class ApiSyncProvider implements SyncProvider {
        }`,
       {
         input: {
-          habitId: e.habitId,
+          habitId: encodeId('Habit', e.habitId),
           date: e.date,
           value: e.value,
           standardMet: e.standardMet,
@@ -188,8 +195,8 @@ class ApiSyncProvider implements SyncProvider {
        }`,
       {
         input: {
-          id: n.id,
-          habitId: n.habitId,
+          id: encodeId('HabitNote', n.id),
+          habitId: encodeId('Habit', n.habitId),
           date: n.date,
           content: n.content,
         },
@@ -199,7 +206,7 @@ class ApiSyncProvider implements SyncProvider {
 
   private async deleteNote(id: string): Promise<void> {
     try {
-      await gql(`mutation ($id: ID!) { deleteNote(id: $id) }`, { id });
+      await gql(`mutation ($id: ID!) { deleteNote(id: $id) }`, { id: encodeId('HabitNote', id) });
     } catch (e) {
       if (!isMissingError(e)) throw e;
     }
@@ -211,7 +218,7 @@ class ApiSyncProvider implements SyncProvider {
         `mutation ($id: ID!, $name: String!, $description: String, $goals: [String!]) {
            updateIdentity(id: $id, name: $name, description: $description, goals: $goals) { id }
          }`,
-        { id: i.id, name: i.name, description: i.description ?? null, goals: i.goals ?? [] },
+        { id: encodeId('Identity', i.id), name: i.name, description: i.description ?? null, goals: i.goals ?? [] },
       );
     } catch (e) {
       if (!isMissingError(e)) throw e;

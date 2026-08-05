@@ -1,4 +1,5 @@
 import type { GraphQLContext } from '../context.js';
+import { toGlobalId } from '../ids.js';
 
 interface SettingsRow {
   user_id: string;
@@ -13,7 +14,7 @@ interface SettingsRow {
 
 function toSettings(row: SettingsRow) {
   return {
-    userId: row.user_id,
+    userId: toGlobalId('User', row.user_id),
     resetTime: row.reset_time,
     themeMode: row.theme_mode,
     oled: row.oled ?? false,

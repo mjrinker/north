@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import type { GraphQLContext } from '../context.js';
 import { isAdmin } from './users.js';
+import { toGlobalId, requireGlobalId } from '../ids.js';
 
 interface ApiKeyRow {
   id: string;
@@ -13,8 +14,8 @@ interface ApiKeyRow {
 
 function toApiKey(row: ApiKeyRow) {
   return {
-    id: row.id,
-    userId: row.user_id,
+    id: toGlobalId('ApiKey', row.id),
+    userId: toGlobalId('User', row.user_id),
     apiKey: row.api_key,
     name: row.name,
     createdAt: row.created_at,
@@ -35,7 +36,7 @@ export const apiKeyResolvers = {
       if (!ctx.userId) throw new Error('Unauthorized');
       if (!(await isAdmin(ctx))) throw new Error('Forbidden');
       let query = ctx.db.from('api_keys').select('*').order('created_at', { ascending: false });
-      if (args.userId) query = query.eq('user_id', args.userId);
+      if (args.userId) query = query.eq('user_id', requireGlobalId(args.userId, 'User'));
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return (data as ApiKeyRow[]).map(toApiKey);
@@ -50,7 +51,8 @@ export const apiKeyResolvers = {
 
     revokeMyApiKey: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const { error } = await ctx.db.from('api_keys').delete().eq('id', args.id).eq('user_id', ctx.userId);
+      const id = requireGlobalId(args.id, 'ApiKey');
+      const { error } = await ctx.db.from('api_keys').delete().eq('id', id).eq('user_id', ctx.userId);
       if (error) throw new Error(error.message);
       return true;
     },
@@ -58,17 +60,19 @@ export const apiKeyResolvers = {
     createApiKey: async (_: unknown, args: { userId: string; name?: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       if (!(await isAdmin(ctx))) throw new Error('Forbidden');
+      const userId = requireGlobalId(args.userId, 'User');
 
-      const { data: user, error: userErr } = await ctx.db.from('users').select('id').eq('id', args.userId).maybeSingle();
+      const { data: user, error: userErr } = await ctx.db.from('users').select('id').eq('id', userId).maybeSingle();
       if (userErr || !user) throw new Error('User not found');
 
-      return insertApiKey(ctx, args.userId, args.name);
+      return insertApiKey(ctx, userId, args.name);
     },
 
     revokeApiKey: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       if (!(await isAdmin(ctx))) throw new Error('Forbidden');
-      const { error } = await ctx.db.from('api_keys').delete().eq('id', args.id);
+      const id = requireGlobalId(args.id, 'ApiKey');
+      const { error } = await ctx.db.from('api_keys').delete().eq('id', id);
       if (error) throw new Error(error.message);
       return true;
     },

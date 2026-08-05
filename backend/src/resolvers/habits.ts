@@ -1,5 +1,6 @@
 import type { GraphQLContext } from '../context.js';
 import { toEntry, type EntryRow } from './entries.js';
+import { toGlobalId, requireGlobalId, requireGlobalIdOptional, encodeDependsOn, decodeDependsOn } from '../ids.js';
 
 interface HabitRow {
   id: string;
@@ -23,8 +24,8 @@ interface HabitRow {
 
 function toHabit(row: HabitRow) {
   return {
-    id: row.id,
-    userId: row.user_id,
+    id: toGlobalId('Habit', row.id),
+    userId: toGlobalId('User', row.user_id),
     title: row.title,
     description: row.description,
     type: row.type,
@@ -33,8 +34,8 @@ function toHabit(row: HabitRow) {
     unit: row.unit,
     schedule: row.schedule,
     metadata: row.metadata,
-    dependsOn: row.depends_on,
-    identityId: row.identity_id,
+    dependsOn: encodeDependsOn(row.depends_on),
+    identityId: row.identity_id ? toGlobalId('Identity', row.identity_id) : null,
     tags: row.tags ?? [],
     status: row.status,
     sortOrder: row.sort_order,
@@ -47,7 +48,8 @@ export const habitResolvers = {
   Habit: {
     entries: async (habit: { id: string }, args: { dateFrom?: string; dateTo?: string; limit?: number }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      let query = ctx.db.from('entries').select('*').eq('habit_id', habit.id).eq('user_id', ctx.userId);
+      const habitId = requireGlobalId(habit.id, 'Habit');
+      let query = ctx.db.from('entries').select('*').eq('habit_id', habitId).eq('user_id', ctx.userId);
       if (args.dateFrom) query = query.gte('date', args.dateFrom);
       if (args.dateTo) query = query.lte('date', args.dateTo);
       query = query.order('date', { ascending: false });
@@ -81,7 +83,8 @@ export const habitResolvers = {
 
     habit: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const { data, error } = await ctx.db.from('habits').select('*').eq('id', args.id).eq('user_id', ctx.userId).single();
+      const id = requireGlobalId(args.id, 'Habit');
+      const { data, error } = await ctx.db.from('habits').select('*').eq('id', id).eq('user_id', ctx.userId).single();
       if (error) return null;
       return toHabit(data as HabitRow);
     },
@@ -101,7 +104,8 @@ export const habitResolvers = {
         unit: args.input.unit,
         schedule: args.input.schedule,
         metadata: args.input.metadata,
-        identity_id: args.input.identityId,
+        identity_id: requireGlobalIdOptional(args.input.identityId as string | null | undefined, 'Identity'),
+        depends_on: decodeDependsOn(args.input.dependsOn),
         tags: args.input.tags,
         sort_order: args.input.sortOrder,
       }).select('*').single();
@@ -111,6 +115,7 @@ export const habitResolvers = {
 
     updateHabit: async (_: unknown, args: { id: string; input: Record<string, unknown> }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
+      const id = requireGlobalId(args.id, 'Habit');
       const updates: Record<string, unknown> = {};
       if (args.input.title !== undefined) updates.title = args.input.title;
       if (args.input.description !== undefined) updates.description = args.input.description;
@@ -119,19 +124,20 @@ export const habitResolvers = {
       if (args.input.unit !== undefined) updates.unit = args.input.unit;
       if (args.input.schedule !== undefined) updates.schedule = args.input.schedule;
       if (args.input.metadata !== undefined) updates.metadata = args.input.metadata;
-      if (args.input.dependsOn !== undefined) updates.depends_on = args.input.dependsOn;
-      if (args.input.identityId !== undefined) updates.identity_id = args.input.identityId;
+      if (args.input.dependsOn !== undefined) updates.depends_on = decodeDependsOn(args.input.dependsOn);
+      if (args.input.identityId !== undefined) updates.identity_id = requireGlobalIdOptional(args.input.identityId as string | null | undefined, 'Identity');
       if (args.input.tags !== undefined) updates.tags = args.input.tags;
       if (args.input.status !== undefined) updates.status = args.input.status;
       if (args.input.sortOrder !== undefined) updates.sort_order = args.input.sortOrder;
-      const { data, error } = await ctx.db.from('habits').update(updates).eq('id', args.id).eq('user_id', ctx.userId).select('*').single();
+      const { data, error } = await ctx.db.from('habits').update(updates).eq('id', id).eq('user_id', ctx.userId).select('*').single();
       if (error) throw new Error(error.message);
       return toHabit(data as HabitRow);
     },
 
     deleteHabit: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const { error } = await ctx.db.from('habits').delete().eq('id', args.id).eq('user_id', ctx.userId);
+      const id = requireGlobalId(args.id, 'Habit');
+      const { error } = await ctx.db.from('habits').delete().eq('id', id).eq('user_id', ctx.userId);
       if (error) throw new Error(error.message);
       return true;
     },

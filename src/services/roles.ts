@@ -1,5 +1,6 @@
 // src/services/roles.ts
 import { gql } from '../lib/api'
+import { encodeId, decodeId } from '../lib/globalId'
 
 export async function getUserRolesFromDb(): Promise<string[]> {
   const data = await gql<{ myRoles: string[] }>(`query { myRoles }`)
@@ -8,7 +9,7 @@ export async function getUserRolesFromDb(): Promise<string[]> {
 
 export async function assignRoles(targetUserId: string, roles: string[]) {
   await gql(`mutation ($userId: ID!, $roles: [String!]!) { setRoles(userId: $userId, roles: $roles) }`, {
-    userId: targetUserId,
+    userId: encodeId('User', targetUserId),
     roles,
   })
 }
@@ -18,7 +19,7 @@ export async function fetchAllUsers(): Promise<{ id: string; email: string; name
     `query { usersWithRoles { id email name } }`,
   )
   return (data?.usersWithRoles ?? []).map(u => ({
-    id: u.id,
+    id: decodeId(u.id),
     email: u.email,
     name: u.name ?? u.email ?? '',
   }))
