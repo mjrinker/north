@@ -5,7 +5,7 @@
     {
       name: 'Fetch all habits',
       description: 'Get metadata for every habit.',
-      query: `{
+      query: `query GetHabits {
   habits {
     id
     title
@@ -62,7 +62,7 @@
     {
       name: 'List my API keys',
       description: 'See your API keys and when they were last used.',
-      query: `{
+      query: `query GetMyApiKeys {
   myApiKeys {
     id
     name

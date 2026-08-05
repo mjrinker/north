@@ -18,7 +18,9 @@
   let copiedId = $state('');
 
   const bodyJson = JSON.stringify({ query: example.query, variables: example.variables ?? {} });
-  const bodyPretty = JSON.stringify({ query: example.query, variables: example.variables ?? {} }, null, 2);
+  const queryString = example.query.trim();
+  const hasVars = !!example.variables && Object.keys(example.variables).length > 0;
+  const varsPretty = hasVars ? JSON.stringify(example.variables, null, 2) : '{}';
 
   const menuItems = [
     { id: 'graphql', label: 'GraphQL' },
@@ -51,30 +53,53 @@
           'import json',
           '',
           `url = "${URL}"`,
-          `headers = {"Content-Type": "application/json", "x-api-key": "${KEY}"}`,
-          `body = json.loads('''${bodyJson}''')`,
+          'headers = {',
+          '    "Content-Type": "application/json",',
+          `    "x-api-key": "${KEY}",`,
+          '}',
+          '',
+          `query = """${queryString}"""`,
+          `variables = ${varsPretty}`,
+          'body = {"query": query}',
+          'body["variables"] = variables',
           '',
           'r = requests.post(url, data=json.dumps(body), headers=headers)',
-          'print(r.status_code, r.json())',
+          'print(r.status_code)',
+          'print(json.dumps(r.json(), indent=2))',
         ].join('\n') + '\n';
       case 'fetch':
         return [
           `const url = "${URL}";`,
-          `const headers = { "Content-Type": "application/json", "x-api-key": "${KEY}" };`,
-          `const body = '${bodyJson}';`,
+          'const headers = {',
+          '  "Content-Type": "application/json",',
+          `  "x-api-key": "${KEY}",`,
+          '};',
+          'const body = {',
+          `  query: \`${queryString}\`,`,
+          `  variables: ${varsPretty},`,
+          '};',
           '',
-          "const res = await fetch(url, { method: 'POST', headers, body });",
+          'const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });',
           'const data = await res.json();',
-          'console.log(data);',
+          'console.log(JSON.stringify(data, null, 2));',
         ].join('\n') + '\n';
       case 'axios':
         return [
-          "const axios = require('axios');",
-          `const url = "${URL}";`,
-          `const headers = { "Content-Type": "application/json", "x-api-key": "${KEY}" };`,
-          `const body = JSON.parse('${bodyJson}');`,
+          'const axios = require("axios");',
           '',
-          'axios.post(url, body, { headers }).then(r => console.log(r.data));',
+          `const url = "${URL}";`,
+          'const headers = {',
+          '  "Content-Type": "application/json",',
+          `  "x-api-key": "${KEY}",`,
+          '};',
+          'const body = {',
+          `  query: \`${queryString}\`,`,
+          `  variables: ${varsPretty},`,
+          '};',
+          '',
+          'axios.post(url, body, { headers })',
+          '  .then((res) => console.log(JSON.stringify(res.data, null, 2)))',
+          '  .catch((err) => console.error(err.response?.data ?? err.message));',
         ].join('\n') + '\n';
       default:
         return '';
