@@ -340,7 +340,16 @@ class ApiSyncProvider implements SyncProvider {
           const idx = mergedHabits.findIndex(x => x.id === h.id);
           if (idx >= 0) {
             const local = mergedHabits[idx];
-            mergedHabits[idx] = { ...h, metadata: mergeMetadata(local.metadata, h.metadata) };
+            // Prefer the local copy when it was updated more recently to avoid
+            // clobbering just-saved changes with a lagging server snapshot.
+            if (local.updatedAt && (!h.updatedAt || local.updatedAt > h.updatedAt)) continue;
+            const meta = mergeMetadata(local.metadata, h.metadata);
+            mergedHabits[idx] = {
+              ...h,
+              metadata: meta,
+              webhooks: meta.webhooks,
+              shortcuts: meta.shortcuts,
+            };
           }
           else mergedHabits.push(h);
         } catch {}
@@ -351,15 +360,22 @@ class ApiSyncProvider implements SyncProvider {
       }
 
       const localEntries = get(entriesStore);
-      const mergedEntries = [...localEntries];
+      const mergedByKey = new Map<string, HabitEntry>();
+      const keyOf = (e: HabitEntry) => `${e.habitId}|${e.date}`;
+      for (const e of localEntries) {
+        const key = keyOf(e);
+        const existing = mergedByKey.get(key);
+        if (!existing || e.updatedAt > existing.updatedAt) mergedByKey.set(key, e);
+      }
       for (const row of data.entries ?? []) {
         try {
           const e = fromApiEntry(row);
-          const idx = mergedEntries.findIndex(x => x.id === e.id);
-          if (idx >= 0) mergedEntries[idx] = e;
-          else mergedEntries.push(e);
+          const key = keyOf(e);
+          const existing = mergedByKey.get(key);
+          if (!existing || e.updatedAt > existing.updatedAt) mergedByKey.set(key, e);
         } catch {}
       }
+      const mergedEntries = Array.from(mergedByKey.values());
       entriesStore.set(mergedEntries);
       for (const e of mergedEntries) {
         try { await saveEntry(e); } catch {}
