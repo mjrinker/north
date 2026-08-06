@@ -372,7 +372,9 @@ class ApiSyncProvider implements SyncProvider {
           const e = fromApiEntry(row);
           const key = keyOf(e);
           const existing = mergedByKey.get(key);
-          if (!existing || e.updatedAt > existing.updatedAt) mergedByKey.set(key, e);
+          // Server wins on ties (equal updatedAt) so data migrations that leave
+          // updated_at untouched still propagate to the device.
+          if (!existing || e.updatedAt >= existing.updatedAt) mergedByKey.set(key, e);
         } catch {}
       }
       const mergedEntries = Array.from(mergedByKey.values());
