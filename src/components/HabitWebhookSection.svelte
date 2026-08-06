@@ -1,9 +1,11 @@
 <script lang="ts">
-  import type { HabitWebhooks } from '../types';
+  import type { HabitWebhooks, HabitType } from '../types';
 
-  let { webhooks = $bindable<HabitWebhooks>({}) } = $props();
+  let { webhooks = $bindable<HabitWebhooks>({}), type = 'binary' as HabitType } = $props();
 
   let open = $state(false);
+
+  let showProgressEvents = $derived(type !== 'binary');
 </script>
 
 <div class="webhook-section">
@@ -13,18 +15,20 @@
   </button>
 
   {#if open}
-    <p class="webhook-hint">Fired locally from your device when the event happens. Leave blank to disable an event.</p>
+    <p class="webhook-hint">Fired locally from your device when the event happens. You can include <code>&#123;&#123;value&#125;&#125;</code> (today's entry value) and <code>&#123;&#123;date&#125;&#125;</code> in a URL — they're replaced on invocation. Leave blank to disable an event.</p>
     <label for="wh-logged">Logged URL</label>
     <input id="wh-logged" type="url" placeholder="https://example.com/hooks/logged" bind:value={webhooks.logged} />
 
-    <label for="wh-standard">Standard met URL (quantity / duration)</label>
-    <input id="wh-standard" type="url" placeholder="https://example.com/hooks/standard" bind:value={webhooks.standard_met} />
+    {#if showProgressEvents}
+      <label for="wh-standard">Standard met URL (quantity / duration)</label>
+      <input id="wh-standard" type="url" placeholder="https://example.com/hooks/standard" bind:value={webhooks.standard_met} />
 
-    <label for="wh-target">Target met URL (quantity / duration)</label>
-    <input id="wh-target" type="url" placeholder="https://example.com/hooks/target" bind:value={webhooks.target_met} />
-
-    <label for="wh-completed">Completed URL (binary)</label>
-    <input id="wh-completed" type="url" placeholder="https://example.com/hooks/completed" bind:value={webhooks.completed} />
+      <label for="wh-target">Target met URL (quantity / duration)</label>
+      <input id="wh-target" type="url" placeholder="https://example.com/hooks/target" bind:value={webhooks.target_met} />
+    {:else}
+      <label for="wh-completed">Completed URL (binary)</label>
+      <input id="wh-completed" type="url" placeholder="https://example.com/hooks/completed" bind:value={webhooks.completed} />
+    {/if}
   {/if}
 </div>
 

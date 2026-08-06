@@ -33,8 +33,14 @@ const DEBOUNCE_MS = 800;
 
 const pending = new Map<string, { timer: ReturnType<typeof setTimeout>; url: string; body: WebhookPayload }>();
 
+function interpolate(url: string, body: WebhookPayload): string {
+  return url
+    .replace(/\{\{\s*value\s*\}\}/g, encodeURIComponent(String(body.value)))
+    .replace(/\{\{\s*date\s*\}\}/g, encodeURIComponent(body.date));
+}
+
 function send(url: string, body: WebhookPayload) {
-  void fetch(url, {
+  void fetch(interpolate(url, body), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

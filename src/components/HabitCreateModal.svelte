@@ -166,7 +166,7 @@
     <span class="field-label">Tags</span>
     <TagInput bind:tags={habitTags} allTags={existingTags} />
 
-    <HabitWebhookSection bind:webhooks />
+    <HabitWebhookSection bind:webhooks {type} />
 
     <ModalActions onCancel={onClose} saveType="submit" saveLabel="Create" />
   </form>
