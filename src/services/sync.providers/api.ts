@@ -254,6 +254,29 @@ class ApiSyncProvider implements SyncProvider {
       const notes = get(notesStore);
       const settings = get(appSettings);
 
+      // Don't let a stale device's copy clobber a newer server row (e.g. a habit
+      // reordered on another device). Fetch the server's updatedAt per habit and
+      // only upload a habit when the local copy is strictly newer.
+      const serverHabitTs = new Map<string, Date>();
+      try {
+        const res = await gql<{ habits: { id: string; updatedAt: string }[] }>(
+          `query { habits { id updatedAt } }`,
+          undefined,
+          { auth: true },
+        );
+        for (const { id, updatedAt } of res.habits ?? []) {
+          const ts = toDate(updatedAt);
+          if (ts) serverHabitTs.set(decodeId(id), ts);
+        }
+      } catch {
+        // If the freshness check fails, fall back to uploading everything.
+      }
+      const pendingHabits = habits.filter(h => {
+        const serverTs = serverHabitTs.get(h.id);
+        if (!serverTs) return true; // new habit not on the server yet
+        return !h.updatedAt || h.updatedAt > serverTs;
+      });
+
       const dedupedEntries = Array.from(
         entries.reduce((map, e) => {
           const key = `${e.habitId}|${e.date}`;
@@ -279,7 +302,7 @@ class ApiSyncProvider implements SyncProvider {
 
       await run(jobs.splice(0));
 
-      for (const h of habits) jobs.push(this.upsertHabit(h));
+      for (const h of pendingHabits) jobs.push(this.upsertHabit(h));
       await run(jobs.splice(0));
 
       for (const e of dedupedEntries) jobs.push(this.upsertEntry(e));
