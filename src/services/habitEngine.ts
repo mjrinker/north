@@ -4,7 +4,7 @@ import { getLocalDateString, getWeekStart } from '../lib/dates';
 import { computeDailyStreak } from '../lib/streakUtils';
 import { entriesStore } from '../stores/entries';
 import { pushRecord } from './sync';
-import { webhooksFor, fireWebhook } from './webhooks';
+import { webhooksFor, fireWebhook, fireShortcut } from './webhooks';
 
 async function fireHabitWebhooks(habit: Habit, date: string, value: number, standardMet: boolean, targetMet: boolean): Promise<void> {
   const payload = {
@@ -18,6 +18,7 @@ async function fireHabitWebhooks(habit: Habit, date: string, value: number, stan
   };
   for (const event of webhooksFor(habit, value, standardMet, targetMet)) {
     fireWebhook(habit, event, payload);
+    fireShortcut(habit, event, payload);
   }
 }
 

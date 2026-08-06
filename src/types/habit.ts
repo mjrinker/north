@@ -20,6 +20,15 @@ export interface HabitWebhooks {
   completed?: string;
 }
 
+// iOS Shortcut names run when the corresponding event occurs on the habit, via
+// shortcuts://run-shortcut?name=<Name>&input=text&text=<urlEncodedJson>.
+export interface HabitShortcuts {
+  logged?: string;
+  standard_met?: string;
+  target_met?: string;
+  completed?: string;
+}
+
 export interface Habit {
 	id: string;
 	title: string;
@@ -47,6 +56,8 @@ export interface Habit {
 	sortOrder?: number;
 	// Optional per-event webhooks fired locally when events occur on this habit
 	webhooks?: HabitWebhooks;
+	// Optional per-event iOS Shortcut names run when events occur on this habit
+	shortcuts?: HabitShortcuts;
 	createdAt: Date;
 	updatedAt: Date;
 }

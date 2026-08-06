@@ -13,6 +13,8 @@ export type WebhookPayload = {
   timestamp: string;
 };
 
+export type WebhookEventPayload = Omit<WebhookPayload, 'event' | 'habit'>;
+
 // Event routing per habit type:
 //  - binary:   'logged' (always) + 'completed' when the standard is met
 //  - quantity / duration: 'logged' (always) + 'standard_met' + 'target_met'
@@ -27,11 +29,30 @@ export function webhooksFor(habit: Habit, value: number, standardMet: boolean, t
   return events;
 }
 
+// Full payload body used by both webhooks and iOS Shortcuts.
+export function buildBody(habit: Habit, event: WebhookEvent, payload: WebhookEventPayload): WebhookPayload {
+  return {
+    event,
+    habit: { id: habit.id, title: habit.title, type: habit.type, unit: habit.unit },
+    ...payload,
+  };
+}
+
 // Debounce window: rapid repeat events on the same habit+event (e.g. tapping + three
-// times) coalesce into a single webhook call with the latest payload.
+// times) coalesce into a single invocation with the latest payload.
 const DEBOUNCE_MS = 800;
 
-const pending = new Map<string, { timer: ReturnType<typeof setTimeout>; url: string; body: WebhookPayload }>();
+const pending = new Map<string, { timer: ReturnType<typeof setTimeout>; deliver: () => void }>();
+
+function schedule(key: string, deliver: () => void) {
+  const existing = pending.get(key);
+  if (existing) clearTimeout(existing.timer);
+  const timer = setTimeout(() => {
+    pending.delete(key);
+    deliver();
+  }, DEBOUNCE_MS);
+  pending.set(key, { timer, deliver });
+}
 
 function interpolate(url: string, body: WebhookPayload): string {
   const lookup: Record<string, string> = {
@@ -63,29 +84,28 @@ function send(url: string, body: WebhookPayload) {
   });
 }
 
-export function fireWebhook(habit: Habit, event: WebhookEvent, payload: Omit<WebhookPayload, 'event' | 'habit'>): void {
+export function fireWebhook(habit: Habit, event: WebhookEvent, payload: WebhookEventPayload): void {
   const url = habit.webhooks?.[event];
   if (!url) return;
-  const key = `${habit.id}|${event}`;
-  const body: WebhookPayload = {
-    event,
-    habit: { id: habit.id, title: habit.title, type: habit.type, unit: habit.unit },
-    ...payload,
-  };
-  const existing = pending.get(key);
-  if (existing) {
-    clearTimeout(existing.timer);
-    existing.body = body;
-    existing.timer = setTimeout(() => {
-      pending.delete(key);
-      send(url, body);
-    }, DEBOUNCE_MS);
-    return;
-  }
-  const rec = { url, body, timer: undefined as unknown as ReturnType<typeof setTimeout> };
-  pending.set(key, rec);
-  rec.timer = setTimeout(() => {
-    pending.delete(key);
-    send(url, body);
-  }, DEBOUNCE_MS);
+  const body = buildBody(habit, event, payload);
+  schedule(`${habit.id}|wh|${event}`, () => send(url, body));
+}
+
+// Runs an iOS Shortcut via a deep link. The full payload JSON (with the same
+// interpolated values as the webhooks) is passed to the shortcut as URL-encoded text.
+function openShortcut(name: string, body: WebhookPayload) {
+  const url = `shortcuts://run-shortcut?name=${encodeURIComponent(name)}&input=text&text=${encodeURIComponent(JSON.stringify(body))}`;
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.style.display = 'none';
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+}
+
+export function fireShortcut(habit: Habit, event: WebhookEvent, payload: WebhookEventPayload): void {
+  const name = habit.shortcuts?.[event];
+  if (!name) return;
+  const body = buildBody(habit, event, payload);
+  schedule(`${habit.id}|sc|${event}`, () => openShortcut(name, body));
 }
