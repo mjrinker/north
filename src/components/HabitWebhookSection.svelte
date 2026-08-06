@@ -15,7 +15,7 @@
   </button>
 
   {#if open}
-    <p class="webhook-hint">Fired locally from your device when the event happens. You can include <code>&#123;&#123;value&#125;&#125;</code> (today's entry value) and <code>&#123;&#123;date&#125;&#125;</code> in a URL — they're replaced on invocation. Leave blank to disable an event.</p>
+    <p class="webhook-hint">Fired locally from your device when the event happens. URL placeholders like <code>&#123;&#123;value&#125;&#125;</code>, <code>&#123;&#123;date&#125;&#125;</code>, <code>&#123;&#123;id&#125;&#125;</code>, <code>&#123;&#123;title&#125;&#125;</code>, <code>&#123;&#123;unit&#125;&#125;</code>, <code>&#123;&#123;standard&#125;&#125;</code>, <code>&#123;&#123;event&#125;&#125;</code> are replaced on invocation. Leave blank to disable an event.</p>
     <label for="wh-logged">Logged URL</label>
     <input id="wh-logged" type="url" placeholder="https://example.com/hooks/logged" bind:value={webhooks.logged} />
 

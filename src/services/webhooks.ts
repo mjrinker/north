@@ -3,7 +3,7 @@ import type { Habit, WebhookEvent } from '../types';
 
 export type WebhookPayload = {
   event: WebhookEvent;
-  habit: { id: string; title: string; type: string };
+  habit: { id: string; title: string; type: string; unit?: string };
   date: string;
   value: number;
   standard: number;
@@ -34,9 +34,22 @@ const DEBOUNCE_MS = 800;
 const pending = new Map<string, { timer: ReturnType<typeof setTimeout>; url: string; body: WebhookPayload }>();
 
 function interpolate(url: string, body: WebhookPayload): string {
-  return url
-    .replace(/\{\{\s*value\s*\}\}/g, encodeURIComponent(String(body.value)))
-    .replace(/\{\{\s*date\s*\}\}/g, encodeURIComponent(body.date));
+  const lookup: Record<string, string> = {
+    event: body.event,
+    id: body.habit.id,
+    habitId: body.habit.id,
+    title: body.habit.title,
+    type: body.habit.type,
+    unit: body.habit.unit ?? '',
+    date: body.date,
+    value: String(body.value),
+    standard: String(body.standard),
+    target: body.target == null ? '' : String(body.target),
+    standardMet: String(body.standardMet),
+    targetMet: String(body.targetMet),
+    timestamp: body.timestamp,
+  };
+  return url.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => encodeURIComponent(lookup[key] ?? ''));
 }
 
 function send(url: string, body: WebhookPayload) {
@@ -56,7 +69,7 @@ export function fireWebhook(habit: Habit, event: WebhookEvent, payload: Omit<Web
   const key = `${habit.id}|${event}`;
   const body: WebhookPayload = {
     event,
-    habit: { id: habit.id, title: habit.title, type: habit.type },
+    habit: { id: habit.id, title: habit.title, type: habit.type, unit: habit.unit },
     ...payload,
   };
   const existing = pending.get(key);
