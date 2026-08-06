@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Habit, DependsOn, HabitCategory } from '../types';
+  import type { Habit, DependsOn, HabitCategory, HabitWebhooks } from '../types';
   import { addHabit } from '../stores/habits';
   import Modal from './Modal.svelte';
   import TagInput from './TagInput.svelte';
@@ -7,6 +7,7 @@
   import ModalActions from './ModalActions.svelte';
   import HabitColorPicker from './HabitColorPicker.svelte';
   import HabitIconPicker from './HabitIconPicker.svelte';
+  import HabitWebhookSection from './HabitWebhookSection.svelte';
 
   let {
     habits,
@@ -33,6 +34,7 @@
   let color = $state('');
   let icon = $state('');
   let emoji = $state('');
+  let webhooks = $state<HabitWebhooks>({});
   let unit = $state('times');
   let unitDefaulted = $state(true);
   let startOfWeek = $state(1);
@@ -80,6 +82,7 @@
       identityId: undefined,
       tags: habitTags,
       status: 'active',
+      webhooks,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -162,6 +165,8 @@
 
     <span class="field-label">Tags</span>
     <TagInput bind:tags={habitTags} allTags={existingTags} />
+
+    <HabitWebhookSection bind:webhooks />
 
     <ModalActions onCancel={onClose} saveType="submit" saveLabel="Create" />
   </form>

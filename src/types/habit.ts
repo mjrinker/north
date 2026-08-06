@@ -9,6 +9,17 @@ export interface DependsOn {
   mode: 'and' | 'or';
 }
 
+export type WebhookEvent = 'logged' | 'standard_met' | 'target_met' | 'completed';
+
+// Per-event URLs called locally from the device when the corresponding event
+// occurs on the habit. Never invoked by the backend.
+export interface HabitWebhooks {
+  logged?: string;
+  standard_met?: string;
+  target_met?: string;
+  completed?: string;
+}
+
 export interface Habit {
 	id: string;
 	title: string;
@@ -34,6 +45,8 @@ export interface Habit {
 	status: HabitStatus;
 	// Optional global sort position used when the user picks custom ordering
 	sortOrder?: number;
+	// Optional per-event webhooks fired locally when events occur on this habit
+	webhooks?: HabitWebhooks;
 	createdAt: Date;
 	updatedAt: Date;
 }

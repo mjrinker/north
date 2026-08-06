@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Habit, HabitCategory } from '../types';
+  import type { Habit, HabitCategory, HabitWebhooks } from '../types';
   import { updateHabit } from '../stores/habits';
   import { isHabitPaused } from '../lib/habitUtils';
   import Modal from './Modal.svelte';
@@ -8,6 +8,7 @@
   import ModalActions from './ModalActions.svelte';
   import HabitColorPicker from './HabitColorPicker.svelte';
   import HabitIconPicker from './HabitIconPicker.svelte';
+  import HabitWebhookSection from './HabitWebhookSection.svelte';
   import HabitLogTab from './HabitLogTab.svelte';
 
   let {
@@ -39,6 +40,7 @@
   let color = $state(habit.metadata?.color ?? '');
   let icon = $state(habit.metadata?.icon ?? '');
   let emoji = $state(habit.metadata?.emoji ?? '');
+  let webhooks = $state<HabitWebhooks>(habit.webhooks ?? {});
   let unit = $state(habit.unit || (habit.type === 'duration' ? 'minute' : 'time'));
   let startOfWeek = $state(habit.schedule.startOfWeek ?? 1);
   let showStartOfWeek = $derived(frequency === 'weekly' || frequency === 'days_per_week');
@@ -63,6 +65,7 @@
       dependsOn,
       tags: habitTags,
       status,
+      webhooks,
       metadata: {
         ...habit.metadata,
         category,
@@ -186,6 +189,8 @@
 
     <span class="field-label">Tags</span>
     <TagInput bind:tags={habitTags} allTags={existingTags} />
+
+    <HabitWebhookSection bind:webhooks />
 
     <ModalActions onSave={handleSave} onCancel={onClose} onDelete={handleDelete} />
   </div>

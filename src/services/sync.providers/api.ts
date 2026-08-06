@@ -37,7 +37,7 @@ function toApiHabitInput(h: Habit) {
     target: h.target ?? null,
     unit: h.unit,
     schedule: h.schedule,
-    metadata: h.metadata,
+    metadata: { ...h.metadata, webhooks: h.webhooks },
     identityId: h.identityId ? encodeId('Identity', h.identityId) : null,
     dependsOn: h.dependsOn
       ? { ...h.dependsOn, habitIds: (h.dependsOn.habitIds ?? []).map(hid => encodeId('Habit', hid)) }
@@ -50,7 +50,7 @@ function toApiHabitInput(h: Habit) {
 
 function mergeMetadata(local: any, server: any) {
   const meta = { ...server };
-  for (const key of ['color', 'icon', 'emoji', 'category']) {
+  for (const key of ['color', 'icon', 'emoji', 'category', 'webhooks']) {
     if (!meta[key] && local?.[key]) meta[key] = local[key];
   }
   return meta;
@@ -73,6 +73,7 @@ function fromApiHabit(h: any): Habit {
     unit: h.unit,
     schedule,
     metadata: h.metadata ?? { remindersEnabled: false, reminderAdvanceMinutes: 30, streakFreezeDays: 0, allowBackdating: false },
+    webhooks: h.metadata?.webhooks,
     dependsOn,
     identityId: h.identityId ? decodeId(h.identityId) : undefined,
     tags: h.tags ?? [],

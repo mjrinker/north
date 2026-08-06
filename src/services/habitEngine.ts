@@ -4,6 +4,22 @@ import { getLocalDateString, getWeekStart } from '../lib/dates';
 import { computeDailyStreak } from '../lib/streakUtils';
 import { entriesStore } from '../stores/entries';
 import { pushRecord } from './sync';
+import { webhooksFor, fireWebhook } from './webhooks';
+
+async function fireHabitWebhooks(habit: Habit, date: string, value: number, standardMet: boolean, targetMet: boolean): Promise<void> {
+  const payload = {
+    date,
+    value,
+    standard: habit.standard,
+    target: habit.target ?? null,
+    standardMet,
+    targetMet,
+    timestamp: new Date().toISOString(),
+  };
+  for (const event of webhooksFor(habit, value, standardMet, targetMet)) {
+    fireWebhook(habit, event, payload);
+  }
+}
 
 export class HabitEngine {
   constructor(private habit: Habit) {}
@@ -47,6 +63,7 @@ export class HabitEngine {
       return [...list.filter(e => !(e.habitId === entry.habitId && e.date === entry.date)), entry];
     });
     await pushRecord('entries', entry.id, entry);
+    void fireHabitWebhooks(habit, date, value, completion.standardMet, completion.targetMet);
   }
 
   async logCompletion(date: string, value: number, notes?: string): Promise<void> {
