@@ -9,6 +9,7 @@
   import HabitIconPicker from './HabitIconPicker.svelte';
   import HabitWebhookSection from './HabitWebhookSection.svelte';
   import HabitShortcutSection from './HabitShortcutSection.svelte';
+  import DurationField from './DurationField.svelte';
 
   let {
     habits,
@@ -39,12 +40,19 @@
   let shortcuts = $state<HabitShortcuts>({});
   let unit = $state('times');
   let unitDefaulted = $state(true);
+  let thresholdsDefaulted = $state(true);
   let startOfWeek = $state(1);
   let showStartOfWeek = $derived(frequency === 'weekly' || frequency === 'days_per_week');
 
   $effect(() => {
     if (!unitDefaulted) return;
-    unit = type === 'duration' ? 'minutes' : 'times';
+    unit = type === 'duration' ? 'seconds' : 'times';
+  });
+
+  $effect(() => {
+    if (!thresholdsDefaulted) return;
+    standard = type === 'duration' ? 300 : 1;
+    target = type === 'duration' ? 900 : 2;
   });
 
   function handleSubmit(event: SubmitEvent) {
@@ -62,7 +70,7 @@
       standard,
       target: (type !== 'binary' && target) ? target : undefined,
       type,
-      unit: unit.trim() || (type === 'duration' ? 'minutes' : 'times'),
+      unit: unit.trim() || (type === 'duration' ? 'seconds' : 'times'),
       schedule: {
         frequency: frequency as 'daily' | 'weekly' | 'monthly' | 'custom' | 'days_per_week',
         interval,
@@ -125,11 +133,18 @@
 
     {#if showStandard}
       <label for="unit">Unit</label>
-      <input type="text" bind:value={unit} placeholder={type === 'duration' ? 'minutes' : 'times'} oninput={() => unitDefaulted = false} />
-      <label for="standard">Standard</label>
-      <input type="number" bind:value={standard} placeholder="Standard value" min="1" />
-      <label for="target">Goal</label>
-      <input type="number" bind:value={target} placeholder="Goal (optional)" min="1" />
+      <input type="text" bind:value={unit} placeholder={type === 'duration' ? 'seconds' : 'times'} oninput={() => unitDefaulted = false} />
+      {#if type === 'duration'}
+        <label for="standard">Standard (hh:mm:ss)</label>
+        <DurationField id="standard" bind:value={standard} placeholder="e.g. 5:00" touched={() => thresholdsDefaulted = false} />
+        <label for="target">Goal (hh:mm:ss)</label>
+        <DurationField id="target" bind:value={target} placeholder="e.g. 15:00" touched={() => thresholdsDefaulted = false} />
+      {:else}
+        <label for="standard">Standard</label>
+        <input type="number" bind:value={standard} placeholder="Standard value" min="1" />
+        <label for="target">Goal</label>
+        <input type="number" bind:value={target} placeholder="Goal (optional)" min="1" />
+      {/if}
     {/if}
 
     <label for="frequency">Frequency</label>

@@ -4,6 +4,7 @@
   import { getEntriesByDateRange, getAllEntries } from '../../services/storage';
   import { HabitEngine } from '../../services/habitEngine';
   import { getLocalDateString, parseLocalDate, isToday } from '../../lib/dates';
+  import { formatDurationLabel, hmsFromSeconds } from '../../lib/duration';
   import { autoCompleteDependencies, uncheckDependencies, cascadeCheck, cascadeUncheck } from '../../lib/dependencyEngine';
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
@@ -141,6 +142,7 @@
   let editValue = $state(0);
   let editHours = $state(0);
   let editMinutes = $state(0);
+  let editSeconds = $state(0);
 
   function cellPointerDown(e: Event, habit: Habit, date: string) {
     e.preventDefault();
@@ -196,15 +198,17 @@
     if (habit.type === 'quantity') {
       editValue = current;
     } else {
-      editHours = Math.floor(current / 60);
-      editMinutes = Math.round(current % 60);
+      const { h, m, s } = hmsFromSeconds(current);
+      editHours = h;
+      editMinutes = m;
+      editSeconds = s;
     }
   }
 
   async function saveEdit() {
     if (!editTarget) return;
     const { habit, date, type } = editTarget;
-    const value = type === 'quantity' ? editValue : editHours * 60 + editMinutes;
+    const value = type === 'quantity' ? editValue : editHours * 3600 + editMinutes * 60 + editSeconds;
     await HabitEngine.logCompletion(habit, date, value);
     await afterLogCompletion(habit, date);
     editTarget = null;
@@ -314,7 +318,7 @@
                   onpointerdown={(e) => cellPointerDown(e, habit, date)}
                   onpointerup={cellPointerUp}
                   onpointerleave={cellPointerLeave}
-                >{entry?.value ? Math.floor(entry.value) + 'm' : '-'}</button>
+                >{entry?.value ? formatDurationLabel(entry.value) : '-'}</button>
               {/if}
             </td>
           {/each}
@@ -346,6 +350,10 @@
           <label class="modal-field">
             <span>Minutes</span>
             <input type="number" bind:value={editMinutes} min="0" max="59" />
+          </label>
+          <label class="modal-field">
+            <span>Seconds</span>
+            <input type="number" bind:value={editSeconds} min="0" max="59" />
           </label>
         </div>
       {/if}

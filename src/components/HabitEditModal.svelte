@@ -10,6 +10,7 @@
   import HabitIconPicker from './HabitIconPicker.svelte';
   import HabitWebhookSection from './HabitWebhookSection.svelte';
   import HabitShortcutSection from './HabitShortcutSection.svelte';
+  import DurationField from './DurationField.svelte';
   import HabitLogTab from './HabitLogTab.svelte';
 
   let {
@@ -43,7 +44,7 @@
   let emoji = $state(habit.metadata?.emoji ?? '');
   let webhooks = $state<HabitWebhooks>(habit.webhooks ?? {});
   let shortcuts = $state<HabitShortcuts>(habit.shortcuts ?? {});
-  let unit = $state(habit.unit || (habit.type === 'duration' ? 'minute' : 'time'));
+  let unit = $state(habit.unit || (habit.type === 'duration' ? 'second' : 'time'));
   let startOfWeek = $state(habit.schedule.startOfWeek ?? 1);
   let showStartOfWeek = $derived(frequency === 'weekly' || frequency === 'days_per_week');
 
@@ -63,7 +64,7 @@
       standard,
       target: type !== 'binary' ? target : undefined,
       type,
-      unit: unit.trim() || 'times',
+      unit: unit.trim() || (type === 'duration' ? 'seconds' : 'times'),
       dependsOn,
       tags: habitTags,
       status,
@@ -132,9 +133,14 @@
     </label>
 
     {#if showStandard}
-      <label>Unit <input type="text" bind:value={unit} placeholder="singular, e.g. cup" /></label>
-      <label>Standard <input type="number" bind:value={standard} /></label>
-      <label>Goal <input type="number" bind:value={target} /></label>
+      <label>Unit <input type="text" bind:value={unit} placeholder={type === 'duration' ? 'seconds' : 'singular, e.g. cup'} /></label>
+      {#if type === 'duration'}
+        <label>Standard <DurationField bind:value={standard} placeholder="e.g. 30:00" /></label>
+        <label>Goal <DurationField bind:value={target} placeholder="e.g. 1:00:00" /></label>
+      {:else}
+        <label>Standard <input type="number" bind:value={standard} /></label>
+        <label>Goal <input type="number" bind:value={target} /></label>
+      {/if}
     {/if}
 
     <label>Frequency

@@ -115,7 +115,7 @@
   let timerMins = $derived(Math.floor((timerState.elapsed % 3600) / 60));
   let timerSecs = $derived(timerState.elapsed % 60);
   let timerInterval: ReturnType<typeof setInterval> | null = null;
-  let manualMinutes = $state('');
+  let manualSeconds = $state('');
 
   $effect(() => {
     if (timerState.running && !timerState.paused && timerState.startedAt > 0) {
@@ -136,11 +136,11 @@
   }
 
   function startTimer() {
-    const mins = manualMinutes ? parseInt(manualMinutes) : (todayEntry?.value ?? 0);
-    const initial = (isNaN(mins) ? 0 : mins) * 60;
-    setTimerState(habit.id, { running: true, paused: false, elapsed: initial, pausedElapsed: initial, startedAt: Date.now() });
+    const initial = manualSeconds ? parseInt(manualSeconds) : (todayEntry?.value ?? 0);
+    const startSec = (isNaN(initial) ? 0 : initial);
+    setTimerState(habit.id, { running: true, paused: false, elapsed: startSec, pausedElapsed: startSec, startedAt: Date.now() });
     startTimerInterval();
-    manualMinutes = '';
+    manualSeconds = '';
     addLog(habit.id, 'start');
   }
 
@@ -163,9 +163,9 @@
     const s = allTimerStates[habit.id];
     if (!s) return;
     clearTimerInterval();
-    const minutes = s.elapsed / 60;
+    const seconds = s.elapsed;
     clearTimerState(habit.id);
-    logAndRefresh(minutes);
+    logAndRefresh(seconds);
     addLog(habit.id, 'complete');
   }
 
@@ -176,10 +176,10 @@
 
   async function handleDurationSet(hours: number, minutes: number, seconds: number) {
     if (!habit) return;
-    await logAndRefresh(hours * 60 + minutes + seconds / 60);
+    await logAndRefresh(hours * 3600 + minutes * 60 + seconds);
   }
 
-  let durTotalSec = $derived(Math.round((todayEntry?.value ?? 0) * 60));
+  let durTotalSec = $derived(Math.round(todayEntry?.value ?? 0));
   let durHours = $derived(Math.floor(durTotalSec / 3600));
   let durMinutes = $derived(Math.floor((durTotalSec % 3600) / 60));
   let durSeconds = $derived(durTotalSec % 60);

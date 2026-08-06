@@ -8,6 +8,7 @@
   import { onMount, onDestroy } from 'svelte';
   import Icon from '@iconify/svelte';
   import { pluralizeUnit } from '../lib/units';
+  import { formatHms } from '../lib/duration';
 
   let { habit, date = getLocalDateString() }: { habit: Habit; date?: string } = $props();
 
@@ -34,7 +35,7 @@
 
   // ---- Default steppers ----
   function baseStep(): number {
-    return 1; // 1 count for quantity, 1 minute for duration
+    return habit.type === 'duration' ? 60 : 1; // 1 count for quantity, 1 minute of seconds for duration
   }
   async function inc() { await log(entryValue + baseStep()); }
   async function dec() { await log(entryValue - baseStep()); }
@@ -105,8 +106,7 @@
     persistSteps(steps.filter((_, idx) => idx !== i));
   }
   async function applyStep(sec: number) {
-    const amt = habit.type === 'duration' ? sec / 60 : sec;
-    await log(entryValue + amt);
+    await log(entryValue + sec);
   }
   function fmtStep(v: number): string {
     const sign = v < 0 ? '−' : '+';
@@ -138,7 +138,7 @@
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   }
   function startTimer() {
-    const initial = Math.round(entryValue) * 60;
+    const initial = Math.round(entryValue);
     setTimerState(habit.id, { running: true, paused: false, elapsed: initial, pausedElapsed: initial, startedAt: Date.now() });
     startInterval();
   }
@@ -158,9 +158,9 @@
     const s = allTimerStates[habit.id];
     if (!s) return;
     stopInterval();
-    const minutes = s.elapsed / 60;
+    const seconds = s.elapsed;
     clearTimerState(habit.id);
-    log(minutes);
+    log(seconds);
   }
   function cancelTimer() {
     stopInterval();
@@ -175,7 +175,7 @@
     stopInterval();
   });
 
-  let totalSec = $derived(timer.running ? timer.elapsed : Math.round(entryValue * 60));
+  let totalSec = $derived(timer.running ? timer.elapsed : Math.round(entryValue));
   let dispH = $derived(Math.floor(totalSec / 3600));
   let dispM = $derived(Math.floor((totalSec % 3600) / 60));
   let dispS = $derived(totalSec % 60);
@@ -269,7 +269,7 @@
 
   <div class="status">
     <span class="status-dot" class:met={standardMet}></span>
-    <span>{standardMet ? 'Standard met' : 'Not at standard'} · standard {habit.standard}{habit.unit ? ' ' + pluralizeUnit(habit.unit, habit.standard) : ''}</span>
+    <span>{standardMet ? 'Standard met' : 'Not at standard'} · standard {habit.type === 'duration' ? formatHms(habit.standard) : habit.standard + (habit.unit ? ' ' + pluralizeUnit(habit.unit, habit.standard) : '')}</span>
   </div>
 </div>
 
