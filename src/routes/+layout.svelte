@@ -4,7 +4,6 @@
   import { appSettings, type LaunchScreen } from '../lib/settings';
   import { applyThemeEffect } from '../stores/theme';
   import { initRemoteLogger } from '../lib/remoteLogger';
-  import { migrateDurationToSeconds } from '../lib/migrateDuration';
   initRemoteLogger();
   import { user, signOut } from '../stores/auth';
   import { userRoles } from '../stores/roles';
@@ -31,7 +30,6 @@
 
   $effect(() => {
     appSettings.init();
-    void migrateDurationToSeconds();
     return applyThemeEffect();
   });
 
