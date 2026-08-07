@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Habit, HabitEntry } from '../../types';
   import { habitsStore } from '../../stores/habits';
-  import { getEntriesByDateRange, getAllEntries } from '../../services/storage';
+  import { getEntriesByDateRangeMeta, getAllEntries } from '../../services/storage';
   import { HabitEngine } from '../../services/habitEngine';
   import { getLocalDateString, parseLocalDate, isToday } from '../../lib/dates';
   import { formatDurationLabel, hmsFromSeconds } from '../../lib/duration';
@@ -10,7 +10,7 @@
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import Icon from '@iconify/svelte';
   import { showCreateHabit } from '../../stores/createHabit';
-  import { onDestroy } from 'svelte';
+  import { onDestroy, tick } from 'svelte';
 
   $effect(() => {
     if (editTarget) {
@@ -35,10 +35,38 @@
   let lastRow = $derived(Math.min(totalRows, Math.ceil((scrollTop + viewportHeight) / ROW_HEIGHT) + OVERSCAN));
   let visibleHabits = $derived(habits.slice(firstRow, lastRow));
 
+  const LEFT_EDGE_TRIGGER = 10;
+
   function handleTableScroll(e: Event) {
     const el = e.currentTarget as HTMLDivElement;
     scrollTop = el.scrollTop;
     viewportHeight = el.clientHeight;
+    if (el.scrollLeft <= LEFT_EDGE_TRIGGER) loadOlder();
+  }
+
+  async function loadOlder() {
+    if (!tableContainer || loadingMore || !canLoadMore) return;
+    loadingMore = true;
+    try {
+      const el = tableContainer;
+      const anchorDate = dateColumns[0];
+      const anchorTh = anchorDate ? el.querySelector(`thead th[data-date="${anchorDate}"]`) : null;
+      const containerLeft = el.getBoundingClientRect().left;
+      const beforeLeft = anchorTh ? anchorTh.getBoundingClientRect().left - containerLeft : el.scrollLeft;
+
+      startOffsetDays += EXTEND_CHUNK;
+      await tick();
+
+      if (anchorDate) {
+        const afterTh = el.querySelector(`thead th[data-date="${anchorDate}"]`);
+        if (afterTh) {
+          const afterLeft = afterTh.getBoundingClientRect().left - containerLeft;
+          el.scrollLeft = Math.max(0, el.scrollLeft + (afterLeft - beforeLeft));
+        }
+      }
+    } finally {
+      loadingMore = false;
+    }
   }
 
   function measureViewport() {
@@ -53,16 +81,50 @@
 
   let allEntries = $state<HabitEntry[]>([]);
   let entriesReady = $state(false);
+  let earliestEntryDate = $state<string | null>(null);
+
+  const INITIAL_DAYS_BACK = 89;
+  const EXTEND_CHUNK = 60;
+  let startOffsetDays = $state(INITIAL_DAYS_BACK);
+  let loadingMore = $state(false);
+
+  const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  function getDates(): string[] {
+    const today = new Date();
+    const dates: string[] = [];
+    const d = new Date(today);
+    d.setDate(d.getDate() - startOffsetDays);
+    for (let i = 0; i <= startOffsetDays; i++) {
+      dates.push(getLocalDateString(d));
+      d.setDate(d.getDate() + 1);
+    }
+    return dates;
+  }
+
+  let dateColumns = $derived(getDates());
+  let canLoadMore = $derived(earliestEntryDate !== null && dateColumns[0] > earliestEntryDate);
 
   $effect(() => {
-    const ws = windowStart;
     const dates = getDates();
     const startDate = dates[0];
-    const endDate = dates[WINDOW_SIZE - 1];
-    getEntriesByDateRange(startDate, endDate)
-      .then(e => { allEntries = e; })
+    const endDate = dates[dates.length - 1];
+    getEntriesByDateRangeMeta(startDate, endDate)
+      .then(meta => {
+        allEntries = meta.entries;
+        earliestEntryDate = meta.earliestDate;
+      })
       .catch(err => console.error('load entries error:', err))
       .finally(() => { entriesReady = true; });
+  });
+
+  $effect(() => {
+    if (!tableContainer || !entriesReady) return;
+    requestAnimationFrame(() => {
+      if (tableContainer && tableContainer.scrollWidth > tableContainer.clientWidth) {
+        tableContainer.scrollLeft = tableContainer.scrollWidth;
+      }
+    });
   });
 
   let showCreate = $state(false);
@@ -75,34 +137,6 @@
     }));
   }
   let editingHabit = $state<Habit | null>(null);
-  let windowStart = $state(89);
-
-  const WINDOW_SIZE = 90;
-
-  const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-  $effect(() => {
-    if (!tableContainer || !entriesReady) return;
-    requestAnimationFrame(() => {
-      if (tableContainer && tableContainer.scrollWidth > tableContainer.clientWidth) {
-        tableContainer.scrollLeft = tableContainer.scrollWidth;
-      }
-    });
-  });
-
-  function getDates(): string[] {
-    const today = new Date();
-    const dates: string[] = [];
-    const d = new Date(today);
-    d.setDate(d.getDate() - windowStart);
-    for (let i = 0; i < WINDOW_SIZE; i++) {
-      dates.push(getLocalDateString(d));
-      d.setDate(d.getDate() + 1);
-    }
-    return dates;
-  }
-
-  let dateColumns = $derived(getDates());
 
   let entryMap = $derived.by(() => {
     const map = new Map<string, HabitEntry>();

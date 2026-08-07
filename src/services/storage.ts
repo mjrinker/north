@@ -125,6 +125,31 @@ export async function getEntriesByDateRange(start: string, end: string): Promise
   return all.filter(e => e.date >= start && e.date <= end);
 }
 
+export interface EntriesRangeMeta {
+  entries: HabitEntry[];
+  earliestDate: string | null;
+  latestDate: string | null;
+}
+
+export async function getEntriesByDateRangeMeta(start: string, end: string): Promise<EntriesRangeMeta> {
+  if (!isBrowser) return { entries: [], earliestDate: null, latestDate: null };
+  const db = await getDB();
+  const tx = db.transaction('entries', 'readonly');
+  const store = tx.objectStore('entries');
+  const all = await store.getAll();
+  let earliestDate: string | null = null;
+  let latestDate: string | null = null;
+  for (const e of all) {
+    if (!earliestDate || e.date < earliestDate) earliestDate = e.date;
+    if (!latestDate || e.date > latestDate) latestDate = e.date;
+  }
+  return {
+    entries: all.filter(e => e.date >= start && e.date <= end),
+    earliestDate,
+    latestDate,
+  };
+}
+
 // --- Identity methods ---
 export async function saveIdentity(identity: Identity): Promise<void> {
   await idbPut('identities', identity);
