@@ -1,5 +1,6 @@
 import type { GraphQLContext } from '../context.js';
 import { toEntry, type EntryRow } from './entries.js';
+import { toNote, type NoteRow } from './notes.js';
 import { toGlobalId, requireGlobalId, requireGlobalIdOptional, encodeDependsOn, decodeDependsOn } from '../ids.js';
 
 interface HabitRow {
@@ -57,6 +58,18 @@ export const habitResolvers = {
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return (data as EntryRow[]).map(toEntry);
+    },
+    notes: async (habit: { id: string }, args: { dateFrom?: string; dateTo?: string; limit?: number }, ctx: GraphQLContext) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      const habitId = requireGlobalId(habit.id, 'Habit');
+      let query = ctx.db.from('notes').select('*').eq('habit_id', habitId);
+      if (args.dateFrom) query = query.gte('date', args.dateFrom);
+      if (args.dateTo) query = query.lte('date', args.dateTo);
+      query = query.order('created_at', { ascending: false });
+      if (args.limit && args.limit > 0) query = query.limit(args.limit);
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+      return (data as NoteRow[]).map(toNote);
     },
   },
 

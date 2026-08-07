@@ -1,5 +1,6 @@
 <script lang="ts">
   import ApiExample from '../../components/ApiExample.svelte';
+  import { userRoles } from '../../stores/roles';
 
   const examples = [
     {
@@ -134,6 +135,35 @@
 }`,
     },
     {
+      name: 'Get notes for a habit',
+      description: 'Fetch all notes for a habit, optionally by date.',
+      query: `query GetNotes($habitId: String, $date: String) {
+  notes(habitId: $habitId, date: $date) {
+    id
+    habitId
+    date
+    content
+    status
+    createdAt
+  }
+}`,
+      variables: { habitId: 'HABIT_ID' },
+      response: `{
+  "data": {
+    "notes": [
+      {
+        "id": "SGFiaXROb3RlOjZjYzE5NmI2LTBjZjAtNDQ3Zi05NGJlLTU2MThjZGYxMGJmYQ==",
+        "habitId": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
+        "date": "2026-08-04",
+        "content": "Felt great after the walk",
+        "status": null,
+        "createdAt": "2026-08-04T18:30:00Z"
+      }
+    ]
+  }
+}`,
+    },
+    {
       name: 'Log an entry',
       description: 'Record a value for a habit. standardMet and targetMet are computed on the server.',
       query: `mutation LogEntry($input: UpsertEntryInput!) {
@@ -151,30 +181,6 @@
       "standardMet": true,
       "targetMet": false
     }
-  }
-}`,
-    },
-    {
-      name: 'List my API keys',
-      description: 'See your API keys and when they were last used.',
-      query: `query GetMyApiKeys {
-  myApiKeys {
-    id
-    name
-    createdAt
-    lastUsedAt
-  }
-}`,
-      response: `{
-  "data": {
-    "myApiKeys": [
-      {
-        "id": "QXBpS2V5OjdjN2I5ZTJhLTE4ZDQtNGYzZS05YjJhLTFhMmIzYzRkNWU2Zg==",
-        "name": "iOS-Shortcuts",
-        "createdAt": "2026-08-05T12:51:34Z",
-        "lastUsedAt": "2026-08-05T13:02:11Z"
-      }
-    ]
   }
 }`,
     },
@@ -202,6 +208,7 @@
   createdAt: DateTime
   updatedAt: DateTime
   entries(dateFrom: String, dateTo: String, limit: Int): [HabitEntry!]!
+  notes(dateFrom: String, dateTo: String, limit: Int): [HabitNote!]!
 }
 
 type HabitEntry {
@@ -222,15 +229,6 @@ type HabitNote {
   content: String
   status: String
   createdAt: DateTime
-}
-
-type ApiKey {
-  id: ID!
-  userId: String!
-  apiKey: String!
-  name: String
-  createdAt: DateTime
-  lastUsedAt: DateTime
 }
 
 type User {
@@ -297,6 +295,38 @@ input CreateHabitInput {
   identityId: String
   tags: [String!]
   sortOrder: Int
+}
+
+input UpdateHabitInput {
+  title: String
+  type: String
+  description: String
+  standard: Float
+  target: Float
+  unit: String
+  schedule: JSON
+  metadata: JSON
+  dependsOn: JSON
+  identityId: String
+  tags: [String!]
+  status: String
+  sortOrder: Int
+}
+
+input AddNoteInput {
+  id: ID
+  habitId: String!
+  date: String!          # YYYY-MM-DD
+  content: String
+}
+
+input UpsertSettingsInput {
+  resetTime: String
+  themeMode: String
+  oled: Boolean
+  accentColor: String
+  mainColor: String
+  launchScreen: String
 }`,
     },
     {
@@ -304,27 +334,43 @@ input CreateHabitInput {
       code: `# Queries
 me: User
 myRoles: [String!]!
-habits(status: String, tags: [String!], title: String,
+habits(userId: String, status: String, tags: [String!], title: String,
        type: String, sortBy: HabitSortBy, sortDir: SortDirection): [Habit!]!
 habit(id: ID!): Habit
 entries(habitId: String, date: String, dateFrom: String, dateTo: String): [HabitEntry!]!
 entry(habitId: ID!, date: String!): HabitEntry
 notes(habitId: String, date: String): [HabitNote!]!
+identity(id: ID!): Identity
 identities: [Identity!]!
 settings: UserSettings
-myApiKeys: [ApiKey!]!
 
 # Mutations
 createHabit(input: CreateHabitInput!): Habit!
 updateHabit(id: ID!, input: UpdateHabitInput!): Habit
+upsertHabit(id: ID!, input: UpdateHabitInput!): Habit!
 deleteHabit(id: ID!): Boolean!
 upsertEntry(input: UpsertEntryInput!): HabitEntry!
 deleteEntry(habitId: ID!, date: String!): Boolean!
 addNote(input: AddNoteInput!): HabitNote!
-createMyApiKey(name: String): ApiKey!
-revokeMyApiKey(id: ID!): Boolean!`,
+deleteNote(id: ID!): Boolean!
+createIdentity(name: String!, description: String, goals: [String!]): Identity!
+updateIdentity(id: ID!, name: String, description: String, goals: [String!]): Identity
+upsertIdentity(id: ID!, name: String!, description: String, goals: [String!]): Identity!
+deleteIdentity(id: ID!): Boolean!
+upsertSettings(input: UpsertSettingsInput!): UserSettings!`,
     },
   ];
+
+  const adminSection = {
+    title: 'Admin operations',
+    code: `# Queries (admin only)
+usersWithRoles: [UserWithRoles!]!
+
+# Mutations (admin only)
+setRoles(userId: ID!, roles: [String!]!): Boolean!`,
+  };
+
+  let isAdmin = $derived($userRoles.includes('admin'));
 </script>
 
 <div class="page">
@@ -364,6 +410,12 @@ base64("Habit:23d82b83-f52a-40a6-8ebe-05126ebc2f55")
         <pre class="gql"><code>{s.code}</code></pre>
       </section>
     {/each}
+    {#if isAdmin}
+      <section class="type-section">
+        <h3>{adminSection.title}</h3>
+        <pre class="gql"><code>{adminSection.code}</code></pre>
+      </section>
+    {/if}
   </div>
 </div>
 

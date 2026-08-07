@@ -11,7 +11,9 @@ interface NoteRow {
   created_at: string | null;
 }
 
-function toNote(row: NoteRow) {
+export type { NoteRow };
+
+export function toNote(row: NoteRow) {
   return {
     id: toGlobalId('HabitNote', row.id),
     habitId: toGlobalId('Habit', row.habit_id),

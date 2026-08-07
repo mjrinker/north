@@ -86,6 +86,7 @@ export const schema = createSchema<GraphQLContext>({
       createdAt: DateTime
       updatedAt: DateTime
       entries(dateFrom: String, dateTo: String, limit: Int): [HabitEntry!]!
+      notes(dateFrom: String, dateTo: String, limit: Int): [HabitNote!]!
     }
 
     type HabitEntry {
@@ -216,8 +217,6 @@ export const schema = createSchema<GraphQLContext>({
     }
 
     type Mutation {
-      signup(email: String!, password: String!): AuthPayload!
-      login(email: String!, password: String!): AuthPayload!
       googleSignIn(idToken: String!): AuthPayload!
       setRoles(userId: ID!, roles: [String!]!): Boolean!
       createHabit(input: CreateHabitInput!): Habit!

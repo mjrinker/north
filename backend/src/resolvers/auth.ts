@@ -1,5 +1,5 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
-import { hashPassword, verifyPassword, createToken } from '../auth.js';
+import { createToken } from '../auth.js';
 import type { GraphQLContext } from '../context.js';
 import { toGlobalId } from '../ids.js';
 
@@ -79,43 +79,6 @@ export const authResolvers = {
   },
 
   Mutation: {
-    signup: async (_: unknown, args: { email: string; password: string }, ctx: GraphQLContext) => {
-      const email = args.email.trim().toLowerCase();
-      if (!email || !args.password || args.password.length < 6) {
-        throw new Error('Invalid email or password (min 6 chars)');
-      }
-
-      const existing = await ctx.db.from('users').select('id').eq('email', email).maybeSingle();
-      if (existing.data) throw new Error('Email already registered');
-
-      const passwordHash = await hashPassword(args.password);
-      const { data, error } = await ctx.db.from('users').insert({
-        email,
-        password_hash: passwordHash,
-      }).select('id, email, created_at').single();
-
-      if (error) throw new Error(error.message);
-      const user = data as UserRow;
-      const token = await createToken(user.id);
-      return { token, user: toAuthUser(user) };
-    },
-
-    login: async (_: unknown, args: { email: string; password: string }, ctx: GraphQLContext) => {
-      const email = args.email.trim().toLowerCase();
-
-      const { data, error } = await ctx.db.from('users').select('*').eq('email', email).single();
-      if (error || !data) throw new Error('Invalid email or password');
-
-      const user = data as UserRow;
-      if (!user.password_hash) throw new Error('This account uses Google Sign-In');
-
-      const valid = await verifyPassword(args.password, user.password_hash);
-      if (!valid) throw new Error('Invalid email or password');
-
-      const token = await createToken(user.id);
-      return { token, user: toAuthUser(user) };
-    },
-
     googleSignIn: async (_: unknown, args: { idToken: string }, ctx: GraphQLContext) => {
       const { email, name, avatar } = await verifyGoogleToken(args.idToken);
       const user = await findOrCreateGoogleUser(ctx, { email, name, avatar });
