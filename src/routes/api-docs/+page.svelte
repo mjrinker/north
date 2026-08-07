@@ -2,11 +2,43 @@
   import ApiExample from '../../components/ApiExample.svelte';
   import { userRoles } from '../../stores/roles';
 
-  const examples = [
+  const exampleGroups = [
     {
-      name: 'Fetch all habits',
-      description: 'Get metadata for every habit. Optionally filter and sort.',
-      query: `query GetHabits($status: String, $tag: String, $title: String, $sortBy: HabitSortBy, $sortDir: SortDirection) {
+      title: 'Habits',
+      examples: [
+        {
+          name: 'Create a habit',
+          description: 'Create a new habit and get the created record back.',
+          query: `mutation CreateHabit($input: CreateHabitInput!) {
+  createHabit(input: $input) {
+    id
+    title
+    type
+    standard
+    target
+    unit
+    status
+  }
+}`,
+          variables: { input: { title: 'Drink water', type: 'quantity', standard: 8, target: 10, unit: 'glasses' } },
+          response: `{
+  "data": {
+    "createHabit": {
+      "id": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
+      "title": "Drink water",
+      "type": "quantity",
+      "standard": 8,
+      "target": 10,
+      "unit": "glasses",
+      "status": "active"
+    }
+  }
+}`,
+        },
+        {
+          name: 'Fetch all habits',
+          description: 'Get metadata for every habit. Optionally filter and sort.',
+          query: `query GetHabits($status: String, $tag: String, $title: String, $sortBy: HabitSortBy, $sortDir: SortDirection) {
   habits(status: $status, tags: $tag, title: $title, sortBy: $sortBy, sortDir: $sortDir) {
     id
     title
@@ -18,8 +50,8 @@
     status
   }
 }`,
-      variables: { status: 'active', title: 'water', sortBy: 'TITLE', sortDir: 'ASC' },
-      response: `{
+          variables: { status: 'active', title: 'water', sortBy: 'TITLE', sortDir: 'ASC' },
+          response: `{
   "data": {
     "habits": [
       {
@@ -35,11 +67,42 @@
     ]
   }
 }`,
-    },
-    {
-      name: 'Get habits with their log entries',
-      description: 'Fetch habits and each one’s entries in a single query.',
-      query: `query GetHabitsWithEntries($status: String, $dateFrom: String, $dateTo: String) {
+        },
+        {
+          name: 'Fetch a habit by ID',
+          description: 'Get a single habit by its id.',
+          query: `query GetHabit($id: ID!) {
+  habit(id: $id) {
+    id
+    title
+    type
+    standard
+    target
+    unit
+    metadata
+    status
+  }
+}`,
+          variables: { id: 'HABIT_ID' },
+          response: `{
+  "data": {
+    "habit": {
+      "id": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
+      "title": "Drink water",
+      "type": "quantity",
+      "standard": 8,
+      "target": 10,
+      "unit": "glasses",
+      "metadata": null,
+      "status": "active"
+    }
+  }
+}`,
+        },
+        {
+          name: 'Get habits with their log entries',
+          description: 'Fetch habits and each one’s entries in a single query.',
+          query: `query GetHabitsWithEntries($status: String, $dateFrom: String, $dateTo: String) {
   habits(status: $status) {
     id
     title
@@ -53,8 +116,8 @@
     }
   }
 }`,
-      variables: { status: 'active', dateFrom: '2026-07-28', dateTo: '2026-08-04' },
-      response: `{
+          variables: { status: 'active', dateFrom: '2026-07-28', dateTo: '2026-08-04' },
+          response: `{
   "data": {
     "habits": [
       {
@@ -81,50 +144,131 @@
     ]
   }
 }`,
-    },
-    {
-      name: 'Fetch a habit by ID',
-      description: 'Get a single habit by its id.',
-      query: `query GetHabit($id: ID!) {
-  habit(id: $id) {
+        },
+        {
+          name: 'Update a habit',
+          description: 'Partially update a habit. Omitted fields are left unchanged.',
+          query: `mutation UpdateHabit($id: ID!, $input: UpdateHabitInput!) {
+  updateHabit(id: $id, input: $input) {
     id
     title
-    type
     standard
-    target
-    unit
-    metadata
     status
   }
 }`,
-      variables: { id: 'HABIT_ID' },
-      response: `{
+          variables: { id: 'HABIT_ID', input: { standard: 9 } },
+          response: `{
   "data": {
-    "habit": {
-      "id": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
+    "updateHabit": {
+      "id": "SGFiaXQ6ZDU1MTltZS1ZTYyYi00ODNlLTk0MTgtM2I1ZmQxMWEyMGY5",
       "title": "Drink water",
-      "type": "quantity",
-      "standard": 8,
-      "target": 10,
-      "unit": "glasses",
-      "metadata": null,
+      "standard": 9,
       "status": "active"
     }
   }
 }`,
+        },
+        {
+          name: 'Upsert a habit',
+          description: 'Create or replace a habit in one call. Requires a stable id.',
+          query: `mutation UpsertHabit($id: ID!, $input: UpdateHabitInput!) {
+  upsertHabit(id: $id, input: $input) {
+    id
+    title
+    type
+    status
+  }
+}`,
+          variables: { id: 'HABIT_ID', input: { title: 'Drink water', type: 'quantity' } },
+          response: `{
+  "data": {
+    "upsertHabit": {
+      "id": "SGFiaXQ6ZTk4N2FiYzEtYzY3MC00YTVkLTk5MjZiMTM4ZDU3YjFh",
+      "title": "Drink water",
+      "type": "quantity",
+      "status": "active"
+    }
+  }
+}`,
+        },
+        {
+          name: 'Delete a habit',
+          description: 'Permanently delete a habit and its entries. Returns true on success.',
+          query: `mutation DeleteHabit($id: ID!) {
+  deleteHabit(id: $id)
+}`,
+          variables: { id: 'HABIT_ID' },
+          response: `{
+  "data": {
+    "deleteHabit": true
+  }
+}`,
+        },
+      ],
     },
     {
-      name: "Get a habit's log data for today",
-      description: 'Get today’s logged value for a habit.',
-      query: `query GetEntry($habitId: ID!, $date: String!) {
+      title: 'Entries',
+      examples: [
+        {
+          name: 'Log an entry',
+          description: 'Record a value for a habit. standardMet and targetMet are computed on the server.',
+          query: `mutation LogEntry($input: UpsertEntryInput!) {
+  upsertEntry(input: $input) {
+    value
+    standardMet
+    targetMet
+  }
+}`,
+          variables: { input: { habitId: 'HABIT_ID', date: '2026-08-04', value: 2.5 } },
+          response: `{
+  "data": {
+    "upsertEntry": {
+      "value": 2.5,
+      "standardMet": true,
+      "targetMet": false
+    }
+  }
+}`,
+        },
+        {
+          name: 'Fetch log entries across habits',
+          description: 'Get entries matching a habit and/or date range.',
+          query: `query Entries($habitId: String, $dateFrom: String, $dateTo: String) {
+  entries(habitId: $habitId, dateFrom: $dateFrom, dateTo: $dateTo) {
+    habitId
+    date
+    value
+    standardMet
+    targetMet
+  }
+}`,
+          variables: { habitId: 'HABIT_ID', dateFrom: '2026-07-28', dateTo: '2026-08-04' },
+          response: `{
+  "data": {
+    "entries": [
+      {
+        "habitId": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
+        "date": "2026-08-04",
+        "value": 9,
+        "standardMet": true,
+        "targetMet": false
+      }
+    ]
+  }
+}`,
+        },
+        {
+          name: "Get a habit's log data for today",
+          description: 'Get today’s logged value for a habit.',
+          query: `query GetEntry($habitId: ID!, $date: String!) {
   entry(habitId: $habitId, date: $date) {
     value
     standardMet
     targetMet
   }
 }`,
-      variables: { habitId: 'HABIT_ID', date: '2026-08-04' },
-      response: `{
+          variables: { habitId: 'HABIT_ID', date: '2026-08-04' },
+          response: `{
   "data": {
     "entry": {
       "value": 9,
@@ -133,11 +277,56 @@
     }
   }
 }`,
+        },
+        {
+          name: 'Delete an entry',
+          description: 'Remove a single logged entry for a habit on a given date.',
+          query: `mutation DeleteEntry($habitId: ID!, $date: String!) {
+  deleteEntry(habitId: $habitId, date: $date)
+}`,
+          variables: { habitId: 'HABIT_ID', date: '2026-08-04' },
+          response: `{
+  "data": {
+    "deleteEntry": true
+  }
+}`,
+        },
+      ],
     },
     {
-      name: 'Get notes for a habit',
-      description: 'Fetch all notes for a habit, optionally by date.',
-      query: `query GetNotes($habitId: String, $date: String) {
+      title: 'Notes',
+      examples: [
+        {
+          name: 'Add a note',
+          description: 'Create (or upsert by id) a note for a habit on a date.',
+          query: `mutation AddNote($input: AddNoteInput!) {
+  addNote(input: $input) {
+    id
+    habitId
+    date
+    content
+    status
+    createdAt
+  }
+}`,
+          variables: { input: { habitId: 'HABIT_ID', date: '2026-08-04', content: 'Felt great after the walk' } },
+          response: `{
+  "data": {
+    "addNote": {
+      "id": "SGFiaXROdXRlOjZjYzE5NmI2LTBjZjAtNDQ3Zi05NGJlLTU2MThjZGYxMFBmYQ==",
+      "habitId": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTkxMTgtM2I1ZmQxZTJiNGY5",
+      "date": "2026-08-04",
+      "content": "Felt great after the walk",
+      "status": null,
+      "createdAt": "2026-08-04T18:30:00Z"
+    }
+  }
+}`,
+        },
+        {
+          name: 'Get notes for a habit',
+          description: 'Fetch all notes for a habit, optionally by date.',
+          query: `query GetNotes($habitId: String, $date: String) {
   notes(habitId: $habitId, date: $date) {
     id
     habitId
@@ -147,8 +336,8 @@
     createdAt
   }
 }`,
-      variables: { habitId: 'HABIT_ID' },
-      response: `{
+          variables: { habitId: 'HABIT_ID' },
+          response: `{
   "data": {
     "notes": [
       {
@@ -162,118 +351,52 @@
     ]
   }
 }`,
-    },
-    {
-      name: 'Log an entry',
-      description: 'Record a value for a habit. standardMet and targetMet are computed on the server.',
-      query: `mutation LogEntry($input: UpsertEntryInput!) {
-  upsertEntry(input: $input) {
-    value
-    standardMet
-    targetMet
-  }
+        },
+        {
+          name: 'Delete a note',
+          description: 'Mark a note as deleted. Returns true on success.',
+          query: `mutation DeleteNote($id: ID!) {
+  deleteNote(id: $id)
 }`,
-      variables: { input: { habitId: 'HABIT_ID', date: '2026-08-04', value: 2.5 } },
-      response: `{
+          variables: { id: 'NOTE_ID' },
+          response: `{
   "data": {
-    "upsertEntry": {
-      "value": 2.5,
-      "standardMet": true,
-      "targetMet": false
-    }
+    "deleteNote": true
   }
 }`,
+        },
+      ],
     },
     {
-      name: 'Get the current user',
-      description: 'Fetch your own account. Returns the user bound to the API key.',
-      query: `query Me {
-  me {
-    id
-    email
-    name
-    avatar
-    createdAt
-  }
-}`,
-      response: `{
-  "data": {
-    "me": {
-      "id": "VXNlcjphYmMxMjMwZC1mNDU2LTY3ODktYWJjZC0xMjM0NTY3ODlhYmM=",
-      "email": "you@example.com",
-      "name": "Alex",
-      "avatar": null,
-      "createdAt": "2026-05-01T09:12:00Z"
-    }
-  }
-}`,
-    },
-    {
-      name: 'Get my roles',
-      description: 'List the roles granted to the current user (e.g. "admin").',
-      query: `query MyRoles {
-  myRoles
-}`,
-      response: `{
-  "data": {
-    "myRoles": []
-  }
-}`,
-    },
-    {
-      name: 'Fetch log entries across habits',
-      description: 'Get entries matching a habit and/or date range.',
-      query: `query Entries($habitId: String, $dateFrom: String, $dateTo: String) {
-  entries(habitId: $habitId, dateFrom: $dateFrom, dateTo: $dateTo) {
-    habitId
-    date
-    value
-    standardMet
-    targetMet
-  }
-}`,
-      variables: { habitId: 'HABIT_ID', dateFrom: '2026-07-28', dateTo: '2026-08-04' },
-      response: `{
-  "data": {
-    "entries": [
-      {
-        "habitId": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
-        "date": "2026-08-04",
-        "value": 9,
-        "standardMet": true,
-        "targetMet": false
-      }
-    ]
-  }
-}`,
-    },
-    {
-      name: 'Get an identity by ID',
-      description: 'Fetch a single named identity (persona) by its id.',
-      query: `query GetIdentity($id: ID!) {
-  identity(id: $id) {
+      title: 'Identities',
+      examples: [
+        {
+          name: 'Create an identity',
+          description: 'Create a new identity (persona) to tag habits with.',
+          query: `mutation CreateIdentity($name: String!, $description: String, $goals: [String!]) {
+  createIdentity(name: $name, description: $description, goals: $goals) {
     id
     name
     description
     goals
   }
 }`,
-      variables: { id: 'IDENTITY_ID' },
-      response: `{
+          variables: { name: 'Runner', description: 'The version of me that runs regularly', goals: ['Train 3x weekly'] },
+          response: `{
   "data": {
-    "identity": {
-      "id": "SWRlbnRpdHk6YTFiMmMzZDAtZTVmNi00MjAwLTgzYWItZGVmNDU2Nzg5MGFi",
+    "createIdentity": {
+      "id": "SWRlbnRpdHk6YTViNmMzZDUtZTFjMS00Mjg3LTgzYWItZGVmNDU2Nzg5MGFi",
       "name": "Runner",
       "description": "The version of me that runs regularly",
-      "goals": ["Run 3x a week", "Complete a 10k"]
+      "goals": ["Train 3x weekly"]
     }
   }
 }`,
-    },
-    {
-      name: 'List my identities',
-      description: 'Fetch every identity (persona) for the current user.',
-      query: `query {
+        },
+        {
+          name: 'List my identities',
+          description: 'Fetch every identity (persona) for the current user.',
+          query: `query {
   identities {
     id
     name
@@ -281,7 +404,7 @@
     goals
   }
 }`,
-      response: `{
+          response: `{
   "data": {
     "identities": [
       {
@@ -293,11 +416,139 @@
     ]
   }
 }`,
+        },
+        {
+          name: 'Get an identity by ID',
+          description: 'Fetch a single named identity (persona) by its id.',
+          query: `query GetIdentity($id: ID!) {
+  identity(id: $id) {
+    id
+    name
+    description
+    goals
+  }
+}`,
+          variables: { id: 'IDENTITY_ID' },
+          response: `{
+  "data": {
+    "identity": {
+      "id": "SWRlbnRpdHk6YTFiMmMzZDAtZTVmNi00MjAwLTgzYWItZGVmNDU2Nzg5MGFi",
+      "name": "Runner",
+      "description": "The version of me that runs regularly",
+      "goals": ["Run 3x a week", "Complete a 10k"]
+    }
+  }
+}`,
+        },
+        {
+          name: 'Update an identity',
+          description: 'Partially update an identity’s name, description, or goals.',
+          query: `mutation UpdateIdentity($id: ID!, $name: String, $description: String, $goals: [String!]) {
+  updateIdentity(id: $id, name: $name, description: $description, goals: $goals) {
+    id
+    name
+    description
+    goals
+  }
+}`,
+          variables: { id: 'IDENTITY_ID', description: 'Someone who always shows up to run' },
+          response: `{
+  "data": {
+    "updateIdentity": {
+      "id": "SWRlbnRpdHk6YjcyYzhlOWYtZDRhZi00NTJlLWJiYmQtM2U5ZjdiODMxNzIx",
+      "name": "Runner",
+      "description": "Someone who always shows up to run",
+      "goals": ["Train 3x weekly"]
+    }
+  }
+}`,
+        },
+        {
+          name: 'Upsert an identity',
+          description: 'Create or update an identity by id in one call.',
+          query: `mutation UpsertIdentity($id: ID!, $name: String!, $description: String, $goals: [String!]) {
+  upsertIdentity(id: $id, name: $name, description: $description, goals: $goals) {
+    id
+    name
+    description
+    goals
+  }
+}`,
+          variables: { id: 'IDENTITY_ID', name: 'Runner', description: 'The version of me that runs regularly' },
+          response: `{
+  "data": {
+    "upsertIdentity": {
+      "id": "SWRlbnRpY3k6ZTljYTY5YmMtYzQ3MC00NWIyLTk5ZmFiMTM4ZDY3YjFh",
+      "name": "Runner",
+      "description": "The version of me that runs regularly",
+      "goals": []
+    }
+  }
+}`,
+        },
+        {
+          name: 'Delete an identity',
+          description: 'Delete an identity. Returns true on success.',
+          query: `mutation DeleteIdentity($id: ID!) {
+  deleteIdentity(id: $id)
+}`,
+          variables: { id: 'IDENTITY_ID' },
+          response: `{
+  "data": {
+    "deleteIdentity": true
+  }
+}`,
+        },
+      ],
     },
     {
-      name: 'Get settings',
-      description: 'Fetch your account and UI settings.',
-      query: `query {
+      title: 'User',
+      examples: [
+        {
+          name: 'Get the current user',
+          description: 'Fetch your own account. Returns the user bound to the API key.',
+          query: `query Me {
+  me {
+    id
+    email
+    name
+    avatar
+    createdAt
+  }
+}`,
+          response: `{
+  "data": {
+    "me": {
+      "id": "VXNlcjphYmMxMjMwZC1mNDU2LTY3ODktYWJjZC0xMjM0NTY3ODlhYmM=",
+      "email": "you@example.com",
+      "name": "Alex",
+      "avatar": null,
+      "createdAt": "2026-05-01T09:12:00Z"
+    }
+  }
+}`,
+        },
+        {
+          name: 'Get my roles',
+          description: 'List the roles granted to the current user (e.g. "admin").',
+          query: `query MyRoles {
+  myRoles
+}`,
+          response: `{
+  "data": {
+    "myRoles": []
+  }
+}`,
+        },
+      ],
+    },
+    {
+      title: 'Settings',
+      examples: [
+        {
+          name: 'Get settings',
+          description: 'Fetch your account and UI settings.',
+          query: `query {
   settings {
     userId
     resetTime
@@ -309,7 +560,7 @@
     updatedAt
   }
 }`,
-      response: `{
+          response: `{
   "data": {
     "settings": {
       "userId": "VXNlcjphYmMxMjMwZC1lZjQ1LTI3ODktMDBiYy0xMjM0NTY3ODlhYmM=",
@@ -323,234 +574,11 @@
     }
   }
 }`,
-    },
-    {
-      name: 'Create a habit',
-      description: 'Create a new habit and get the created record back.',
-      query: `mutation CreateHabit($input: CreateHabitInput!) {
-  createHabit(input: $input) {
-    id
-    title
-    type
-    standard
-    target
-    unit
-    status
-  }
-}`,
-      variables: { input: { title: 'Drink water', type: 'quantity', standard: 8, target: 10, unit: 'glasses' } },
-      response: `{
-  "data": {
-    "createHabit": {
-      "id": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
-      "title": "Drink water",
-      "type": "quantity",
-      "standard": 8,
-      "target": 10,
-      "unit": "glasses",
-      "status": "active"
-    }
-  }
-}`,
-    },
-    {
-      name: 'Update a habit',
-      description: 'Partially update a habit. Omitted fields are left unchanged.',
-      query: `mutation UpdateHabit($id: ID!, $input: UpdateHabitInput!) {
-  updateHabit(id: $id, input: $input) {
-    id
-    title
-    standard
-    status
-  }
-}`,
-      variables: { id: 'HABIT_ID', input: { standard: 9 } },
-      response: `{
-  "data": {
-    "updateHabit": {
-      "id": "SGFiaXQ6ZDU1MTltZS1ZTYyYi00ODNlLTk0MTgtM2I1ZmQxMWEyMGY5",
-      "title": "Drink water",
-      "standard": 9,
-      "status": "active"
-    }
-  }
-}`,
-    },
-    {
-      name: 'Upsert a habit',
-      description: 'Create or replace a habit in one call. Requires a stable id.',
-      query: `mutation UpsertHabit($id: ID!, $input: UpdateHabitInput!) {
-  upsertHabit(id: $id, input: $input) {
-    id
-    title
-    type
-    status
-  }
-}`,
-      variables: { id: 'HABIT_ID', input: { title: 'Drink water', type: 'quantity' } },
-      response: `{
-  "data": {
-    "upsertHabit": {
-      "id": "SGFiaXQ6ZTk4N2FiYzEtYzY3MC00YTVkLTk5MjZiMTM4ZDU3YjFh",
-      "title": "Drink water",
-      "type": "quantity",
-      "status": "active"
-    }
-  }
-}`,
-    },
-    {
-      name: 'Delete a habit',
-      description: 'Permanently delete a habit and its entries. Returns true on success.',
-      query: `mutation DeleteHabit($id: ID!) {
-  deleteHabit(id: $id)
-}`,
-      variables: { id: 'HABIT_ID' },
-      response: `{
-  "data": {
-    "deleteHabit": true
-  }
-}`,
-    },
-    {
-      name: 'Delete an entry',
-      description: 'Remove a single logged entry for a habit on a given date.',
-      query: `mutation DeleteEntry($habitId: ID!, $date: String!) {
-  deleteEntry(habitId: $habitId, date: $date)
-}`,
-      variables: { habitId: 'HABIT_ID', date: '2026-08-04' },
-      response: `{
-  "data": {
-    "deleteEntry": true
-  }
-}`,
-    },
-    {
-      name: 'Add a note',
-      description: 'Create (or upsert by id) a note for a habit on a date.',
-      query: `mutation AddNote($input: AddNoteInput!) {
-  addNote(input: $input) {
-    id
-    habitId
-    date
-    content
-    status
-    createdAt
-  }
-}`,
-      variables: { input: { habitId: 'HABIT_ID', date: '2026-08-04', content: 'Felt great after the walk' } },
-      response: `{
-  "data": {
-    "addNote": {
-      "id": "SGFiaXROdXRlOjZjYzE5NmI2LTBjZjAtNDQ3Zi05NGJlLTU2MThjZGYxMFBmYQ==",
-      "habitId": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTkxMTgtM2I1ZmQxZTJiNGY5",
-      "date": "2026-08-04",
-      "content": "Felt great after the walk",
-      "status": null,
-      "createdAt": "2026-08-04T18:30:00Z"
-    }
-  }
-}`,
-    },
-    {
-      name: 'Delete a note',
-      description: 'Mark a note as deleted. Returns true on success.',
-      query: `mutation DeleteNote($id: ID!) {
-  deleteNote(id: $id)
-}`,
-      variables: { id: 'NOTE_ID' },
-      response: `{
-  "data": {
-    "deleteNote": true
-  }
-}`,
-    },
-    {
-      name: 'Create an identity',
-      description: 'Create a new identity (persona) to tag habits with.',
-      query: `mutation CreateIdentity($name: String!, $description: String, $goals: [String!]) {
-  createIdentity(name: $name, description: $description, goals: $goals) {
-    id
-    name
-    description
-    goals
-  }
-}`,
-      variables: { name: 'Runner', description: 'The version of me that runs regularly', goals: ['Train 3x weekly'] },
-      response: `{
-  "data": {
-    "createIdentity": {
-      "id": "SWRlbnRpdHk6YTViNmMzZDUtZTFjMS00Mjg3LTgzYWItZGVmNDU2Nzg5MGFi",
-      "name": "Runner",
-      "description": "The version of me that runs regularly",
-      "goals": ["Train 3x weekly"]
-    }
-  }
-}`,
-    },
-    {
-      name: 'Update an identity',
-      description: 'Partially update an identity’s name, description, or goals.',
-      query: `mutation UpdateIdentity($id: ID!, $name: String, $description: String, $goals: [String!]) {
-  updateIdentity(id: $id, name: $name, description: $description, goals: $goals) {
-    id
-    name
-    description
-    goals
-  }
-}`,
-      variables: { id: 'IDENTITY_ID', description: 'Someone who always shows up to run' },
-      response: `{
-  "data": {
-    "updateIdentity": {
-      "id": "SWRlbnRpdHk6YjcyYzhlOWYtZDRhZi00NTJlLWJiYmQtM2U5ZjdiODMxNzIx",
-      "name": "Runner",
-      "description": "Someone who always shows up to run",
-      "goals": ["Train 3x weekly"]
-    }
-  }
-}`,
-    },
-    {
-      name: 'Upsert an identity',
-      description: 'Create or update an identity by id in one call.',
-      query: `mutation UpsertIdentity($id: ID!, $name: String!, $description: String, $goals: [String!]) {
-  upsertIdentity(id: $id, name: $name, description: $description, goals: $goals) {
-    id
-    name
-    description
-    goals
-  }
-}`,
-      variables: { id: 'IDENTITY_ID', name: 'Runner', description: 'The version of me that runs regularly' },
-      response: `{
-  "data": {
-    "upsertIdentity": {
-      "id": "SWRlbnRpY3k6ZTljYTY5YmMtYzQ3MC00NWIyLTk5ZmFiMTM4ZDY3YjFh",
-      "name": "Runner",
-      "description": "The version of me that runs regularly",
-      "goals": []
-    }
-  }
-}`,
-    },
-    {
-      name: 'Delete an identity',
-      description: 'Delete an identity. Returns true on success.',
-      query: `mutation DeleteIdentity($id: ID!) {
-  deleteIdentity(id: $id)
-}`,
-      variables: { id: 'IDENTITY_ID' },
-      response: `{
-  "data": {
-    "deleteIdentity": true
-  }
-}`,
-    },
-    {
-      name: 'Update settings',
-      description: 'Update your account and UI settings. Only supplied fields are written.',
-      query: `mutation UpsertSettings($input: UpsertSettingsInput!) {
+        },
+        {
+          name: 'Update settings',
+          description: 'Update your account and UI settings. Only supplied fields are written.',
+          query: `mutation UpsertSettings($input: UpsertSettingsInput!) {
   upsertSettings(input: $input) {
     userId
     resetTime
@@ -558,8 +586,8 @@
     accentColor
   }
 }`,
-      variables: { input: { resetTime: '00:00', themeMode: 'dark' } },
-      response: `{
+          variables: { input: { resetTime: '00:00', themeMode: 'dark' } },
+          response: `{
   "data": {
     "upsertSettings": {
       "userId": "VXNlcjE1YWJiMzRoYmUtYTdjZi1kMjBlLTY1Y2EtZGFiY2YxMDIyM2Zk",
@@ -569,6 +597,51 @@
     }
   }
 }`,
+        },
+      ],
+    },
+    {
+      title: 'Admin',
+      adminOnly: true,
+      examples: [
+        {
+          name: 'List users and their roles',
+          description: 'Fetch every user and the roles they hold. Admin only.',
+          query: `query UsersWithRoles {
+  usersWithRoles {
+    id
+    email
+    name
+    roles
+  }
+}`,
+          response: `{
+  "data": {
+    "usersWithRoles": [
+      {
+        "id": "VXNlcjphYmMxMjMwZC1mNDU2LTY3ODktYWJjZC0xMjM0NTY3ODlhYmM=",
+        "email": "you@example.com",
+        "name": "Alex",
+        "roles": ["admin"]
+      }
+    ]
+  }
+}`,
+        },
+        {
+          name: 'Set a user’s roles',
+          description: 'Replace the role list for a user. Admin only.',
+          query: `mutation SetRoles($userId: ID!, $roles: [String!]!) {
+  setRoles(userId: $userId, roles: $roles)
+}`,
+          variables: { userId: 'USER_ID', roles: ['admin'] },
+          response: `{
+  "data": {
+    "setRoles": true
+  }
+}`,
+        },
+      ],
     },
   ];
 
@@ -783,8 +856,13 @@ base64("Habit:23d82b83-f52a-40a6-8ebe-05126ebc2f55")
   -> "SGFiaXQ6MjNkODJiODMtZjUyYS00MGE2LThlYmUtMDUxMjZlYmMyZjU1"</code></pre>
 
   <div class="examples">
-    {#each examples as ex (ex.name)}
-      <ApiExample example={ex} />
+    {#each exampleGroups as group (group.title)}
+      {#if !group.adminOnly || isAdmin}
+        <h2 class="group-title">{group.title}{#if group.adminOnly} <span class="admin-badge">admin</span>{/if}</h2>
+        {#each group.examples as ex (ex.name)}
+          <ApiExample example={ex} />
+        {/each}
+      {/if}
     {/each}
   </div>
 
@@ -836,6 +914,27 @@ base64("Habit:23d82b83-f52a-40a6-8ebe-05126ebc2f55")
     flex-direction: column;
     gap: 1rem;
     margin-top: 1.25rem;
+  }
+  .group-title {
+    margin: 1.5rem 0 0.25rem;
+    font-size: 1rem;
+    color: var(--text-primary, #222);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .group-title:first-child {
+    margin-top: 0;
+  }
+  .admin-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #fff;
+    background: var(--accent, #0066cc);
+    border-radius: 4px;
+    padding: 1px 6px;
+    vertical-align: middle;
   }
   .section-title {
     margin: 2rem 0 0.25rem;
