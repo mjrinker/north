@@ -2,6 +2,7 @@ import type { GraphQLContext } from '../context.js';
 import { toEntry, type EntryRow } from './entries.js';
 import { toNote, type NoteRow } from './notes.js';
 import { toGlobalId, requireGlobalId, requireGlobalIdOptional, encodeDependsOn, decodeDependsOn } from '../ids.js';
+import { runPage } from '../pagination.js';
 
 interface HabitRow {
   id: string;
@@ -100,6 +101,39 @@ export const habitResolvers = {
       const { data, error } = await ctx.db.from('habits').select('*').eq('id', id).eq('user_id', ctx.userId).single();
       if (error) return null;
       return toHabit(data as HabitRow);
+    },
+
+    habitsConnection: async (
+      _: unknown,
+      args: {
+        first?: number | null;
+        after?: string | null;
+        offset?: number | null;
+        limit?: number | null;
+        status?: string;
+        tags?: string[];
+        title?: string;
+        type?: string;
+        sortBy?: string;
+        sortDir?: string;
+      },
+      ctx: GraphQLContext,
+    ) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      const apply = (q: any) => {
+        let query = q.eq('user_id', ctx.userId);
+        if (args.status) query = query.eq('status', args.status);
+        if (args.type) query = query.eq('type', args.type);
+        if (args.tags?.length) query = query.contains('tags', args.tags);
+        if (args.title) query = query.ilike('title', `%${args.title}%`);
+        return query;
+      };
+      const sortColumn = (args.sortBy ?? 'SORT_ORDER') === 'SORT_ORDER' ? 'sort_order'
+        : args.sortBy === 'TITLE' ? 'title'
+        : args.sortBy === 'CREATED_AT' ? 'created_at'
+        : 'updated_at';
+      const ascending = args.sortDir !== 'DESC';
+      return runPage(ctx.db, 'habits', apply, sortColumn, ascending, args, toHabit);
     },
   },
 

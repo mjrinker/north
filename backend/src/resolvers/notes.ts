@@ -1,5 +1,6 @@
 import type { GraphQLContext } from '../context.js';
 import { toGlobalId, requireGlobalId, requireGlobalIdOptional } from '../ids.js';
+import { runPage } from '../pagination.js';
 
 interface NoteRow {
   id: string;
@@ -35,6 +36,28 @@ export const noteResolvers = {
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return (data as NoteRow[]).map(toNote);
+    },
+
+    notesConnection: async (
+      _: unknown,
+      args: {
+        first?: number | null;
+        after?: string | null;
+        offset?: number | null;
+        limit?: number | null;
+        habitId?: string;
+        date?: string;
+      },
+      ctx: GraphQLContext,
+    ) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      const apply = (q: any) => {
+        let query = q.eq('user_id', ctx.userId);
+        if (args.habitId) query = query.eq('habit_id', requireGlobalId(args.habitId, 'Habit'));
+        if (args.date) query = query.eq('date', args.date);
+        return query;
+      };
+      return runPage(ctx.db, 'notes', apply, 'created_at', false, args, toNote);
     },
   },
 

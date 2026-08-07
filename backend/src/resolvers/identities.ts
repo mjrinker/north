@@ -1,5 +1,6 @@
 import type { GraphQLContext } from '../context.js';
 import { toGlobalId, requireGlobalId } from '../ids.js';
+import { runPage } from '../pagination.js';
 
 interface IdentityRow {
   id: string;
@@ -34,6 +35,16 @@ export const identityResolvers = {
       const { data, error } = await ctx.db.from('identities').select('*').eq('id', id).eq('user_id', ctx.userId).single();
       if (error) return null;
       return toIdentity(data as IdentityRow);
+    },
+
+    identitiesConnection: async (
+      _: unknown,
+      args: { first?: number | null; after?: string | null; offset?: number | null; limit?: number | null },
+      ctx: GraphQLContext,
+    ) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      const apply = (q: any) => q.eq('user_id', ctx.userId);
+      return runPage(ctx.db, 'identities', apply, 'name', true, args, toIdentity);
     },
   },
 

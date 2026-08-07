@@ -69,6 +69,84 @@
 }`,
         },
         {
+          name: 'Paginate habits (cursor)',
+          description: 'Fetch habits a page at a time. Use `endCursor` as `after` for the next page; stop when `hasNextPage` is false.',
+          query: `query GetHabitsPage($first: Int, $after: String, $status: String) {
+  habitsConnection(first: $first, after: $after, status: $status) {
+    nodes {
+      id
+      title
+      status
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    totalCount
+  }
+}`,
+          variables: { first: 50, after: null, status: 'active' },
+          response: `{
+  "data": {
+    "habitsConnection": {
+      "nodes": [
+        {
+          "id": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
+          "title": "Drink water",
+          "status": "active"
+        }
+      ],
+      "pageInfo": {
+        "hasNextPage": true,
+        "hasPreviousPage": false,
+        "startCursor": "WyJhY2N0aXZlIiwzXQ==",
+        "endCursor": "WyJhY2N0aXZlIiwxMl0="
+      },
+      "totalCount": 12
+    }
+  }
+}`,
+        },
+        {
+          name: 'Paginate habits (offset)',
+          description: 'Fetch habits with offset/limit. Combine with a stable sort for consistent pages.',
+          query: `query GetHabitsPage($offset: Int, $limit: Int) {
+  habitsConnection(offset: $offset, limit: $limit, sortBy: TITLE, sortDir: ASC) {
+    nodes {
+      id
+      title
+      status
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+    }
+    totalCount
+  }
+}`,
+          variables: { offset: 0, limit: 25 },
+          response: `{
+  "data": {
+    "habitsConnection": {
+      "nodes": [
+        {
+          "id": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
+          "title": "Drink water",
+          "status": "active"
+        }
+      ],
+      "pageInfo": {
+        "hasNextPage": true,
+        "hasPreviousPage": false
+      },
+      "totalCount": 12
+    }
+  }
+}`,
+        },
+        {
           name: 'Fetch a habit by ID',
           description: 'Get a single habit by its id.',
           query: `query GetHabit($id: ID!) {
@@ -715,6 +793,38 @@ type UserSettings {
   mainColor: String
   launchScreen: String
   updatedAt: DateTime
+}
+
+# Pagination
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type HabitConnection {
+  nodes: [Habit!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type HabitEntryConnection {
+  nodes: [HabitEntry!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type HabitNoteConnection {
+  nodes: [HabitNote!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type IdentityConnection {
+  nodes: [Identity!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
 }`,
     },
     {
@@ -795,12 +905,20 @@ me: User
 myRoles: [String!]!
 habits(userId: String, status: String, tags: [String!], title: String,
        type: String, sortBy: HabitSortBy, sortDir: SortDirection): [Habit!]!
+habitsConnection(first: Int, after: String, offset: Int, limit: Int,
+                 userId: String, status: String, tags: [String!], title: String,
+                 type: String, sortBy: HabitSortBy, sortDir: SortDirection): HabitConnection!
 habit(id: ID!): Habit
 entries(habitId: String, date: String, dateFrom: String, dateTo: String): [HabitEntry!]!
+entriesConnection(first: Int, after: String, offset: Int, limit: Int,
+                  habitId: String, date: String, dateFrom: String, dateTo: String): HabitEntryConnection!
 entry(habitId: ID!, date: String!): HabitEntry
 notes(habitId: String, date: String): [HabitNote!]!
+notesConnection(first: Int, after: String, offset: Int, limit: Int,
+                habitId: String, date: String): HabitNoteConnection!
 identity(id: ID!): Identity
 identities: [Identity!]!
+identitiesConnection(first: Int, after: String, offset: Int, limit: Int): IdentityConnection!
 settings: UserSettings
 
 # Mutations
@@ -854,6 +972,16 @@ setRoles(userId: ID!, roles: [String!]!): Boolean!`,
   <pre class="gql"><code># The id for a Habit with uuid 23d82b83-f52a-40a6-8ebe-05126ebc2f55 is:
 base64("Habit:23d82b83-f52a-40a6-8ebe-05126ebc2f55")
   -> "SGFiaXQ6MjNkODJiODMtZjUyYS00MGE2LThlYmUtMDUxMjZlYmMyZjU1"</code></pre>
+
+  <h2 class="section-title">Pagination</h2>
+  <p class="intro">
+    The list queries have a <code>…Connection</code> counterpart that supports two styles:
+    <strong>cursor</strong> pagination via <code>first</code> + <code>after</code> (pass the previous page’s
+    <code>endCursor</code>; stop when <code>hasNextPage</code> is <code>false</code>) and <strong>offset</strong>
+    pagination via <code>offset</code> + <code>limit</code>. Don’t mix the two styles in one call. Pages are
+    sorted by a stable column (ties broken by id), so consecutive pages don’t skip or repeat rows. Each
+    <code>…Connection</code> returns <code>nodes</code>, <code>pageInfo</code> and a <code>totalCount</code>.
+  </p>
 
   <div class="examples">
     {#each exampleGroups as group (group.title)}

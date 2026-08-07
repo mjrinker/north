@@ -117,6 +117,37 @@ export const schema = createSchema<GraphQLContext>({
       goals: [String!]
     }
 
+    type PageInfo {
+      hasNextPage: Boolean!
+      hasPreviousPage: Boolean!
+      startCursor: String
+      endCursor: String
+    }
+
+    type HabitConnection {
+      nodes: [Habit!]!
+      pageInfo: PageInfo!
+      totalCount: Int!
+    }
+
+    type HabitEntryConnection {
+      nodes: [HabitEntry!]!
+      pageInfo: PageInfo!
+      totalCount: Int!
+    }
+
+    type HabitNoteConnection {
+      nodes: [HabitNote!]!
+      pageInfo: PageInfo!
+      totalCount: Int!
+    }
+
+    type IdentityConnection {
+      nodes: [Identity!]!
+      pageInfo: PageInfo!
+      totalCount: Int!
+    }
+
     type UserSettings {
       userId: String!
       resetTime: String
@@ -205,12 +236,16 @@ export const schema = createSchema<GraphQLContext>({
       myRoles: [String!]!
       usersWithRoles: [UserWithRoles!]!
       habits(userId: String, status: String, tags: [String!], title: String, type: String, sortBy: HabitSortBy, sortDir: SortDirection): [Habit!]!
+      habitsConnection(first: Int, after: String, offset: Int, limit: Int, userId: String, status: String, tags: [String!], title: String, type: String, sortBy: HabitSortBy, sortDir: SortDirection): HabitConnection!
       habit(id: ID!): Habit
       entries(habitId: String, date: String, dateFrom: String, dateTo: String): [HabitEntry!]!
+      entriesConnection(first: Int, after: String, offset: Int, limit: Int, habitId: String, date: String, dateFrom: String, dateTo: String): HabitEntryConnection!
       entry(habitId: ID!, date: String!): HabitEntry
       notes(habitId: String, date: String): [HabitNote!]!
+      notesConnection(first: Int, after: String, offset: Int, limit: Int, habitId: String, date: String): HabitNoteConnection!
       identity(id: ID!): Identity
       identities: [Identity!]!
+      identitiesConnection(first: Int, after: String, offset: Int, limit: Int): IdentityConnection!
       settings: UserSettings
       myApiKeys: [ApiKey!]!
       apiKeys(userId: String): [ApiKey!]!

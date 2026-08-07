@@ -23,6 +23,34 @@
   let unsubHabits = habitsStore.subscribe(v => habits = v.filter(h => h.status === 'active'));
   onDestroy(() => unsubHabits());
 
+  // --- Row virtualization ---
+  const ROW_HEIGHT = 40;
+  const OVERSCAN = 6;
+  let tableContainer = $state<HTMLDivElement | null>(null);
+  let scrollTop = $state(0);
+  let viewportHeight = $state(0);
+  let totalRows = $derived(habits.length);
+
+  let firstRow = $derived(Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN));
+  let lastRow = $derived(Math.min(totalRows, Math.ceil((scrollTop + viewportHeight) / ROW_HEIGHT) + OVERSCAN));
+  let visibleHabits = $derived(habits.slice(firstRow, lastRow));
+
+  function handleTableScroll(e: Event) {
+    const el = e.currentTarget as HTMLDivElement;
+    scrollTop = el.scrollTop;
+    viewportHeight = el.clientHeight;
+  }
+
+  function measureViewport() {
+    if (tableContainer) viewportHeight = tableContainer.clientHeight;
+  }
+  $effect(() => {
+    measureViewport();
+    const ro = new ResizeObserver(measureViewport);
+    if (tableContainer) ro.observe(tableContainer);
+    return () => ro.disconnect();
+  });
+
   let allEntries = $state<HabitEntry[]>([]);
   let entriesReady = $state(false);
 
@@ -47,7 +75,6 @@
     }));
   }
   let editingHabit = $state<Habit | null>(null);
-  let scrollContainer = $state<HTMLDivElement | null>(null);
   let windowStart = $state(89);
 
   const WINDOW_SIZE = 90;
@@ -55,10 +82,10 @@
   const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   $effect(() => {
-    if (!scrollContainer || !entriesReady) return;
+    if (!tableContainer || !entriesReady) return;
     requestAnimationFrame(() => {
-      if (scrollContainer && scrollContainer.scrollWidth > scrollContainer.clientWidth) {
-        scrollContainer.scrollLeft = scrollContainer.scrollWidth;
+      if (tableContainer && tableContainer.scrollWidth > tableContainer.clientWidth) {
+        tableContainer.scrollLeft = tableContainer.scrollWidth;
       }
     });
   });
@@ -76,9 +103,6 @@
   }
 
   let dateColumns = $derived(getDates());
-
-  function onScroll() {
-  }
 
   let entryMap = $derived.by(() => {
     const map = new Map<string, HabitEntry>();
@@ -273,7 +297,7 @@
   <HabitEditModal habit={editingHabit} allHabits={habits} onClose={() => editingHabit = null} />
 {/if}
 
-<div class="table-scroll" bind:this={scrollContainer} onscroll={onScroll}>
+<div class="table-scroll" bind:this={tableContainer} onscroll={handleTableScroll}>
   <table>
     <thead>
       <tr class="month-row">
@@ -293,7 +317,12 @@
       </tr>
     </thead>
     <tbody>
-      {#each habits as habit (habit.id)}
+      {#if firstRow > 0}
+        <tr aria-hidden="true">
+          <td colspan={dateColumns.length + 1} style="height: {firstRow * ROW_HEIGHT}px" class="v-spacer"></td>
+        </tr>
+      {/if}
+      {#each visibleHabits as habit (habit.id)}
         <tr>
           {#each dateColumns as date}
             {@const entry = getDayEntry(habit.id, date)}
@@ -325,6 +354,11 @@
           <td class="name-col habit-name">{habit.title}</td>
         </tr>
       {/each}
+      {#if lastRow < totalRows}
+        <tr aria-hidden="true">
+          <td colspan={dateColumns.length + 1} style="height: {(totalRows - lastRow) * ROW_HEIGHT}px" class="v-spacer"></td>
+        </tr>
+      {/if}
     </tbody>
   </table>
 </div>
@@ -373,8 +407,19 @@
     margin-bottom: 0.5rem;
   }
   .table-scroll {
-    overflow-x: auto;
+    overflow: auto;
     max-width: 100%;
+    max-height: calc(100vh - 130px);
+  }
+  .table-scroll thead {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+  }
+  .v-spacer {
+    padding: 0;
+    margin: 0;
+    border: none;
   }
   table {
     border-collapse: collapse;
@@ -390,6 +435,7 @@
     border-bottom: 2px solid var(--card-border, #eee);
     line-height: 1.2;
     white-space: nowrap;
+    background: var(--card-bg, #fff);
   }
   th.today { color: var(--text-primary, #222); font-weight: 700; }
   .month-label { font-size: 0.7rem; font-weight: 700; padding: 2px 6px; color: var(--text-primary, #222); text-align: left; }

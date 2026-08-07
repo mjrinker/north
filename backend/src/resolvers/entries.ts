@@ -1,5 +1,6 @@
 import type { GraphQLContext } from '../context.js';
 import { toGlobalId, requireGlobalId } from '../ids.js';
+import { runPage } from '../pagination.js';
 
 export interface EntryRow {
   id: string;
@@ -36,9 +37,36 @@ export const entryResolvers = {
       if (args.dateFrom) query = query.gte('date', args.dateFrom);
       if (args.dateTo) query = query.lte('date', args.dateTo);
       query = query.order('date', { ascending: false });
-      const { data, error } = await query;
+const { data, error } = await query;
       if (error) throw new Error(error.message);
       return (data as EntryRow[]).map(toEntry);
+    },
+
+    entriesConnection: async (
+      _: unknown,
+      args: {
+        first?: number | null;
+        after?: string | null;
+        offset?: number | null;
+        limit?: number | null;
+        habitId?: string;
+        date?: string;
+        dateFrom?: string;
+        dateTo?: string;
+      },
+      ctx: GraphQLContext,
+    ) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      const apply = (q: any) => {
+        let query = q.eq('user_id', ctx.userId);
+        if (args.habitId) query = query.eq('habit_id', requireGlobalId(args.habitId, 'Habit'));
+        if (args.date) query = query.eq('date', args.date);
+        if (args.dateFrom) query = query.gte('date', args.dateFrom);
+        if (args.dateTo) query = query.lte('date', args.dateTo);
+        return query;
+      };
+      // Existing list query orders newest dates first; mirror that.
+      return runPage(ctx.db, 'entries', apply, 'date', false, args, toEntry);
     },
 
     entry: async (_: unknown, args: { habitId: string; date: string }, ctx: GraphQLContext) => {
