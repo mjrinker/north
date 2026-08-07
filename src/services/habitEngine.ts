@@ -1,6 +1,6 @@
 import type { Habit, HabitEntry, CompletionResult } from '../types';
 import { getAllEntries, saveEntry, getEntry, clearAllEntries } from './storage';
-import { getLocalDateString, getWeekStart } from '../lib/dates';
+import { getLocalDateString, getWeekStart, parseLocalDate, toDateStr } from '../lib/dates';
 import { computeDailyStreak } from '../lib/streakUtils';
 import { entriesStore } from '../stores/entries';
 import { pushRecord } from './sync';
@@ -89,24 +89,25 @@ export class HabitEngine {
     const startOfWeek = habit.schedule.startOfWeek ?? 1;
     const weekCounts = new Map<string, number>();
     for (const e of entries) {
-      const d = new Date(e.date);
-      const weekStart = getWeekStart(d, startOfWeek);
-      const key = getLocalDateString(weekStart);
+      const weekStart = getWeekStart(parseLocalDate(e.date), startOfWeek);
+      const key = toDateStr(weekStart);
       weekCounts.set(key, (weekCounts.get(key) || 0) + 1);
     }
 
     const daysPerWeek = habit.schedule.daysPerWeek!;
     let streak = 0;
-    const date = new Date();
+    // Start from the current habit week (reset-time aware), then walk backwards
+    // by plain calendar weeks — never re-apply the reset shift to midnight dates.
+    const date = new Date(getLocalDateString());
     date.setHours(0, 0, 0, 0);
     const currentWeekStart = getWeekStart(date, startOfWeek);
-    const currentKey = getLocalDateString(currentWeekStart);
+    const currentKey = toDateStr(currentWeekStart);
     if ((weekCounts.get(currentKey) || 0) < daysPerWeek) {
       date.setDate(date.getDate() - 7);
     }
     while (true) {
       const ws = getWeekStart(date, startOfWeek);
-      const key = getLocalDateString(ws);
+      const key = toDateStr(ws);
       if ((weekCounts.get(key) || 0) >= daysPerWeek) {
         streak++;
         date.setDate(date.getDate() - 7);

@@ -1,17 +1,18 @@
 import type { HabitEntry } from '../types';
-import { getLocalDateString } from './dates';
+import { getLocalDateString, parseLocalDate, toDateStr } from './dates';
 
 export function computeDailyStreak(entries: HabitEntry[]): number {
   const completedDates = new Set(entries.filter(e => e.standardMet).map(e => e.date));
   let streak = 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  let date = new Date(today);
-  if (!completedDates.has(getLocalDateString(date))) {
+  // Start from the current habit day (reset-time aware), then walk backwards by
+  // plain calendar days. Avoid re-applying the reset shift to midnight Date
+  // objects, which would leave the streak a day (or week) short.
+  const date = parseLocalDate(getLocalDateString());
+  if (!completedDates.has(toDateStr(date))) {
     date.setDate(date.getDate() - 1);
   }
   while (true) {
-    if (completedDates.has(getLocalDateString(date))) {
+    if (completedDates.has(toDateStr(date))) {
       streak++;
       date.setDate(date.getDate() - 1);
     } else break;
