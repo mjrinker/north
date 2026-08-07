@@ -163,13 +163,13 @@
 <div class="page">
   <h1>Settings</h1>
 
-  <section class="card">
+  <section class="settings-section">
     <h2>Reset Time</h2>
     <p>When should habits reset for the next day?</p>
     <input type="time" value={s.resetTime} oninput={(e) => update({ resetTime: (e.target as HTMLInputElement).value })} />
   </section>
 
-  <section class="card">
+  <section class="settings-section">
     <h2>Appearance</h2>
     <div class="setting-row">
       <span class="setting-label">Theme</span>
@@ -216,7 +216,7 @@
     </div>
   </section>
 
-  <section class="card">
+  <section class="settings-section">
     <h2>Launch Screen</h2>
     <p>Which page opens by default?</p>
     <select value={s.launchScreen} onchange={(e) => update({ launchScreen: (e.target as HTMLSelectElement).value as LaunchScreen })}>
@@ -227,7 +227,7 @@
     </select>
   </section>
 
-  <section class="card">
+  <section class="settings-section">
     <h2>Account</h2>
     {#if currentUser}
       <p class="user-info">
@@ -240,7 +240,7 @@
     {/if}
   </section>
 
-  <section class="card">
+  <section class="settings-section">
     <h2>Cloud Sync</h2>
     <p>Sync your habits, entries, and identities to the cloud for backup.</p>
     {#if currentUser}
@@ -258,7 +258,7 @@
     {/if}
   </section>
 
-  <section class="card">
+  <section class="settings-section">
     <h2>API Key</h2>
     <p>Use an API key to connect external tools to the North API. It grants full access to your account data — keep it secret. See the <a class="docs-link" href="/api-docs">API documentation</a> for examples.</p>
     {#if currentUser}
@@ -289,7 +289,7 @@
     {/if}
   </section>
 
-  <section class="card">
+  <section class="settings-section">
     <h2>Pause All Habits</h2>
     <p>Temporarily pause every active habit at once.</p>
     <div class="pause-controls">
@@ -332,16 +332,21 @@
     max-width: 600px;
     margin: 0 auto;
   }
-  h1 { color: var(--text-primary, #222); margin-bottom: 1rem; }
-  .card {
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 10px;
-    padding: 1.25rem;
-    margin-bottom: 1rem;
+  h1 { color: var(--text-primary, #222); margin-bottom: 1.5rem; }
+  .settings-section {
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--card-border, #e0e0e0);
   }
-  .card h2 { margin: 0 0 0.5rem; font-size: 1.05rem; color: var(--text-primary, #222); }
-  .card p { margin: 0 0 0.75rem; font-size: 0.9rem; color: var(--text-secondary, #555); }
+  .settings-section:last-child { border-bottom: 1px solid var(--card-border, #e0e0e0); }
+  .settings-section h2 {
+    margin: 0 0 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary, #888);
+  }
+  .settings-section p { margin: 0 0 0.75rem; font-size: 0.9rem; color: var(--text-secondary, #555); }
   .user-info { font-size: 0.9rem; color: var(--text-primary, #222); }
   .muted { color: var(--text-secondary, #888); }
   .status { font-size: 0.85rem; margin-top: 0.5rem; color: var(--text-secondary, #555); }
