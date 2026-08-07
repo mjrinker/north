@@ -16,19 +16,7 @@ export interface AppSettings {
 
 const STORAGE_KEY = 'appSettings';
 
-function load(): AppSettings {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...defaults, ...JSON.parse(raw) };
-  } catch {}
-  return { ...defaults };
-}
-
-function save(settings: AppSettings): void {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)); } catch {}
-}
-
-const defaults: AppSettings = {
+export const defaultSettings: AppSettings = {
   resetTime: '00:00',
   themeMode: 'system',
   oled: false,
@@ -37,6 +25,18 @@ const defaults: AppSettings = {
   launchScreen: '/today',
   habitOrder: [],
 };
+
+function load(): AppSettings {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return { ...defaultSettings, ...JSON.parse(raw) };
+  } catch {}
+  return { ...defaultSettings };
+}
+
+function save(settings: AppSettings): void {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)); } catch {}
+}
 
 function createSettingsStore(): Writable<AppSettings> & { init: () => void } {
   const store = writable<AppSettings>(load());

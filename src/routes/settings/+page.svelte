@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { user, renderGoogleButton, signOut } from '../../stores/auth'
+  import { user, renderGoogleButton } from '../../stores/auth'
   import { apiSyncProvider } from '../../services/sync.providers/api'
   import { get } from 'svelte/store'
   import { appSettings, updateSettings, type AppSettings, type ThemeMode, type LaunchScreen } from '../../lib/settings'
   import ColorPickerModal from '../../components/ColorPickerModal.svelte'
+  import LogoutConfirmModal from '../../components/LogoutConfirmModal.svelte'
   import { resolveThemeMode } from '../../stores/theme'
   import { habitsStore } from '../../stores/habits'
   import { pauseAllHabits, resumeAllHabits } from '../../lib/habitUtils'
@@ -46,6 +47,7 @@
   }
 
   let pickerType = $state<'accent' | 'main' | null>(null);
+  let showLogoutConfirm = $state(false);
   let prevAccentColor = $state('');
   let prevMainColor = $state('');
   let undoAccent = $state(false);
@@ -233,7 +235,7 @@
       <p class="user-info">
         Signed in as <strong>{currentUser.email}</strong>
       </p>
-      <button class="btn" onclick={signOut}>Sign Out</button>
+      <button class="btn" onclick={() => showLogoutConfirm = true}>Sign Out</button>
     {:else}
       <p>Sign in to enable cloud sync.</p>
       <div class="google-btn-wrap" bind:this={googleBtnEl}></div>
@@ -324,6 +326,10 @@
     onConfirm={handlePickerConfirm}
     onClose={handlePickerClose}
   />
+{/if}
+
+{#if showLogoutConfirm}
+  <LogoutConfirmModal onClose={() => showLogoutConfirm = false} />
 {/if}
 
 <style>

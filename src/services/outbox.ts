@@ -71,3 +71,11 @@ export async function pendingCount(): Promise<number> {
     return 0;
   }
 }
+
+export async function clearOutbox(): Promise<void> {
+  if (!isBrowser) return;
+  try {
+    const db = await getDB();
+    await db.clear(STORE);
+  } catch {}
+}

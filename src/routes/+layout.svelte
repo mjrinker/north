@@ -12,6 +12,7 @@
   import { goto } from '$app/navigation';
   import { showCreateHabit } from '../stores/createHabit';
   import ErrorBoundary from '../components/ErrorBoundary.svelte';
+  import LogoutConfirmModal from '../components/LogoutConfirmModal.svelte';
   import Icon from '@iconify/svelte';
   import { iconDataUrl } from '../lib/icon';
   let { children }: { children: any } = $props();
@@ -61,9 +62,11 @@
     showAvatarMenu = !showAvatarMenu;
   }
 
-  async function handleLogout() {
+  let showLogoutConfirm = $state(false);
+
+  function handleLogout() {
     showAvatarMenu = false;
-    await signOut();
+    showLogoutConfirm = true;
   }
 
   function handleSwitchUser() {
@@ -163,6 +166,10 @@
     {/if}
   </div>
 </nav>
+
+{#if showLogoutConfirm}
+  <LogoutConfirmModal onClose={() => showLogoutConfirm = false} />
+{/if}
 
 <style>
   .page-content {
