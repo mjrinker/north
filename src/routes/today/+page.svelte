@@ -608,7 +608,7 @@
   .date-arrow {
     background: none;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     padding: 0.25rem;
     cursor: pointer;
     display: flex;
@@ -644,7 +644,7 @@
   .sort-label select {
     padding: 0.3rem 0.5rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 0.85rem;
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);

@@ -567,7 +567,7 @@
   }
   .btn {
     border: none;
-    border-radius: 4px;
+    border-radius: 0;
     cursor: pointer;
     font-weight: 600;
     height: 2.4rem;
@@ -625,7 +625,7 @@
     display: flex;
     align-items: center;
     background: var(--input-bg, #f5f5f5);
-    border-radius: 4px;
+    border-radius: 0;
     padding: 0 0.4rem;
     height: 2.4rem;
     box-sizing: border-box;
@@ -672,7 +672,7 @@
     align-items: center;
     gap: 0;
     background: var(--input-bg, #f5f5f5);
-    border-radius: 4px;
+    border-radius: 0;
     padding: 0 0.4rem;
     height: 2.4rem;
     box-sizing: border-box;
@@ -714,7 +714,7 @@
     align-items: center;
     justify-content: center;
     background: var(--input-bg, #f5f5f5);
-    border-radius: 4px;
+    border-radius: 0;
     height: 2.4rem;
     width: 2.4rem;
     box-sizing: border-box;

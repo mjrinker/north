@@ -121,7 +121,7 @@
     margin-left: auto;
     padding: 0.3rem 0.5rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     background: var(--card-bg, #fff);
     color: var(--text-primary, #222);
   }

@@ -353,7 +353,7 @@
   .btn {
     padding: 0.5rem 1rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     background: var(--btn-secondary-bg, #eee);
     color: var(--text-primary, #222);
     cursor: pointer;
@@ -388,7 +388,7 @@
   .setting-row select {
     padding: 0.4rem 0.5rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     font-size: 0.85rem;
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
@@ -396,7 +396,7 @@
   .setting-row input[type="time"] {
     padding: 0.4rem 0.5rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     font-size: 0.85rem;
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
@@ -407,7 +407,7 @@
     gap: 0.5rem;
     padding: 0.3rem 0.6rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 8px;
+    border-radius: 0;
     background: var(--input-bg, #fff);
     cursor: pointer;
   }
@@ -438,7 +438,7 @@
   .btn-reset {
     padding: 0.25rem 0.5rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 4px;
+    border-radius: 0;
     background: transparent;
     cursor: pointer;
     font-size: 0.8rem;
@@ -448,7 +448,7 @@
   .btn-undo {
     padding: 0.25rem 0.5rem;
     border: 1px solid var(--accent, #0066cc);
-    border-radius: 4px;
+    border-radius: 0;
     background: transparent;
     cursor: pointer;
     font-size: 0.8rem;
@@ -500,7 +500,7 @@
   .pause-until-label input[type="date"] {
     padding: 0.4rem 0.5rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     font-size: 0.85rem;
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
@@ -564,7 +564,7 @@
     min-width: 0;
     padding: 0.5rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     font-size: 0.85rem;
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);

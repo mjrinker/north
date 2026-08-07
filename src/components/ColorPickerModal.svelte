@@ -617,7 +617,7 @@
 
   .btn {
     padding: 0.5rem 1.25rem;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;

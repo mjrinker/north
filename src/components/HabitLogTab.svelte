@@ -447,7 +447,7 @@
     width: 4.5rem;
     padding: 0.35rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 0.9rem;
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);

@@ -195,7 +195,7 @@
     text-decoration: none;
     color: var(--text-secondary, #888);
     padding: 0.25rem;
-    border-radius: 4px;
+    border-radius: 0;
     transition: color 0.15s;
     border: none;
     background: none;

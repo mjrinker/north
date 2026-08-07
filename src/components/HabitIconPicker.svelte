@@ -287,7 +287,7 @@
     gap: 0.5rem;
     padding: 0.35rem 0.6rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
     font-size: 0.85rem;
@@ -352,7 +352,7 @@
     width: 100%;
     padding: 0.4rem 0.5rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 0.85rem;
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
@@ -373,7 +373,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid var(--card-border, #ddd);
-    border-radius: 4px;
+    border-radius: 0;
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
     cursor: pointer;
@@ -396,7 +396,7 @@
   }
   .btn {
     padding: 0.45rem 1.1rem;
-    border-radius: 6px;
+    border-radius: 0;
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;

@@ -139,7 +139,7 @@
     width: 100%;
     padding: 0.5rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     font-size: 0.85rem;
     font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
     background: var(--input-bg, #fff);
@@ -156,7 +156,7 @@
   }
   .btn {
     padding: 0.35rem 0.75rem;
-    border-radius: 6px;
+    border-radius: 0;
     border: none;
     background: var(--accent, #0066cc);
     color: var(--accent-text, white);
@@ -230,7 +230,7 @@
     cursor: pointer;
     color: var(--text-secondary, #999);
     padding: 2px;
-    border-radius: 4px;
+    border-radius: 0;
     display: flex;
   }
   .action-btn:hover { color: var(--accent, #0066cc); background: rgba(0,102,204,0.06); }

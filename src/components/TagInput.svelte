@@ -53,7 +53,7 @@
     gap: 4px;
     align-items: center;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 4px;
+    border-radius: 0;
     padding: 0.25rem;
     background: var(--input-bg, #fff);
   }

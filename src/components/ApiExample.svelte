@@ -197,7 +197,7 @@
   .copy-btn {
     padding: 0.35rem 0.75rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     background: var(--btn-secondary-bg, #eee);
     color: var(--text-primary, #222);
     cursor: pointer;
@@ -234,7 +234,7 @@
     padding: 0.5rem 0.6rem;
     border: none;
     background: transparent;
-    border-radius: 6px;
+    border-radius: 0;
     cursor: pointer;
     font-size: 0.85rem;
     color: var(--text-primary, #222);
@@ -277,7 +277,7 @@
   .resp-copy {
     padding: 0.25rem 0.6rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     background: var(--btn-secondary-bg, #eee);
     color: var(--text-primary, #222);
     cursor: pointer;

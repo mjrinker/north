@@ -38,7 +38,7 @@
     flex: 1;
     padding: 0.3rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 4px;
+    border-radius: 0;
     background: var(--card-bg, #f5f5f5);
     cursor: pointer;
     font-weight: 600;
@@ -59,7 +59,7 @@
   .dep-picker button {
     padding: 0.3rem 0.6rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 4px;
+    border-radius: 0;
     background: var(--card-bg, #f5f5f5);
     cursor: pointer;
     font-size: 0.8rem;

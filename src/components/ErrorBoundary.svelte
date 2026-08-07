@@ -97,7 +97,7 @@
   .btn-primary {
     padding: 0.5rem 1.5rem;
     border: none;
-    border-radius: 6px;
+    border-radius: 0;
     background: var(--accent, #0066cc);
     color: var(--accent-text, white);
     cursor: pointer;
@@ -108,7 +108,7 @@
   .btn-link {
     padding: 0.5rem 1.5rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     background: transparent;
     color: var(--text-primary, #222);
     cursor: pointer;

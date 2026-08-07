@@ -481,7 +481,7 @@
     align-items: center;
     justify-content: center;
     background: var(--input-bg, #f5f5f5);
-    border-radius: 4px;
+    border-radius: 0;
     height: 1.6rem;
     width: 1.6rem;
     cursor: pointer;
@@ -504,7 +504,7 @@
   .cell-btn {
     background: none;
     border: 1px solid var(--card-border, #ddd);
-    border-radius: 4px;
+    border-radius: 0;
     padding: 4px 8px;
     font-size: 0.75rem;
     cursor: pointer;
@@ -571,7 +571,7 @@
   .modal-field input {
     padding: 0.4rem 0.5rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 0.9rem;
     width: 100%;
     box-sizing: border-box;

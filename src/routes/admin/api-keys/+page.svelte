@@ -151,7 +151,7 @@
   .user-picker select {
     padding: 0.45rem 0.5rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     font-size: 0.9rem;
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
@@ -168,7 +168,7 @@
     min-width: 0;
     padding: 0.5rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     font-size: 0.85rem;
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
@@ -177,7 +177,7 @@
   .btn {
     padding: 0.5rem 0.9rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
+    border-radius: 0;
     background: var(--btn-secondary-bg, #eee);
     color: var(--text-primary, #222);
     cursor: pointer;

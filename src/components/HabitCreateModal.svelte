@@ -207,7 +207,7 @@
     width: 100%;
     padding: 0.5rem;
     border: 1px solid var(--card-border, #ccc);
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 1rem;
     box-sizing: border-box;
     margin-bottom: 0.75rem;
