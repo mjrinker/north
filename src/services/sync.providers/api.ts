@@ -337,23 +337,58 @@ class ApiSyncProvider implements SyncProvider {
 
       const { saveHabit, saveEntry, saveIdentity, saveNote } = await import('../storage');
 
-      const data = await gql<{
-        habits: any[];
-        entries: any[];
-        notes: any[];
-        identities: any[];
-        settings: any | null;
-      }>(
-        `query DownloadAll {
-          habits { ${HABIT_FIELDS} }
-          entries { ${ENTRY_FIELDS} }
-          notes { ${NOTE_FIELDS} }
-          identities { ${IDENTITY_FIELDS} }
-          settings { resetTime themeMode oled accentColor mainColor launchScreen }
-        }`,
-        undefined,
-        { auth: true },
-      );
+      const PAGE_SIZE = 500;
+
+      const [habitRows, noteRows, identityRows, settings] = await Promise.all([
+        gql<{ habits: any[] }>(
+          `query { habits { ${HABIT_FIELDS} } }`,
+          undefined,
+          { auth: true },
+        ),
+        gql<{ notes: any[] }>(
+          `query { notes { ${NOTE_FIELDS} } }`,
+          undefined,
+          { auth: true },
+        ),
+        gql<{ identities: any[] }>(
+          `query { identities { ${IDENTITY_FIELDS} } }`,
+          undefined,
+          { auth: true },
+        ),
+        gql<{ settings: any | null }>(
+          `query { settings { resetTime themeMode oled accentColor mainColor launchScreen } }`,
+          undefined,
+          { auth: true },
+        ),
+      ]).then(([h, n, i, s]) => [h?.habits, n?.notes, i?.identities, s?.settings]);
+
+      // Fetch all entries in pages. A single `entries` query is silently capped
+      // at 1000 rows by the backend, which truncates history for large datasets.
+      const entryRows: any[] = [];
+      let after: string | null | undefined;
+      for (;;) {
+        const page = await gql<{
+          entriesConnection: {
+            nodes: any[];
+            pageInfo: { endCursor: string | null; hasNextPage: boolean };
+          };
+        }>(
+          `query EntriesPage($first: Int, $after: String) {
+            entriesConnection(first: $first, after: $after) {
+              nodes { ${ENTRY_FIELDS} }
+              pageInfo { endCursor hasNextPage }
+            }
+          }`,
+          { first: PAGE_SIZE, after },
+          { auth: true },
+        );
+        entryRows.push(...(page?.entriesConnection?.nodes ?? []));
+        const info = page?.entriesConnection?.pageInfo;
+        if (!info?.hasNextPage || !info?.endCursor) break;
+        after = info.endCursor;
+      }
+
+      const data = { habits: habitRows, entries: entryRows, notes: noteRows, identities: identityRows, settings };
 
       const localHabits = get(habitsStore);
       const mergedHabits = [...localHabits];
