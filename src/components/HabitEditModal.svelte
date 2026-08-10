@@ -29,6 +29,7 @@
   let standard = $state(habit.standard);
   let target = $state<number | undefined>(habit.target);
   let type = $state<Habit['type']>(habit.type);
+  let errorMsg = $state('');
   let depIds = $state<string[]>(habit.dependsOn?.habitIds ?? []);
   let depMode = $state<'and' | 'or'>(habit.dependsOn?.mode ?? 'and');
   let frequency = $state(habit.schedule.frequency);
@@ -53,6 +54,17 @@
   let pauseUntilDate = $state(habit.metadata?.pauseUntil ?? '');
 
   function handleSave() {
+    if (type !== 'binary') {
+      if (category === 'break' && standard < (target ?? 0)) {
+        errorMsg = 'For a Break habit, Standard must be higher than Target.';
+        return;
+      }
+      if (category === 'build' && standard > (target ?? 0)) {
+        errorMsg = 'For a Build habit, Standard must be lower than Target.';
+        return;
+      }
+    }
+    errorMsg = '';
     const dependsOn = depIds.length > 0 ? { habitIds: depIds, mode: depMode } : undefined;
     let status = habit.status;
     if (paused) status = 'paused';
@@ -203,6 +215,9 @@
 
     <HabitShortcutSection bind:shortcuts {type} />
 
+    {#if errorMsg}
+      <p class="form-error">{errorMsg}</p>
+    {/if}
     <ModalActions onSave={handleSave} onCancel={onClose} onDelete={handleDelete} />
   </div>
   {/if}
@@ -252,6 +267,14 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   }
   .form-grid { display: flex; flex-direction: column; gap: 0.75rem; }
+  .form-error {
+    margin: 0.5rem 0 0.75rem;
+    padding: 0.5rem;
+    border: 1px solid #c62828;
+    background: rgba(198, 40, 40, 0.1);
+    color: #c62828;
+    font-size: 0.85rem;
+  }
   label {
     font-weight: 500;
     color: var(--text-primary, #222);

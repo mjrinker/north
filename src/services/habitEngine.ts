@@ -2,6 +2,7 @@ import type { Habit, HabitEntry, CompletionResult } from '../types';
 import { getAllEntries, saveEntry, getEntry, clearAllEntries } from './storage';
 import { getLocalDateString, getWeekStart, parseLocalDate, toDateStr } from '../lib/dates';
 import { computeDailyStreak } from '../lib/streakUtils';
+import { isStandardMet, isTargetMet, progressPercentage } from '../lib/thresholds';
 import { entriesStore } from '../stores/entries';
 import { pushRecord } from './sync';
 import { webhooksFor, fireWebhook, fireShortcut } from './webhooks';
@@ -26,10 +27,10 @@ export class HabitEngine {
   constructor(private habit: Habit) {}
 
   static calculateCompletion(habit: Habit, value: number): CompletionResult {
-    const standardMet = value >= habit.standard;
-    const targetMet = habit.target !== undefined ? value >= habit.target : false;
-    const progressPercentage = habit.standard > 0 ? value / habit.standard : 0;
-    return { standardMet, targetMet, progressPercentage };
+    const standardMet = isStandardMet(habit, value);
+    const targetMet = isTargetMet(habit, value);
+    const progress = progressPercentage(habit, value);
+    return { standardMet, targetMet, progressPercentage: progress };
   }
 
   calculateCompletion(value: number): CompletionResult {

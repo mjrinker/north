@@ -1,6 +1,7 @@
 import type { Habit, HabitEntry } from '../types';
 import { HabitEngine } from '../services/habitEngine';
 import { recordAutoCompletedDep, getAutoCompletedDepIds, clearAutoCompletedDeps } from './autoDeps';
+import { isStandardMet } from './thresholds';
 
 export async function areDependenciesSatisfied(
   habit: Habit,
@@ -12,7 +13,8 @@ export async function areDependenciesSatisfied(
     habit.dependsOn!.habitIds.map(async hid => {
       const e = await getEntry(hid, date);
       const h = habits.find(x => x.id === hid);
-      return (e?.value ?? 0) >= (h?.standard ?? 1);
+      if (!e || !h) return false;
+      return isStandardMet(h, e.value);
     })
   );
   return habit.dependsOn!.mode === 'and' ? results.every(Boolean) : results.some(Boolean);

@@ -82,14 +82,17 @@ const { data, error } = await query;
     upsertEntry: async (_: unknown, args: { input: { habitId: string; date: string; value: number; standardMet?: boolean; targetMet?: boolean; notes?: string } }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       const habitId = requireGlobalId(args.input.habitId, 'Habit');
-      const { data: habit } = await ctx.db.from('habits').select('standard, target').eq('id', habitId).eq('user_id', ctx.userId).maybeSingle();
+      const { data: habit } = await ctx.db.from('habits').select('type, standard, target, metadata').eq('id', habitId).eq('user_id', ctx.userId).maybeSingle();
       if (!habit) throw new Error('Habit not found');
 
       const value = args.input.value;
+      const type = (habit as { type?: string }).type;
       const standard = (habit as { standard: number | null }).standard ?? 0;
       const target = (habit as { target: number | null }).target;
-      const standardMet = value >= standard;
-      const targetMet = target != null && value >= target;
+      const meta = (habit as { metadata?: { category?: string } | null }).metadata;
+      const breakInverted = type !== 'binary' && meta?.category === 'break';
+      const standardMet = breakInverted ? value <= standard : value >= standard;
+      const targetMet = target != null && (breakInverted ? value <= target : value >= target);
 
       const existing = await ctx.db.from('entries').select('id').eq('habit_id', habitId).eq('date', args.input.date).maybeSingle();
       const now = new Date().toISOString();

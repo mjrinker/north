@@ -9,6 +9,7 @@
   import Icon from '@iconify/svelte';
   import { pluralizeUnit } from '../lib/units';
   import { formatHms } from '../lib/duration';
+  import { isStandardMet } from '../lib/thresholds';
   import { fireHabitStart } from '../services/webhooks';
 
   let { habit, date = getLocalDateString() }: { habit: Habit; date?: string } = $props();
@@ -20,7 +21,7 @@
     entryValue = e?.value ?? 0;
   });
 
-  let standardMet = $derived(entryValue >= habit.standard);
+  let standardMet = $derived(isStandardMet(habit, entryValue));
   let unitLabel = $derived(habit.unit ? pluralizeUnit(habit.unit, Math.round(entryValue)) : '');
 
   async function log(value: number) {

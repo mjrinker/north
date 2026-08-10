@@ -4,6 +4,7 @@
   import { getEntry } from '../services/storage';
   import { habitsStore } from '../stores/habits';
   import { getLocalDateString } from '../lib/dates';
+  import { isStandardMet as metStandard, isTargetMet as metTarget } from '../lib/thresholds';
   import { timerStates, setTimerState, clearTimerState, defaultTimer, type TimerState, type AllTimers } from '../lib/timerStore';
   import { recordAutoCompletedDep } from '../lib/autoDeps';
   import { autoCompleteDependencies, uncheckDependencies } from '../lib/dependencyEngine';
@@ -32,8 +33,8 @@
   let _gen = 0;
   let autoCompleted = $state(new Set<string>());
   let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + date) : false);
-  let isStandardMet = $derived(todayEntry ? todayEntry.value >= habit.standard : false);
-  let isTargetMet = $derived(todayEntry && habit.target != null ? todayEntry.value >= habit.target : false);
+  let isStandardMet = $derived(todayEntry ? metStandard(habit, todayEntry.value) : false);
+  let isTargetMet = $derived(todayEntry && habit.target != null ? metTarget(habit, todayEntry.value) : false);
   let unitLabel = $derived(habit.unit ? pluralizeUnit(habit.unit, Math.round(todayEntry?.value ?? 0)) : '');
   let depResults = $state<{ hid: string; met: boolean }[]>([]);
 
@@ -72,7 +73,7 @@
             habit.dependsOn!.habitIds.map(async hid => {
               const e = await getEntry(hid, date);
               const dep = allHabits.find(h => h.id === hid);
-              return { hid, met: e && dep ? e.value >= dep.standard : false };
+              return { hid, met: e && dep ? metStandard(dep, e.value) : false };
             })
           );
           depResults = results;
@@ -90,7 +91,7 @@
             }
             autoCompleted.add(key);
             await HabitEngine.logCompletion(habit, date, 1);
-            todayEntry = { value: 1, standardMet: 1 >= habit.standard, targetMet: habit.target != null && 1 >= habit.target, _v: entryVersion++ };
+            todayEntry = { value: 1, standardMet: metStandard(habit, 1), targetMet: habit.target != null && metTarget(habit, 1), _v: entryVersion++ };
           } else if (!satisfied && value === 1) {
             await HabitEngine.logCompletion(habit, date, 0);
             autoCompleted.delete(key);
@@ -203,14 +204,14 @@
   async function logAndRefresh(value: number) {
     if (todayEntry) {
       todayEntry.value = value;
-      todayEntry.standardMet = value >= habit.standard;
-      todayEntry.targetMet = habit.target != null && value >= habit.target;
+      todayEntry.standardMet = metStandard(habit, value);
+      todayEntry.targetMet = habit.target != null && metTarget(habit, value);
       todayEntry._v = ++entryVersion;
     } else {
       todayEntry = {
         value,
-        standardMet: value >= habit.standard,
-        targetMet: habit.target != null && value >= habit.target,
+        standardMet: metStandard(habit, value),
+        targetMet: habit.target != null && metTarget(habit, value),
         _v: ++entryVersion,
       };
     }

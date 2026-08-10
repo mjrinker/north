@@ -33,6 +33,7 @@
   let existingTags = $derived(Array.from(new Set(habits.flatMap(h => h.tags ?? []))));
 
   let category = $state<HabitCategory>('build');
+  let errorMsg = $state('');
   let color = $state('');
   let icon = $state('');
   let emoji = $state('');
@@ -51,13 +52,30 @@
 
   $effect(() => {
     if (!thresholdsDefaulted) return;
-    standard = type === 'duration' ? 300 : 1;
-    target = type === 'duration' ? 900 : 2;
+    if (category === 'break') {
+      standard = type === 'duration' ? 900 : 2;
+      target = type === 'duration' ? 300 : 1;
+    } else {
+      standard = type === 'duration' ? 300 : 1;
+      target = type === 'duration' ? 900 : 2;
+    }
   });
 
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     if (!title.trim()) return;
+
+    errorMsg = '';
+    if (type !== 'binary') {
+      if (category === 'break' && standard < (target ?? 0)) {
+        errorMsg = 'For a Break habit, Standard must be higher than Target.';
+        return;
+      }
+      if (category === 'build' && standard > (target ?? 0)) {
+        errorMsg = 'For a Build habit, Standard must be lower than Target.';
+        return;
+      }
+    }
 
     const dependsOn: DependsOn | undefined = depIds.length > 0
       ? { habitIds: depIds, mode: depMode }
@@ -188,6 +206,9 @@
 
     <HabitShortcutSection bind:shortcuts {type} />
 
+    {#if errorMsg}
+      <p class="form-error">{errorMsg}</p>
+    {/if}
     <ModalActions onCancel={onClose} saveType="submit" saveLabel="Create" />
   </form>
 </Modal>
@@ -225,5 +246,13 @@
     margin-bottom: 0.25rem;
     font-weight: 500;
     color: var(--text-primary, #222);
+  }
+  .form-error {
+    margin: 0.5rem 0 0.75rem;
+    padding: 0.5rem;
+    border: 1px solid #c62828;
+    background: rgba(198, 40, 40, 0.1);
+    color: #c62828;
+    font-size: 0.85rem;
   }
 </style>
