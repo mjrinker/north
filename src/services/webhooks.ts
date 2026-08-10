@@ -109,3 +109,18 @@ export function fireShortcut(habit: Habit, event: WebhookEvent, payload: Webhook
   const body = buildBody(habit, event, payload);
   schedule(`${habit.id}|sc|${event}`, () => openShortcut(name, body));
 }
+
+// Fires the 'start' event (webhook + shortcut) when a duration timer begins.
+export function fireHabitStart(habit: Habit, date: string, value: number): void {
+  const payload: WebhookEventPayload = {
+    date,
+    value,
+    standard: habit.standard,
+    target: habit.target ?? null,
+    standardMet: false,
+    targetMet: false,
+    timestamp: new Date().toISOString(),
+  };
+  fireWebhook(habit, 'start', payload);
+  fireShortcut(habit, 'start', payload);
+}

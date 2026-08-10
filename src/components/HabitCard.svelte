@@ -13,6 +13,7 @@
   import Icon from '@iconify/svelte';
   import { pluralizeUnit } from '../lib/units';
   import { addLog } from '../lib/completionLog';
+  import { fireHabitStart } from '../services/webhooks';
   import { marked } from 'marked';
   import type { DepPopoverState } from '../types';
   let { habit, date = getLocalDateString(), onEdit, onNotes, notesCount, onDepPopover }: { habit: Habit; date?: string; onEdit?: () => void; onNotes?: () => void; notesCount?: number; onDepPopover?: (state: DepPopoverState) => void } = $props();
@@ -142,6 +143,7 @@
     startTimerInterval();
     manualSeconds = '';
     addLog(habit.id, 'start');
+    fireHabitStart(habit, date, startSec);
   }
 
   function pauseTimer() {

@@ -6,6 +6,7 @@
   let open = $state(false);
 
   let showProgressEvents = $derived(type !== 'binary');
+  let showStartEvent = $derived(type === 'duration');
 </script>
 
 <div class="webhook-section">
@@ -16,6 +17,10 @@
 
   {#if open}
     <p class="webhook-hint">Fired locally from your device when the event happens. URL placeholders like <code>&#123;&#123;value&#125;&#125;</code>, <code>&#123;&#123;date&#125;&#125;</code>, <code>&#123;&#123;id&#125;&#125;</code>, <code>&#123;&#123;title&#125;&#125;</code>, <code>&#123;&#123;unit&#125;&#125;</code>, <code>&#123;&#123;standard&#125;&#125;</code>, <code>&#123;&#123;event&#125;&#125;</code> are replaced on invocation. Leave blank to disable an event.</p>
+    {#if showStartEvent}
+      <label for="wh-start">Start URL (duration)</label>
+      <input id="wh-start" type="url" placeholder="https://example.com/hooks/start" bind:value={webhooks.start} />
+    {/if}
     <label for="wh-logged">Logged URL</label>
     <input id="wh-logged" type="url" placeholder="https://example.com/hooks/logged" bind:value={webhooks.logged} />
 

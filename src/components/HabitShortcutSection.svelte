@@ -6,6 +6,7 @@
   let open = $state(false);
 
   let showProgressEvents = $derived(type !== 'binary');
+  let showStartEvent = $derived(type === 'duration');
 </script>
 
 <div class="shortcut-section">
@@ -16,6 +17,10 @@
 
   {#if open}
     <p class="shortcut-hint">Runs a Shortcut from your device when the event happens. Enter the Shortcut's name — it's invoked as <code>shortcuts://run-shortcut?name=&lt;Name&gt;&amp;input=text&amp;text=&lt;json&gt;</code>, with the JSON body (same fields as the webhook payload) passed to it. Leave blank to disable an event.</p>
+    {#if showStartEvent}
+      <label for="sc-start">Start Shortcut (duration)</label>
+      <input id="sc-start" type="text" placeholder="Habit Started" bind:value={shortcuts.start} />
+    {/if}
     <label for="sc-logged">Shortcut on log</label>
     <input id="sc-logged" type="text" placeholder="Add Habit Log" bind:value={shortcuts.logged} />
 

@@ -9,6 +9,7 @@
   import Icon from '@iconify/svelte';
   import { pluralizeUnit } from '../lib/units';
   import { formatHms } from '../lib/duration';
+  import { fireHabitStart } from '../services/webhooks';
 
   let { habit, date = getLocalDateString() }: { habit: Habit; date?: string } = $props();
 
@@ -141,6 +142,7 @@
     const initial = Math.round(entryValue);
     setTimerState(habit.id, { running: true, paused: false, elapsed: initial, pausedElapsed: initial, startedAt: Date.now() });
     startInterval();
+    fireHabitStart(habit, date, initial);
   }
   function pauseTimer() {
     stopInterval();

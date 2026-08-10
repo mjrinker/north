@@ -9,11 +9,12 @@ export interface DependsOn {
   mode: 'and' | 'or';
 }
 
-export type WebhookEvent = 'logged' | 'standard_met' | 'target_met' | 'completed';
+export type WebhookEvent = 'start' | 'logged' | 'standard_met' | 'target_met' | 'completed';
 
 // Per-event URLs called locally from the device when the corresponding event
 // occurs on the habit. Never invoked by the backend.
 export interface HabitWebhooks {
+  start?: string;
   logged?: string;
   standard_met?: string;
   target_met?: string;
@@ -23,6 +24,7 @@ export interface HabitWebhooks {
 // iOS Shortcut names run when the corresponding event occurs on the habit, via
 // shortcuts://run-shortcut?name=<Name>&input=text&text=<urlEncodedJson>.
 export interface HabitShortcuts {
+  start?: string;
   logged?: string;
   standard_met?: string;
   target_met?: string;
