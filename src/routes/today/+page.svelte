@@ -31,6 +31,15 @@
   let pausedHabits = $derived(allHabits.filter(h => isHabitPaused(h)));
   let pausedCollapsed = $state(false);
 
+  let visibleHabits = $derived.by(() => {
+    if (searchScope !== 'habits' || !searchQueryNorm) return habits;
+    return habits.filter(habitMatches);
+  });
+  let visiblePausedHabits = $derived.by(() => {
+    if (searchScope !== 'habits' || !searchQueryNorm) return pausedHabits;
+    return pausedHabits.filter(habitMatches);
+  });
+
   // Auto-resume habits whose pauseUntil date has passed
   $effect(() => {
     const list = allHabits;
@@ -72,15 +81,16 @@
 
   let tagGroups = $derived.by(() => {
     const groups: { tag: string; habits: Habit[] }[] = [];
-    const tags = Array.from(new Set(habits.flatMap(h => h.tags ?? []))).sort();
+    const list = visibleHabits;
+    const tags = Array.from(new Set(list.flatMap(h => h.tags ?? []))).sort();
     for (const tag of tags) {
-      let tagged = habits.filter(h => (h.tags ?? []).includes(tag));
+      let tagged = list.filter(h => (h.tags ?? []).includes(tag));
       if (sortMode === 'custom') tagged = tagged.sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
       else if (sortMode === 'name') tagged = tagged.sort((a, b) => a.title.localeCompare(b.title));
       else if (sortMode === 'type') tagged = tagged.sort((a, b) => a.type.localeCompare(b.type));
       groups.push({ tag, habits: tagged });
     }
-    let untagged = habits.filter(h => (h.tags ?? []).length === 0);
+    let untagged = list.filter(h => (h.tags ?? []).length === 0);
     if (untagged.length > 0) {
       if (sortMode === 'custom') untagged = untagged.sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
       else if (sortMode === 'name') untagged = untagged.sort((a, b) => a.title.localeCompare(b.title));
@@ -110,6 +120,10 @@
     return ids;
   });
   let filteredSuggested = $derived(viewDate === today ? (suggestedHabits ?? []).filter(h => !completedHabitIds.has(h.id)) : []);
+  let visibleSuggested = $derived.by(() => {
+    if (searchScope !== 'habits' || !searchQueryNorm) return filteredSuggested;
+    return filteredSuggested.filter(habitMatches);
+  });
   let suggestedCollapsed = $state(false);
 
   let allNotes = $state<import('../../types').HabitNote[]>([]);
@@ -122,6 +136,40 @@
     }
     return map;
   });
+
+  // --- Global search (habits + notes) ---
+  let searchQuery = $state('');
+  let searchScope = $state<'habits' | 'notes'>('habits');
+  let searchFocused = $state(false);
+  let searchQueryNorm = $derived(searchQuery.trim().toLowerCase());
+
+  let habitMatches = $derived((h: Habit) =>
+    !searchQueryNorm ||
+    h.title.toLowerCase().includes(searchQueryNorm) ||
+    (h.description ?? '').toLowerCase().includes(searchQueryNorm)
+  );
+
+  let allHabitsById = $derived(new Map(allHabits.map(h => [h.id, h] as [string, Habit])));
+
+  let matchingNotes = $derived.by(() => {
+    if (searchScope !== 'notes' || !searchQueryNorm) return [];
+    return allNotes
+      .filter(n => n.status !== 'deleted' && n.content.toLowerCase().includes(searchQueryNorm))
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 50);
+  });
+
+  function focusSearch(scope: 'habits' | 'notes') {
+    searchScope = scope;
+    searchFocused = true;
+  }
+
+  function openNoteResult(note: import('../../types').HabitNote) {
+    viewDate = note.date;
+    notesHabitId = note.habitId;
+    searchQuery = '';
+    searchFocused = false;
+  }
 
   let collapsedGroups = $state<Set<string>>(new Set());
 
@@ -450,6 +498,22 @@
 </div>
 
 <div class="toolbar">
+  <div class="search-bar" class:active={searchFocused}>
+    <input
+      type="search"
+      bind:value={searchQuery}
+      placeholder={searchScope === 'notes' ? 'Search notes…' : 'Search habits…'}
+      on:focus={() => searchFocused = true}
+      on:blur={() => setTimeout(() => searchFocused = false, 150)}
+      aria-label="Search"
+    />
+    {#if searchFocused}
+      <div class="search-scope" role="group" aria-label="Search scope">
+        <button type="button" class:active={searchScope === 'habits'} on:click={() => focusSearch('habits')}>Habits</button>
+        <button type="button" class:active={searchScope === 'notes'} on:click={() => focusSearch('notes')}>Notes</button>
+      </div>
+    {/if}
+  </div>
   <label class="sort-label">
     Sort:
     <select bind:value={sortMode}>
@@ -460,6 +524,18 @@
     </select>
   </label>
 </div>
+
+{#if searchScope === 'notes' && searchFocused && matchingNotes.length > 0}
+  <div class="note-results" role="listbox">
+    {#each matchingNotes as note (note.id)}
+      <button type="button" class="note-result" role="option" on:click={() => openNoteResult(note)}>
+        <span class="nr-title">{allHabitsById.get(note.habitId)?.title ?? 'Unknown habit'}</span>
+        <span class="nr-date">{note.date}</span>
+        <span class="nr-snippet">{note.content}</span>
+      </button>
+    {/each}
+  </div>
+{/if}
 
 {#if showCreate}
   <HabitCreateModal {habits} onClose={() => showCreate = false} />
@@ -489,7 +565,7 @@
   </div>
 {/if}
 
-{#if filteredSuggested.length > 0}
+{#if visibleSuggested.length > 0}
   <section class="suggested-section">
     <button class="suggested-header" on:click={() => suggestedCollapsed = !suggestedCollapsed}>
       <span class="collapse-arrow">{suggestedCollapsed ? '▶' : '▼'}</span>
@@ -498,7 +574,7 @@
     </button>
     {#if !suggestedCollapsed}
     <div class="habits-grid">
-      {#each filteredSuggested as habit (habit.id)}
+      {#each visibleSuggested as habit (habit.id)}
         <div>
           <div class="habit-wrapper" data-habit-id={habit.id}>
             <div class="habit-slider" style="transform: {sliderTransform(habit.id)}"
@@ -562,21 +638,25 @@
             </div>
           </div>
         </div>
-      {/each}
+{/each}
     </div>
     {/if}
   </div>
 {/each}
 
-{#if pausedHabits.length > 0}
+{#if searchScope === 'habits' && searchQueryNorm && visibleHabits.length === 0 && visibleSuggested.length === 0}
+  <p class="search-empty">No habits match "{searchQuery}".</p>
+{/if}
+
+{#if visiblePausedHabits.length > 0}
   <section class="tag-section paused-section">
     <button class="tag-header" on:click={() => pausedCollapsed = !pausedCollapsed}>
       <span class="collapse-arrow">{pausedCollapsed ? '▶' : '▼'}</span>
-      Paused ({pausedHabits.length})
+      Paused ({visiblePausedHabits.length})
     </button>
     {#if !pausedCollapsed}
     <div class="habits-grid">
-      {#each pausedHabits as habit (habit.id)}
+      {#each visiblePausedHabits as habit (habit.id)}
         <div class="paused-card" role="button" tabindex="0" on:click={() => openEdit(habit)} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(habit); } }}>
           {#if habit.metadata?.emoji}
             <span class="paused-glyph">{habit.metadata.emoji}</span>
@@ -631,6 +711,91 @@
     gap: 0.75rem;
     margin-bottom: 1rem;
     flex-wrap: wrap;
+  }
+
+  .search-bar {
+    position: relative;
+    flex: 1 1 100%;
+    display: flex;
+  }
+  .search-bar input[type='search'] {
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 0;
+    font-size: 0.9rem;
+    background: var(--input-bg, #fff);
+    color: var(--text-primary, #222);
+    box-sizing: border-box;
+  }
+  .search-bar input[type='search']:focus { outline: none; border-color: var(--accent, #0066cc); }
+  .search-bar.active input[type='search'] { border-color: var(--accent, #0066cc); }
+
+  .search-scope {
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    left: 0;
+    display: flex;
+    gap: 0.25rem;
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--card-border, #ccc);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 0.25rem;
+    z-index: 30;
+  }
+  .search-scope button {
+    border: none;
+    background: none;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--text-secondary, #666);
+    border-radius: 0;
+    font-weight: 500;
+  }
+  .search-scope button.active {
+    background: var(--accent, #0066cc);
+    color: var(--accent-text, white);
+  }
+
+  .note-results {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--card-border, #ccc);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    margin: 0 0 1rem;
+    max-height: 40vh;
+    overflow-y: auto;
+    z-index: 30;
+  }
+  .note-result {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: none;
+    padding: 0.5rem 0.6rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--card-border, #e0e0e0);
+    font-family: inherit;
+    border-radius: 0;
+    color: var(--text-primary, #222);
+  }
+  .note-result:last-child { border-bottom: none; }
+  .note-result:hover, .note-result:focus { background: var(--btn-secondary-bg, #eee); }
+  .note-result .nr-title { font-weight: 600; font-size: 0.85rem; }
+  .note-result .nr-date { margin-left: 0.4rem; font-size: 0.72rem; color: var(--text-secondary, #888); }
+  .note-result .nr-snippet {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #666);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .search-empty {
+    margin: 0.5rem 0 1rem;
+    color: var(--text-secondary, #888);
+    font-size: 0.85rem;
   }
 
   .sort-label {
