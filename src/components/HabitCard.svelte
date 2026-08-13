@@ -462,7 +462,7 @@
     background: var(--card-bg);
     border: 1px solid var(--card-border, #e0e0e0);
     border-left: 4px solid var(--habit-color, transparent);
-    padding: 0.75rem 1rem;
+    padding: 1.25rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 0;

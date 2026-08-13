@@ -165,6 +165,7 @@
 <div class="page">
   <h1>Settings</h1>
 
+  <div class="settings-card">
   <section class="settings-section">
     <h2>Reset Time</h2>
     <p>When should habits reset for the next day?</p>
@@ -315,6 +316,7 @@
       <p class="status">{pauseMsg}</p>
     {/if}
   </section>
+  </div>
 </div>
 
 {#if pickerType}
@@ -339,11 +341,19 @@
     margin: 0 auto;
   }
   h1 { color: var(--text-primary, #222); margin-bottom: 1.5rem; }
+  .settings-card {
+    margin: 1.5rem 0;
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--card-border, #e0e0e0);
+    border-radius: 0;
+    padding: 0 1.25rem;
+  }
   .settings-section {
     padding: 1.25rem 0;
     border-top: 1px solid var(--card-border, #e0e0e0);
   }
-  .settings-section:last-child { border-bottom: 1px solid var(--card-border, #e0e0e0); }
+  .settings-section:first-child { border-top: none; }
+  .settings-section:last-child { border-bottom: none; }
   .settings-section h2 {
     margin: 0 0 0.5rem;
     font-size: 0.78rem;
