@@ -574,7 +574,7 @@
     </button>
     {#if !suggestedCollapsed}
     <div class="habits-grid">
-      {#each visibleSuggested as habit (habit.id)}
+      {#each visibleSuggested as habit, i (habit.id)}
         <div>
           <div class="habit-wrapper" data-habit-id={habit.id}>
             <div class="habit-slider" style="transform: {sliderTransform(habit.id)}"
@@ -582,7 +582,7 @@
               on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
               on:touchend={(e) => handleTouchEnd(e, habit.id)}
             >
-              <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} />
+              <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} isFirst={i === 0} isLast={i === visibleSuggested.length - 1} />
             </div>
           </div>
         </div>
@@ -604,7 +604,7 @@
       on:drop={handleGridDrop}
       on:dragend={handleDragEnd}
     >
-      {#each group.habits as habit (habit.id)}
+      {#each group.habits as habit, i (habit.id)}
         <div animate:flip={{ duration: 200 }}>
           <div class="habit-wrapper" data-habit-id={habit.id}>
             <div class="left-reveal">
@@ -626,7 +626,7 @@
               on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
               on:touchend={(e) => handleTouchEnd(e, habit.id)}
             >
-              <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} />
+              <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} isFirst={i === 0} isLast={i === group.habits.length - 1} />
             </div>
             <div class="swipe-actions">
               <button class="swipe-btn archive" on:click={() => archiveHabit(habit)} aria-label="Archive">

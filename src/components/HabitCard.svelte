@@ -17,7 +17,7 @@
   import { fireHabitStart } from '../services/webhooks';
   import { marked } from 'marked';
   import type { DepPopoverState } from '../types';
-  let { habit, date = getLocalDateString(), onEdit, onNotes, notesCount, onDepPopover }: { habit: Habit; date?: string; onEdit?: () => void; onNotes?: () => void; notesCount?: number; onDepPopover?: (state: DepPopoverState) => void } = $props();
+  let { habit, date = getLocalDateString(), onEdit, onNotes, notesCount, onDepPopover, isFirst = false, isLast = false }: { habit: Habit; date?: string; onEdit?: () => void; onNotes?: () => void; notesCount?: number; onDepPopover?: (state: DepPopoverState) => void; isFirst?: boolean; isLast?: boolean } = $props();
   let showNotes = $state(false);
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
   let longPressFired = $state(false);
@@ -310,7 +310,7 @@
   }
 </script>
 
-<div class="habit-card" role="button" tabindex="0"
+<div class="habit-card" class:first={isFirst} class:last={isLast} role="button" tabindex="0"
   style="--habit-color: {habit.metadata?.color || 'transparent'}; --habit-ink: {habit.metadata?.color || 'var(--text-primary)'};"
   use:useLongPressStart
   onclick={() => { if (!longPressFired) onEdit?.(); }}
@@ -460,14 +460,22 @@
 .habit-card {
     position: relative;
     background: var(--card-bg);
-    border: 1px solid var(--card-border, #e0e0e0);
+    border: 1px solid var(--card-bg);
     border-left: 4px solid var(--habit-color, transparent);
+    border-top-color: var(--card-bg);
+    border-bottom-color: var(--card-bg);
     padding: 1.25rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 0;
     flex: 1;
     min-width: 0;
+  }
+  .habit-card.first {
+    border-top-color: var(--card-border, #e0e0e0);
+  }
+  .habit-card.last {
+    border-bottom-color: var(--card-border, #e0e0e0);
   }
   .card-top {
     display: flex;
