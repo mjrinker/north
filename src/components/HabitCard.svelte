@@ -460,10 +460,10 @@
 .habit-card {
     position: relative;
     background: var(--card-bg);
-    border: 1px solid var(--card-bg);
+    border: 1px solid var(--bg);
     border-left: 4px solid var(--habit-color, transparent);
-    border-top-color: var(--card-bg);
-    border-bottom-color: var(--card-bg);
+    border-top-color: var(--bg);
+    border-bottom-color: var(--bg);
     padding: 1.25rem 1rem;
     display: flex;
     flex-direction: column;
