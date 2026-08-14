@@ -11,6 +11,7 @@ import { appSettings, type AppSettings } from '../../lib/settings';
 import { get } from 'svelte/store';
 import { gql, ApiError, getToken } from '../../lib/api';
 import { encodeId, decodeId } from '../../lib/globalId';
+import { getLastSyncedAt } from '../syncState';
 
 const HABIT_FIELDS = `id title description type standard target unit schedule metadata dependsOn identityId tags status sortOrder createdAt updatedAt`;
 const ENTRY_FIELDS = `id habitId date value standardMet targetMet notes updatedAt`;
@@ -244,9 +245,10 @@ class ApiSyncProvider implements SyncProvider {
     );
   }
 
-  async uploadAll(): Promise<SyncResult> {
+  async uploadAll(opts?: { since?: Date | null }): Promise<SyncResult> {
     const start = new Date();
     if (!getToken()) return { lastSynced: start, status: 'error', conflicts: [] };
+    const sinceMs = opts?.since ? opts.since.getTime() : null;
     try {
       const habits = get(habitsStore);
       const entries = get(entriesStore);
@@ -274,6 +276,7 @@ class ApiSyncProvider implements SyncProvider {
       const pendingHabits = habits.filter(h => {
         const serverTs = serverHabitTs.get(h.id);
         if (!serverTs) return true; // new habit not on the server yet
+        if (sinceMs != null && (!h.updatedAt || h.updatedAt.getTime() <= sinceMs)) return false;
         return !h.updatedAt || h.updatedAt > serverTs;
       });
 
@@ -285,6 +288,9 @@ class ApiSyncProvider implements SyncProvider {
           return map;
         }, new Map()).values(),
       );
+      const sinceEntries = sinceMs != null
+        ? dedupedEntries.filter(e => e.updatedAt.getTime() > sinceMs)
+        : dedupedEntries;
 
       const jobs: Promise<void>[] = [];
       let failed = 0;
@@ -305,7 +311,7 @@ class ApiSyncProvider implements SyncProvider {
       for (const h of pendingHabits) jobs.push(this.upsertHabit(h));
       await run(jobs.splice(0));
 
-      for (const e of dedupedEntries) jobs.push(this.upsertEntry(e));
+      for (const e of sinceEntries) jobs.push(this.upsertEntry(e));
       await run(jobs.splice(0));
 
       for (const n of notes) {
@@ -328,7 +334,7 @@ class ApiSyncProvider implements SyncProvider {
     }
   }
 
-  async downloadAll(): Promise<SyncResult> {
+  async downloadAll(opts?: { dateFrom?: string | null; dateTo?: string | null }): Promise<SyncResult> {
     const start = new Date();
     if (!getToken()) return { lastSynced: start, status: 'error', conflicts: [] };
     try {
@@ -338,6 +344,8 @@ class ApiSyncProvider implements SyncProvider {
       const { saveHabit, saveEntry, saveIdentity, saveNote } = await import('../storage');
 
       const PAGE_SIZE = 500;
+      const dateFrom = opts?.dateFrom ?? null;
+      const dateTo = opts?.dateTo ?? null;
 
       const [habitRows, noteRows, identityRows, settings] = await Promise.all([
         gql<{ habits: any[] }>(
@@ -373,13 +381,13 @@ class ApiSyncProvider implements SyncProvider {
             pageInfo: { endCursor: string | null; hasNextPage: boolean };
           };
         }>(
-          `query EntriesPage($first: Int, $after: String) {
-            entriesConnection(first: $first, after: $after) {
+          `query EntriesPage($first: Int, $after: String, $dateFrom: String, $dateTo: String) {
+            entriesConnection(first: $first, after: $after, dateFrom: $dateFrom, dateTo: $dateTo) {
               nodes { ${ENTRY_FIELDS} }
               pageInfo { endCursor hasNextPage }
             }
           }`,
-          { first: PAGE_SIZE, after },
+          { first: PAGE_SIZE, after, dateFrom, dateTo },
           { auth: true },
         );
         entryRows.push(...(page?.entriesConnection?.nodes ?? []));

@@ -10,11 +10,16 @@
   import { pauseAllHabits, resumeAllHabits } from '../../lib/habitUtils'
   import { onDestroy } from 'svelte'
   import { getMyApiKeys, createMyApiKey, revokeMyApiKey, copyToClipboard, type ApiKey } from '../../lib/apiKeys'
+  import { getLastSyncedAt, setLastSyncedAt, daysAgo } from '../../services/syncState'
 
   let currentUser = $state<any>(null)
   let syncing = $state(false)
   let syncStatus = $state('')
   let lastSynced = $state<string | null>(null)
+  let syncMenuOpen = $state(false)
+  let customOpen = $state(false)
+  let customFrom = $state('')
+  let customTo = $state('')
 
   let allHabitsNow = $state<any[]>([])
   let unsubHabits = habitsStore.subscribe(v => allHabitsNow = v)
@@ -94,15 +99,37 @@
     if (googleBtnEl) renderGoogleButton(googleBtnEl)
   })
 
-  async function syncNow() {
+  const RANGE_PRESETS = [
+    { label: 'Today', days: 0 },
+    { label: 'Last 2 days', days: 2 },
+    { label: 'Last 7 days', days: 7 },
+    { label: 'Last 30 days', days: 30 },
+    { label: 'Last 90 days', days: 90 },
+  ] as const
+
+  async function syncNow(_opts?: { days?: number; from?: string; to?: string; allTime?: boolean }) {
     if (!currentUser) return
     syncing = true
     syncStatus = 'Downloading…'
     try {
-      await apiSyncProvider.downloadAll()
+      let lastSyncedAtMs = 0
+      const prev = getLastSyncedAt()
+      if (prev) { const t = new Date(prev).getTime(); if (!Number.isNaN(t)) lastSyncedAtMs = t }
+      const since = new Date(lastSyncedAtMs)
+
+      if (_opts?.allTime) {
+        await apiSyncProvider.downloadAll()
+      } else if (_opts?.from && _opts?.to) {
+        await apiSyncProvider.downloadAll({ dateFrom: _opts.from, dateTo: _opts.to })
+      } else {
+        const days = _opts?.days ?? 7
+        await apiSyncProvider.downloadAll({ dateFrom: daysAgo(days) })
+      }
+
       syncStatus = 'Uploading…'
-      const result = await apiSyncProvider.uploadAll()
-      syncStatus = result.status === 'success' ? 'Synced successfully' : `Sync error: ${result.status}`
+      const result = await apiSyncProvider.uploadAll({ since: _opts?.allTime ? null : since })
+      syncStatus = result.status === 'success' ? (lastSyncedAtMs > 0 ? 'Synced successfully' : 'Initial sync complete') : `Sync error: ${result.status}`
+      setLastSyncedAt(new Date().toISOString())
       lastSynced = new Date().toLocaleTimeString()
     } catch (e: any) {
       syncStatus = `Sync failed: ${e.message}`
@@ -245,11 +272,45 @@
 
   <section class="settings-section">
     <h2>Cloud Sync</h2>
-    <p>Sync your habits, entries, and identities to the cloud for backup.</p>
+    <p>Pull recent changes and push only what changed since your last sync. Use the menu to change the download range.</p>
     {#if currentUser}
-      <button class="btn" onclick={syncNow} disabled={syncing}>
-        {syncing ? 'Syncing…' : 'Sync Now'}
-      </button>
+      <div class="sync-split">
+        <button class="btn sync-main" onclick={() => { syncMenuOpen = false; syncNow() }} disabled={syncing}>
+          {syncing ? 'Syncing…' : 'Sync'}
+        </button>
+        <button
+          class="btn sync-arrow"
+          onclick={() => syncMenuOpen = !syncMenuOpen}
+          disabled={syncing}
+          aria-label="Sync range options"
+          aria-expanded={syncMenuOpen}
+        >▾</button>
+      </div>
+      {#if syncMenuOpen}
+        <div class="sync-menu">
+          <div class="sync-menu-label">Download range</div>
+          {#each RANGE_PRESETS as preset (preset.days)}
+            <button class="sync-menu-item" onclick={() => syncNow({ days: preset.days })}>{preset.label}</button>
+          {/each}
+          <button class="sync-menu-item" onclick={() => syncNow({ allTime: true })}>All time</button>
+          <button class="sync-menu-item" onclick={() => customOpen = !customOpen}>Custom date range…</button>
+          {#if customOpen}
+            <div class="sync-custom">
+              <label>
+                <span>From</span>
+                <input type="date" bind:value={customFrom} />
+              </label>
+              <label>
+                <span>To</span>
+                <input type="date" bind:value={customTo} />
+              </label>
+              <button class="btn" onclick={() => { if (customFrom && customTo) syncNow({ from: customFrom, to: customTo }) }} disabled={!customFrom || !customTo}>
+                Sync range
+              </button>
+            </div>
+          {/if}
+        </div>
+      {/if}
       {#if syncStatus}
         <p class="status">{syncStatus}</p>
       {/if}
@@ -589,5 +650,78 @@
   .docs-link {
     color: var(--accent, #0066cc);
     text-decoration: underline;
+  }
+  .sync-split {
+    display: inline-flex;
+    align-items: stretch;
+    vertical-align: middle;
+  }
+  .sync-main {
+    border-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right: none;
+  }
+  .sync-arrow {
+    border-radius: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.85rem;
+  }
+  .sync-menu {
+    margin-top: 0.5rem;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: stretch;
+    border: 1px solid var(--card-border, #ccc);
+    background: var(--card-bg, #fff);
+    border-radius: 0;
+    padding: 0.25rem;
+    min-width: 200px;
+  }
+  .sync-menu-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary, #888);
+    padding: 0.25rem 0.5rem;
+  }
+  .sync-menu-item {
+    padding: 0.4rem 0.5rem;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-primary, #222);
+    border-radius: 0;
+  }
+  .sync-menu-item:hover { background: var(--btn-secondary-bg, #eee); }
+  .sync-custom {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-top: 1px solid var(--card-border, #eee);
+  }
+  .sync-custom label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #666);
+  }
+  .sync-custom input[type="date"] {
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 0;
+    font-size: 0.85rem;
+    background: var(--input-bg, #fff);
+    color: var(--text-primary, #222);
+  }
+  .sync-custom .btn {
+    grid-column: 1 / -1;
   }
 </style>

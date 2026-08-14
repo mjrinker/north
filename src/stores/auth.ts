@@ -16,6 +16,7 @@ async function triggerSync() {
 
   try {
     const { apiSyncProvider } = await import('../services/sync.providers/api')
+    const { getLastSyncedAt, setLastSyncedAt, daysAgo } = await import('../services/syncState')
 
     const { habitsStore } = await import('./habits')
     const { entriesStore } = await import('./entries')
@@ -27,11 +28,21 @@ async function triggerSync() {
       || get(identitiesStore).length > 0
       || get(notesStore).length > 0
 
-    await apiSyncProvider.downloadAll()
+    const watermark = getLastSyncedAt()
+    const initialSync = !watermark
+
+    if (initialSync) {
+      await apiSyncProvider.downloadAll()
+    } else {
+      await apiSyncProvider.downloadAll({ dateFrom: daysAgo(7) })
+    }
 
     if (hasLocal) {
-      await apiSyncProvider.uploadAll()
+      const since = watermark ? new Date(watermark) : null
+      await apiSyncProvider.uploadAll({ since })
     }
+
+    setLastSyncedAt(new Date().toISOString())
 
     const { flushOutbox } = await import('../services/sync')
     await flushOutbox()
