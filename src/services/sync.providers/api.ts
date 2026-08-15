@@ -524,7 +524,7 @@ class ApiSyncProvider implements SyncProvider {
 
       const data = await this.fetchRemoteData();
 
-      const serverHabits = (data.habits ?? []) as Habit[];
+      const serverHabits: Habit[] = ((data.habits ?? []) as any[]).map((row: any) => fromApiHabit(row));
       const localHabits = get(habitsStore);
       // Preserve local-only UI metadata (color/icon/emoji/category/webhooks)
       // that may not exist on the server row yet.
