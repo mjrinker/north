@@ -15,8 +15,8 @@ async function triggerSync() {
   syncScheduled = true
 
   try {
-    const { apiSyncProvider } = await import('../services/sync.providers/api')
-    const { getLastSyncedAt, setLastSyncedAt, daysAgo } = await import('../services/syncState')
+    const { refreshFromServer, initOnlineRefresh } = await import('../services/dataLoader')
+    const { getLastSyncedAt } = await import('../services/syncState')
 
     const { habitsStore } = await import('./habits')
     const { entriesStore } = await import('./entries')
@@ -28,24 +28,15 @@ async function triggerSync() {
       || get(identitiesStore).length > 0
       || get(notesStore).length > 0
 
-    const watermark = getLastSyncedAt()
-    const initialSync = !watermark
-
-    if (initialSync) {
-      await apiSyncProvider.downloadAll()
-    } else {
-      await apiSyncProvider.downloadAll({ dateFrom: daysAgo(7) })
+    // First sync with local data: push everything before reads switch to
+    // server-authoritative replacement, or local-only records would be lost.
+    if (!getLastSyncedAt() && hasLocal) {
+      const { apiSyncProvider } = await import('../services/sync.providers/api')
+      await apiSyncProvider.uploadAll()
     }
 
-    if (hasLocal) {
-      const since = watermark ? new Date(watermark) : null
-      await apiSyncProvider.uploadAll({ since })
-    }
-
-    setLastSyncedAt(new Date().toISOString())
-
-    const { flushOutbox } = await import('../services/sync')
-    await flushOutbox()
+    await refreshFromServer()
+    initOnlineRefresh()
   } catch (e) {
     console.error('Sync failed:', e)
   }

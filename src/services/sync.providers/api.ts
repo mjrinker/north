@@ -334,6 +334,61 @@ class ApiSyncProvider implements SyncProvider {
     }
   }
 
+  private async fetchRemoteData(dateFrom?: string | null, dateTo?: string | null) {
+    const PAGE_SIZE = 500;
+
+    const [habitRows, noteRows, identityRows, settings] = await Promise.all([
+      gql<{ habits: any[] }>(
+        `query { habits { ${HABIT_FIELDS} } }`,
+        undefined,
+        { auth: true },
+      ),
+      gql<{ notes: any[] }>(
+        `query { notes { ${NOTE_FIELDS} } }`,
+        undefined,
+        { auth: true },
+      ),
+      gql<{ identities: any[] }>(
+        `query { identities { ${IDENTITY_FIELDS} } }`,
+        undefined,
+        { auth: true },
+      ),
+      gql<{ settings: any | null }>(
+        `query { settings { resetTime themeMode oled accentColor mainColor launchScreen } }`,
+        undefined,
+        { auth: true },
+      ),
+    ]).then(([h, n, i, s]) => [h?.habits, n?.notes, i?.identities, s?.settings]);
+
+    // Fetch all entries in pages. A single `entries` query is silently capped
+    // at 1000 rows by the backend, which truncates history for large datasets.
+    const entryRows: any[] = [];
+    let after: string | null | undefined;
+    for (;;) {
+      const page = await gql<{
+        entriesConnection: {
+          nodes: any[];
+          pageInfo: { endCursor: string | null; hasNextPage: boolean };
+        };
+      }>(
+        `query EntriesPage($first: Int, $after: String, $dateFrom: String, $dateTo: String) {
+          entriesConnection(first: $first, after: $after, dateFrom: $dateFrom, dateTo: $dateTo) {
+            nodes { ${ENTRY_FIELDS} }
+            pageInfo { endCursor hasNextPage }
+          }
+        }`,
+        { first: PAGE_SIZE, after, dateFrom, dateTo },
+        { auth: true },
+      );
+      entryRows.push(...(page?.entriesConnection?.nodes ?? []));
+      const info = page?.entriesConnection?.pageInfo;
+      if (!info?.hasNextPage || !info?.endCursor) break;
+      after = info.endCursor;
+    }
+
+    return { habits: habitRows, entries: entryRows, notes: noteRows, identities: identityRows, settings };
+  }
+
   async downloadAll(opts?: { dateFrom?: string | null; dateTo?: string | null }): Promise<SyncResult> {
     const start = new Date();
     if (!getToken()) return { lastSynced: start, status: 'error', conflicts: [] };
@@ -343,60 +398,7 @@ class ApiSyncProvider implements SyncProvider {
 
       const { saveHabit, saveEntry, saveIdentity, saveNote } = await import('../storage');
 
-      const PAGE_SIZE = 500;
-      const dateFrom = opts?.dateFrom ?? null;
-      const dateTo = opts?.dateTo ?? null;
-
-      const [habitRows, noteRows, identityRows, settings] = await Promise.all([
-        gql<{ habits: any[] }>(
-          `query { habits { ${HABIT_FIELDS} } }`,
-          undefined,
-          { auth: true },
-        ),
-        gql<{ notes: any[] }>(
-          `query { notes { ${NOTE_FIELDS} } }`,
-          undefined,
-          { auth: true },
-        ),
-        gql<{ identities: any[] }>(
-          `query { identities { ${IDENTITY_FIELDS} } }`,
-          undefined,
-          { auth: true },
-        ),
-        gql<{ settings: any | null }>(
-          `query { settings { resetTime themeMode oled accentColor mainColor launchScreen } }`,
-          undefined,
-          { auth: true },
-        ),
-      ]).then(([h, n, i, s]) => [h?.habits, n?.notes, i?.identities, s?.settings]);
-
-      // Fetch all entries in pages. A single `entries` query is silently capped
-      // at 1000 rows by the backend, which truncates history for large datasets.
-      const entryRows: any[] = [];
-      let after: string | null | undefined;
-      for (;;) {
-        const page = await gql<{
-          entriesConnection: {
-            nodes: any[];
-            pageInfo: { endCursor: string | null; hasNextPage: boolean };
-          };
-        }>(
-          `query EntriesPage($first: Int, $after: String, $dateFrom: String, $dateTo: String) {
-            entriesConnection(first: $first, after: $after, dateFrom: $dateFrom, dateTo: $dateTo) {
-              nodes { ${ENTRY_FIELDS} }
-              pageInfo { endCursor hasNextPage }
-            }
-          }`,
-          { first: PAGE_SIZE, after, dateFrom, dateTo },
-          { auth: true },
-        );
-        entryRows.push(...(page?.entriesConnection?.nodes ?? []));
-        const info = page?.entriesConnection?.pageInfo;
-        if (!info?.hasNextPage || !info?.endCursor) break;
-        after = info.endCursor;
-      }
-
-      const data = { habits: habitRows, entries: entryRows, notes: noteRows, identities: identityRows, settings };
+      const data = await this.fetchRemoteData(opts?.dateFrom ?? null, opts?.dateTo ?? null);
 
       const localHabits = get(habitsStore);
       const mergedHabits = [...localHabits];
@@ -501,6 +503,76 @@ class ApiSyncProvider implements SyncProvider {
       const { setSyncEnabled } = await import('../sync');
       setSyncEnabled(true);
       console.error('api downloadAll error:', e);
+      return { lastSynced: start, status: 'error', conflicts: [] };
+    }
+  }
+
+  // Network-first refresh: pulls the full dataset from the server and replaces
+  // both in-memory stores and the IndexedDB cache with the server snapshot
+  // (cache eviction). Only runs when online + authenticated.
+  async replaceAll(): Promise<SyncResult> {
+    const start = new Date();
+    if (!getToken()) return { lastSynced: start, status: 'error', conflicts: [] };
+    try {
+      const { setSyncEnabled } = await import('../sync');
+      setSyncEnabled(false);
+
+      const {
+        clearAllHabits, clearAllEntries, clearAllIdentities, clearAllNotes,
+        saveHabit, saveEntry, saveIdentity, saveNote,
+      } = await import('../storage');
+
+      const data = await this.fetchRemoteData();
+
+      const serverHabits = (data.habits ?? []) as Habit[];
+      const localHabits = get(habitsStore);
+      // Preserve local-only UI metadata (color/icon/emoji/category/webhooks)
+      // that may not exist on the server row yet.
+      const habits = serverHabits.map(h => {
+        const local = localHabits.find(x => x.id === h.id);
+        if (!local) return h;
+        const meta = mergeMetadata(local.metadata, h.metadata);
+        return { ...h, metadata: meta, webhooks: meta.webhooks, shortcuts: meta.shortcuts };
+      });
+      const entries = (data.entries ?? []).map(fromApiEntry);
+      const identities = (data.identities ?? []).map(fromApiIdentity);
+      const notes = (data.notes ?? []).map(fromApiNote);
+
+      habitsStore.set(habits);
+      entriesStore.set(entries);
+      identitiesStore.set(identities);
+      notesStore.set(notes);
+
+      // Server-authoritative cache eviction: drop anything not on the server.
+      await clearAllHabits();
+      await clearAllEntries();
+      await clearAllIdentities();
+      await clearAllNotes();
+
+      for (const h of habits) { try { await saveHabit(h); } catch {} }
+      for (const e of entries) { try { await saveEntry(e); } catch {} }
+      for (const i of identities) { try { await saveIdentity(i); } catch {} }
+      for (const n of notes) { try { await saveNote(n); } catch {} }
+
+      if (data.settings) {
+        const s = get(appSettings);
+        appSettings.set({
+          ...s,
+          resetTime: data.settings.resetTime ?? s.resetTime,
+          themeMode: (data.settings.themeMode as AppSettings['themeMode']) ?? s.themeMode,
+          oled: data.settings.oled ?? s.oled,
+          accentColor: data.settings.accentColor ?? s.accentColor,
+          mainColor: data.settings.mainColor ?? s.mainColor,
+          launchScreen: (data.settings.launchScreen as AppSettings['launchScreen']) ?? s.launchScreen,
+        });
+      }
+
+      setSyncEnabled(true);
+      return { lastSynced: start, status: 'success', conflicts: [] };
+    } catch (e) {
+      const { setSyncEnabled } = await import('../sync');
+      setSyncEnabled(true);
+      console.error('api replaceAll error:', e);
       return { lastSynced: start, status: 'error', conflicts: [] };
     }
   }

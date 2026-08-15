@@ -3,6 +3,7 @@
   import { flip } from 'svelte/animate';
   import { habitsStore, updateHabit } from '../../stores/habits';
   import { pushRecord } from '../../services/sync';
+  import { refreshFromServer } from '../../services/dataLoader';
   import { user } from '../../stores/auth';
   import type { Habit } from '../../types';
   import HabitCard from '../../components/HabitCard.svelte';
@@ -463,13 +464,15 @@
     }
   }
 
-  function handlePullEnd() {
+  async function handlePullEnd() {
     if (pullRefreshDistance >= PULL_THRESHOLD) {
       pullRefreshTriggered = true;
-      window.location.reload();
+      pullRefreshDistance = PULL_THRESHOLD;
+      await refreshFromServer();
     }
     pullRefreshDistance = 0;
     pullRefreshStartY = 0;
+    pullRefreshTriggered = false;
   }
 </script>
 
