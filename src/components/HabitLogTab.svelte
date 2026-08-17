@@ -130,6 +130,13 @@
   function tick() {
     const s = allTimerStates[habit.id];
     if (!s) return;
+    if (!s.running || s.paused || s.startedAt === 0) {
+      // A stray interval (e.g. from the habit row still mounted behind the
+      // modal) must not keep accumulating with startedAt=0, which produces
+      // now-since-epoch. Self-cancel instead.
+      stopInterval();
+      return;
+    }
     setTimerState(habit.id, { ...s, elapsed: s.pausedElapsed + Math.floor((Date.now() - s.startedAt) / 1000) });
   }
   function startInterval() {
