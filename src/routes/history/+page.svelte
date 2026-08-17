@@ -533,13 +533,13 @@
     height: 100%;
     cursor: pointer;
   }
-  .hist-check-icon {
+  :global(.hist-check-icon) {
     font-size: 1.4rem;
     color: #2e7d32;
     pointer-events: none;
     line-height: 1;
   }
-  .hist-check-icon.break {
+  :global(.hist-check-icon.break) {
     color: #d32f2f;
   }
   .cell-btn {

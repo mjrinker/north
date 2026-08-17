@@ -679,9 +679,22 @@
   .qty-input.standard-met { color: #2e7d32; }
   .qty-input-wrap.target-met,
   .dur-input-wrap.target-met:not(.running) {
-    background: linear-gradient(120deg, #eec24b, #f7d774, #e8b938, #fbd985);
-    background-size: 200% 200%;
-    animation: gold-shimmer 2.5s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(145deg, #c9a227 0%, #f5d778 28%, #e8c64a 52%, #f7e18c 74%, #c9a227 100%);
+  }
+  .qty-input-wrap.target-met::after,
+  .dur-input-wrap.target-met:not(.running)::after {
+    content: '';
+    position: absolute;
+    top: -15%;
+    bottom: -15%;
+    left: -60%;
+    width: 45%;
+    background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    transform: skewX(-18deg);
+    animation: gold-shimmer 2.6s ease-in-out infinite;
+    pointer-events: none;
   }
   .qty-input-wrap.target-met .qty-input,
   .dur-input-wrap.target-met:not(.running) .dur-input {
@@ -750,18 +763,18 @@
     height: 100%;
     cursor: pointer;
   }
-  .check-icon {
+  :global(.check-icon) {
     font-size: 2.2rem;
     color: #2e7d32;
     pointer-events: none;
   }
-  .check-icon.break {
+  :global(.check-icon.break) {
     color: #d32f2f;
   }
 
   @keyframes gold-shimmer {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% { left: -60%; }
+    60% { left: 125%; }
+    100% { left: 125%; }
   }
 </style>
