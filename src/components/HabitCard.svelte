@@ -34,6 +34,7 @@
   let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + date) : false);
   let isStandardMet = $derived(todayEntry ? metStandard(habit, todayEntry.value) : false);
   let isTargetMet = $derived(todayEntry && habit.target != null ? metTarget(habit, todayEntry.value) : false);
+  let isBreakHabit = $derived(habit.metadata?.category === 'break');
   let unitLabel = $derived(habit.unit ? pluralizeUnit(habit.unit, Math.round(todayEntry?.value ?? 0)) : '');
   let depResults = $state<{ hid: string; met: boolean }[]>([]);
 
@@ -350,21 +351,24 @@
         <label class="binary-input-wrap" class:checked={todayEntry?.value === 1} onclick={(e) => e.stopPropagation()}>
           <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} disabled={isAutoCompleted} onmousedown={(e) => e.preventDefault()} />
           {#if todayEntry?.value === 1}
-            <Icon icon="mdi:check" class="check-icon" />
+            {#if isBreakHabit}
+              <Icon icon="mdi:close" class="check-icon break" />
+            {:else}
+              <Icon icon="mdi:check" class="check-icon" />
+            {/if}
           {/if}
         </label>
       </div>
     {:else if habit.type === 'quantity'}
       <div class="action-control">
         <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(-1); }} class="btn small">−</button>
-        <div class="qty-input-wrap" onclick={(e) => e.stopPropagation()}>
+        <div class="qty-input-wrap" class:target-met={isTargetMet} onclick={(e) => e.stopPropagation()}>
           <input
             type="number"
             value={todayEntry?.value ?? 0}
             min="0"
             class="qty-input"
             class:standard-met={isStandardMet}
-            class:target-met={isTargetMet}
             onfocus={(e) => {
               const target = e.currentTarget as HTMLInputElement;
               const len = target.value.length;
@@ -410,7 +414,7 @@
         {#if todayEntry && todayEntry.value > 0 && !timerState.running}
           <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn-icon restart" aria-label="Reset"><Icon icon="mdi:restart" style="color: inherit" /></button>
         {/if}
-        <div class="dur-input-wrap" class:running={timerState.running} class:standard-met={isStandardMet} style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
+        <div class="dur-input-wrap" class:running={timerState.running} class:standard-met={isStandardMet} class:target-met={isTargetMet} style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
           {#if (timerState.running ? timerHrs : durHours) > 0}
             <input
               type="text"
@@ -673,9 +677,16 @@
     margin-top: 1px;
   }
   .qty-input.standard-met { color: #2e7d32; }
-  .qty-input.target-met {
-    color: #2e7d32;
-    animation: shimmer 1.2s ease-in-out;
+  .qty-input-wrap.target-met,
+  .dur-input-wrap.target-met:not(.running) {
+    background: linear-gradient(120deg, #eec24b, #f7d774, #e8b938, #fbd985);
+    background-size: 200% 200%;
+    animation: gold-shimmer 2.5s ease-in-out infinite;
+  }
+  .qty-input-wrap.target-met .qty-input,
+  .dur-input-wrap.target-met:not(.running) .dur-input {
+    color: #000;
+    -webkit-text-fill-color: #000;
   }
   .dur-input-wrap {
     display: flex;
@@ -708,6 +719,7 @@
   .dur-input-wrap.standard-met:not(.running) .dur-input { color: #2e7d32; }
   .dur-input-wrap.standard-met:not(.running) .dur-input::placeholder { color: #2e7d32; }
   .dur-input-wrap.standard-met:not(.running) .dur-sep { color: #2e7d32; }
+  .dur-input-wrap.target-met:not(.running) .dur-sep { color: #000; }
 
 
   .dur-input::-webkit-outer-spin-button,
@@ -740,13 +752,16 @@
   }
   .check-icon {
     font-size: 2.2rem;
-    color: var(--text-primary, #222);
+    color: #2e7d32;
     pointer-events: none;
   }
+  .check-icon.break {
+    color: #d32f2f;
+  }
 
-  @keyframes shimmer {
-    0% { text-shadow: 0 0 0 transparent; }
-    50% { text-shadow: 0 0 8px rgba(46, 125, 50, 0.6); }
-    100% { text-shadow: 0 0 0 transparent; }
+  @keyframes gold-shimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
   }
 </style>

@@ -365,7 +365,11 @@
                 <label class="hist-check-wrap" class:checked={entry?.value === 1} onclick={(e) => e.stopPropagation()}>
                   <input type="checkbox" checked={entry?.value === 1} onchange={() => handleBinary(habit, date)} />
                   {#if entry?.value === 1}
-                    <Icon icon="mdi:check" class="hist-check-icon" />
+                    {#if habit.metadata?.category === 'break'}
+                      <Icon icon="mdi:close" class="hist-check-icon break" />
+                    {:else}
+                      <Icon icon="mdi:check" class="hist-check-icon" />
+                    {/if}
                   {/if}
                 </label>
               {:else if habit.type === 'quantity'}
@@ -531,9 +535,12 @@
   }
   .hist-check-icon {
     font-size: 1.4rem;
-    color: var(--text-primary, #222);
+    color: #2e7d32;
     pointer-events: none;
     line-height: 1;
+  }
+  .hist-check-icon.break {
+    color: #d32f2f;
   }
   .cell-btn {
     background: none;

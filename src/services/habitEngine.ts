@@ -1,7 +1,7 @@
 import type { Habit, HabitEntry, CompletionResult } from '../types';
 import { getAllEntries, saveEntry, getEntry, clearAllEntries } from './storage';
 import { getLocalDateString, getWeekStart, parseLocalDate, toDateStr } from '../lib/dates';
-import { computeDailyStreak } from '../lib/streakUtils';
+import { computeDailyStreak, computeBreakDailyStreak, computeBreakWeeklyStreak } from '../lib/streakUtils';
 import { isStandardMet, isTargetMet, progressPercentage } from '../lib/thresholds';
 import { entriesStore } from '../stores/entries';
 import { pushRecord } from './sync';
@@ -74,12 +74,22 @@ export class HabitEngine {
 
   static async getStreak(habit: Habit): Promise<number> {
     const all = await getAllEntries();
-    const habitEntries = all.filter(e => e.habitId === habit.id && e.standardMet);
+    const habitEntries = all.filter(e => e.habitId === habit.id);
 
-    if (habit.schedule.daysPerWeek) {
-      return HabitEngine.getWeeklyStreak(habit, habitEntries);
+    // Break habits maintain their streak on unlogged days (absence is success);
+    // the streak resets only when a logged day fails the standard.
+    if (habit.metadata?.category === 'break') {
+      if (habit.schedule.daysPerWeek) {
+        return computeBreakWeeklyStreak(habitEntries, habit.schedule.startOfWeek ?? 1);
+      }
+      return computeBreakDailyStreak(habitEntries);
     }
-    return computeDailyStreak(habitEntries);
+
+    const metEntries = habitEntries.filter(e => e.standardMet);
+    if (habit.schedule.daysPerWeek) {
+      return HabitEngine.getWeeklyStreak(habit, metEntries);
+    }
+    return computeDailyStreak(metEntries);
   }
 
   async getStreak(): Promise<number> {

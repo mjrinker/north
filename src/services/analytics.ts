@@ -1,5 +1,5 @@
 import type { Habit, HabitEntry } from '../types';
-import { computeDailyStreak, computeLongestStreak } from '../lib/streakUtils';
+import { computeDailyStreak, computeLongestStreak, computeBreakDailyStreak, computeBreakWeeklyStreak, computeBreakLongestStreak } from '../lib/streakUtils';
 import { getLocalDateString } from '../lib/dates';
 
 export interface HabitStats {
@@ -28,14 +28,22 @@ export function computeHabitStats(habit: Habit, entries: HabitEntry[]): HabitSta
   const bestEntry = [...habitEntries].sort((a, b) => b.value - a.value)[0] || null;
   const bestDay = bestEntry ? { date: bestEntry.date, value: bestEntry.value } : null;
 
+  const isBreak = habit.metadata?.category === 'break';
+  const currentStreak = isBreak
+    ? habit.schedule.daysPerWeek
+      ? computeBreakWeeklyStreak(habitEntries, habit.schedule.startOfWeek ?? 1)
+      : computeBreakDailyStreak(habitEntries)
+    : computeDailyStreak(habitEntries);
+  const longestStreak = isBreak ? computeBreakLongestStreak(habitEntries) : computeLongestStreak(habitEntries);
+
   return {
     habit,
     totalEntries: habitEntries.length,
     standardMetCount,
     targetMetCount,
     completionRate: habitEntries.length > 0 ? standardMetCount / habitEntries.length : 0,
-    currentStreak: computeDailyStreak(habitEntries),
-    longestStreak: computeLongestStreak(habitEntries),
+    currentStreak,
+    longestStreak,
     bestDay,
   };
 }
