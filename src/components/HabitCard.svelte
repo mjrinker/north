@@ -363,6 +363,9 @@
       <div class="action-control">
         <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(-1); }} class="btn small">−</button>
         <div class="qty-input-wrap" class:target-met={isTargetMet} onclick={(e) => e.stopPropagation()}>
+          {#each [0,1,2,3,4,5,6,7] as i (i)}
+            <span class="sparkle" style:--tw-delay={`${i * 0.45}s`} style:--tw-dur={`${1.6 + (i % 5) * 0.3}s`}></span>
+          {/each}
           <input
             type="number"
             value={todayEntry?.value ?? 0}
@@ -415,6 +418,9 @@
           <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn-icon restart" aria-label="Reset"><Icon icon="mdi:restart" style="color: inherit" /></button>
         {/if}
         <div class="dur-input-wrap" class:running={timerState.running} class:standard-met={isStandardMet} class:target-met={isTargetMet} style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
+          {#each [0,1,2,3,4,5,6,7] as i (i)}
+            <span class="sparkle" style:--tw-delay={`${i * 0.45}s`} style:--tw-dur={`${1.6 + (i % 5) * 0.3}s`}></span>
+          {/each}
           {#if (timerState.running ? timerHrs : durHours) > 0}
             <input
               type="text"
@@ -683,24 +689,45 @@
     overflow: hidden;
     background: linear-gradient(145deg, #c9a227 0%, #f5d778 28%, #e8c64a 52%, #f7e18c 74%, #c9a227 100%);
   }
-  .qty-input-wrap.target-met::after,
-  .dur-input-wrap.target-met:not(.running)::after {
-    content: '';
-    position: absolute;
-    top: -15%;
-    bottom: -15%;
-    left: -60%;
-    width: 45%;
-    background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.5), transparent);
-    transform: skewX(-18deg);
-    animation: gold-shimmer 2.6s ease-in-out infinite;
-    pointer-events: none;
-  }
   .qty-input-wrap.target-met .qty-input,
   .dur-input-wrap.target-met:not(.running) .dur-input {
+    position: relative;
+    z-index: 1;
     color: #000;
     -webkit-text-fill-color: #000;
   }
+  .sparkle {
+    position: absolute;
+    z-index: 0;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, rgba(255, 255, 255, 0.9) 45%, rgba(255, 255, 255, 0) 72%);
+    opacity: 0;
+    pointer-events: none;
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
+  }
+  .qty-input-wrap.target-met .sparkle,
+  .dur-input-wrap.target-met:not(.running) .sparkle {
+    animation: twinkle var(--tw-dur, 1.8s) ease-in-out infinite;
+    animation-delay: var(--tw-delay, 0s);
+  }
+  .qty-input-wrap .sparkle:nth-child(1) { top: 18%; left: 10%; }
+  .qty-input-wrap .sparkle:nth-child(2) { top: 62%; left: 24%; }
+  .qty-input-wrap .sparkle:nth-child(3) { top: 24%; left: 40%; }
+  .qty-input-wrap .sparkle:nth-child(4) { top: 64%; left: 56%; }
+  .qty-input-wrap .sparkle:nth-child(5) { top: 16%; left: 74%; }
+  .qty-input-wrap .sparkle:nth-child(6) { top: 58%; left: 88%; }
+  .qty-input-wrap .sparkle:nth-child(7) { top: 40%; left: 34%; width: 3px; height: 3px; }
+  .qty-input-wrap .sparkle:nth-child(8) { top: 80%; left: 68%; width: 3px; height: 3px; }
+  .dur-input-wrap .sparkle:nth-child(1) { top: 15%; left: 8%; }
+  .dur-input-wrap .sparkle:nth-child(2) { top: 55%; left: 24%; }
+  .dur-input-wrap .sparkle:nth-child(3) { top: 70%; left: 40%; }
+  .dur-input-wrap .sparkle:nth-child(4) { top: 20%; left: 56%; }
+  .dur-input-wrap .sparkle:nth-child(5) { top: 65%; left: 70%; }
+  .dur-input-wrap .sparkle:nth-child(6) { top: 25%; left: 84%; }
+  .dur-input-wrap .sparkle:nth-child(7) { top: 45%; left: 32%; width: 3px; height: 3px; }
+  .dur-input-wrap .sparkle:nth-child(8) { top: 80%; left: 90%; width: 3px; height: 3px; }
   .dur-input-wrap {
     display: flex;
     align-items: center;
@@ -772,9 +799,8 @@
     color: #d32f2f;
   }
 
-  @keyframes gold-shimmer {
-    0% { left: -60%; }
-    60% { left: 125%; }
-    100% { left: 125%; }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 1; transform: scale(1.2); }
   }
 </style>
