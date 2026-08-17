@@ -507,9 +507,11 @@ class ApiSyncProvider implements SyncProvider {
     }
   }
 
-  // Network-first refresh: pulls the full dataset from the server and replaces
-  // both in-memory stores and the IndexedDB cache with the server snapshot
-  // (cache eviction). Only runs when online + authenticated.
+  // Network-first refresh: pulls the full dataset from the server and rewrites
+  // the in-memory stores + IndexedDB cache to the server snapshot (cache
+  // eviction), while preserving local edits that haven't reached the server yet
+  // (LWW merge, same as downloadAll). Stores are updated only after the cache is
+  // fully rewritten so subscribers never read a half-written cache.
   async replaceAll(): Promise<SyncResult> {
     const start = new Date();
     if (!getToken()) return { lastSynced: start, status: 'error', conflicts: [] };
@@ -524,35 +526,82 @@ class ApiSyncProvider implements SyncProvider {
 
       const data = await this.fetchRemoteData();
 
-      const serverHabits: Habit[] = ((data.habits ?? []) as any[]).map((row: any) => fromApiHabit(row));
       const localHabits = get(habitsStore);
-      // Preserve local-only UI metadata (color/icon/emoji/category/webhooks)
-      // that may not exist on the server row yet.
-      const habits = serverHabits.map(h => {
-        const local = localHabits.find(x => x.id === h.id);
-        if (!local) return h;
-        const meta = mergeMetadata(local.metadata, h.metadata);
-        return { ...h, metadata: meta, webhooks: meta.webhooks, shortcuts: meta.shortcuts };
-      });
-      const entries = (data.entries ?? []).map(fromApiEntry);
-      const identities = (data.identities ?? []).map(fromApiIdentity);
-      const notes = (data.notes ?? []).map(fromApiNote);
+      const mergedHabits = [...localHabits];
+      for (const row of data.habits ?? []) {
+        try {
+          const h = fromApiHabit(row);
+          const idx = mergedHabits.findIndex(x => x.id === h.id);
+          if (idx >= 0) {
+            const local = mergedHabits[idx];
+            if (local.updatedAt && (!h.updatedAt || local.updatedAt > h.updatedAt)) continue;
+            const meta = mergeMetadata(local.metadata, h.metadata);
+            mergedHabits[idx] = { ...h, metadata: meta, webhooks: meta.webhooks, shortcuts: meta.shortcuts };
+          } else {
+            mergedHabits.push(h);
+          }
+        } catch {}
+      }
 
-      habitsStore.set(habits);
-      entriesStore.set(entries);
-      identitiesStore.set(identities);
-      notesStore.set(notes);
+      const localEntries = get(entriesStore);
+      const mergedByKey = new Map<string, HabitEntry>();
+      const keyOf = (e: HabitEntry) => `${e.habitId}|${e.date}`;
+      for (const e of localEntries) {
+        const key = keyOf(e);
+        const existing = mergedByKey.get(key);
+        if (!existing || e.updatedAt > existing.updatedAt) mergedByKey.set(key, e);
+      }
+      for (const row of data.entries ?? []) {
+        try {
+          const e = fromApiEntry(row);
+          const key = keyOf(e);
+          const existing = mergedByKey.get(key);
+          if (!existing || e.updatedAt >= existing.updatedAt) mergedByKey.set(key, e);
+        } catch {}
+      }
+      const mergedEntries = Array.from(mergedByKey.values());
 
-      // Server-authoritative cache eviction: drop anything not on the server.
+      const localIdentities = get(identitiesStore);
+      const mergedIdentities = [...localIdentities];
+      for (const row of data.identities ?? []) {
+        try {
+          const i = fromApiIdentity(row);
+          const idx = mergedIdentities.findIndex(x => x.id === i.id);
+          if (idx >= 0) mergedIdentities[idx] = i;
+          else mergedIdentities.push(i);
+        } catch {}
+      }
+
+      const localNotes = get(notesStore);
+      const mergedNotes = [...localNotes];
+      for (const row of data.notes ?? []) {
+        try {
+          const n = fromApiNote(row);
+          const idx = mergedNotes.findIndex(x => x.id === n.id);
+          if (idx >= 0) {
+            if (mergedNotes[idx].status !== 'deleted') mergedNotes[idx] = n;
+          } else {
+            mergedNotes.push(n);
+          }
+        } catch {}
+      }
+
+      // Rewrite the cache to the merged snapshot first, then publish to the
+      // stores so subscribers observe a fully consistent IndexedDB.
       await clearAllHabits();
       await clearAllEntries();
       await clearAllIdentities();
       await clearAllNotes();
 
-      for (const h of habits) { try { await saveHabit(h); } catch {} }
-      for (const e of entries) { try { await saveEntry(e); } catch {} }
-      for (const i of identities) { try { await saveIdentity(i); } catch {} }
-      for (const n of notes) { try { await saveNote(n); } catch {} }
+      for (const h of mergedHabits) { try { await saveHabit(h); } catch {} }
+      for (const e of mergedEntries) { try { await saveEntry(e); } catch {} }
+      for (const i of mergedIdentities) { try { await saveIdentity(i); } catch {} }
+      for (const n of mergedNotes) { try { await saveNote(n); } catch {} }
+
+      habitsStore.set(mergedHabits);
+      entriesStore.set(mergedEntries);
+      identitiesStore.set(mergedIdentities);
+      notesStore.set(mergedNotes);
 
       if (data.settings) {
         const s = get(appSettings);
