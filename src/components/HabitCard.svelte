@@ -363,8 +363,8 @@
       <div class="action-control">
         <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(-1); }} class="btn small">−</button>
         <div class="qty-input-wrap" class:target-met={isTargetMet} onclick={(e) => e.stopPropagation()}>
-          {#each [0,1,2,3,4,5,6,7] as i (i)}
-            <span class="sparkle" style:--tw-delay={`${i * 0.45}s`} style:--tw-dur={`${1.6 + (i % 5) * 0.3}s`}></span>
+          {#each [0,1,2,3,4,5,6,7,8,9] as i (i)}
+            <span class="sparkle" style:--tw-delay={`${i * 0.3}s`} style:--tw-dur={`${0.9 + (i % 5) * 0.14}s`}></span>
           {/each}
           <input
             type="number"
@@ -418,8 +418,8 @@
           <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn-icon restart" aria-label="Reset"><Icon icon="mdi:restart" style="color: inherit" /></button>
         {/if}
         <div class="dur-input-wrap" class:running={timerState.running} class:standard-met={isStandardMet} class:target-met={isTargetMet} style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
-          {#each [0,1,2,3,4,5,6,7] as i (i)}
-            <span class="sparkle" style:--tw-delay={`${i * 0.45}s`} style:--tw-dur={`${1.6 + (i % 5) * 0.3}s`}></span>
+          {#each [0,1,2,3,4,5,6,7,8,9] as i (i)}
+            <span class="sparkle" style:--tw-delay={`${i * 0.3}s`} style:--tw-dur={`${0.9 + (i % 5) * 0.14}s`}></span>
           {/each}
           {#if (timerState.running ? timerHrs : durHours) > 0}
             <input
@@ -699,35 +699,43 @@
   .sparkle {
     position: absolute;
     z-index: 0;
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
     border-radius: 50%;
     background: radial-gradient(circle, #fff 0%, rgba(255, 255, 255, 0.9) 45%, rgba(255, 255, 255, 0) 72%);
     opacity: 0;
     pointer-events: none;
     filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
   }
+  .sparkle:nth-of-type(even) {
+    width: 2.5px;
+    height: 2.5px;
+  }
   .qty-input-wrap.target-met .sparkle,
   .dur-input-wrap.target-met:not(.running) .sparkle {
     animation: twinkle var(--tw-dur, 1.8s) ease-in-out infinite;
     animation-delay: var(--tw-delay, 0s);
   }
-  .qty-input-wrap .sparkle:nth-child(1) { top: 18%; left: 10%; }
-  .qty-input-wrap .sparkle:nth-child(2) { top: 62%; left: 24%; }
-  .qty-input-wrap .sparkle:nth-child(3) { top: 24%; left: 40%; }
-  .qty-input-wrap .sparkle:nth-child(4) { top: 64%; left: 56%; }
-  .qty-input-wrap .sparkle:nth-child(5) { top: 16%; left: 74%; }
-  .qty-input-wrap .sparkle:nth-child(6) { top: 58%; left: 88%; }
-  .qty-input-wrap .sparkle:nth-child(7) { top: 40%; left: 34%; width: 3px; height: 3px; }
-  .qty-input-wrap .sparkle:nth-child(8) { top: 80%; left: 68%; width: 3px; height: 3px; }
-  .dur-input-wrap .sparkle:nth-child(1) { top: 15%; left: 8%; }
-  .dur-input-wrap .sparkle:nth-child(2) { top: 55%; left: 24%; }
-  .dur-input-wrap .sparkle:nth-child(3) { top: 70%; left: 40%; }
-  .dur-input-wrap .sparkle:nth-child(4) { top: 20%; left: 56%; }
-  .dur-input-wrap .sparkle:nth-child(5) { top: 65%; left: 70%; }
-  .dur-input-wrap .sparkle:nth-child(6) { top: 25%; left: 84%; }
-  .dur-input-wrap .sparkle:nth-child(7) { top: 45%; left: 32%; width: 3px; height: 3px; }
-  .dur-input-wrap .sparkle:nth-child(8) { top: 80%; left: 90%; width: 3px; height: 3px; }
+  .qty-input-wrap .sparkle:nth-child(1) { top: 28%; left: 24%; }
+  .qty-input-wrap .sparkle:nth-child(2) { top: 62%; left: 32%; }
+  .qty-input-wrap .sparkle:nth-child(3) { top: 32%; left: 44%; }
+  .qty-input-wrap .sparkle:nth-child(4) { top: 68%; left: 42%; }
+  .qty-input-wrap .sparkle:nth-child(5) { top: 26%; left: 58%; }
+  .qty-input-wrap .sparkle:nth-child(6) { top: 62%; left: 66%; }
+  .qty-input-wrap .sparkle:nth-child(7) { top: 40%; left: 30%; }
+  .qty-input-wrap .sparkle:nth-child(8) { top: 76%; left: 50%; }
+  .qty-input-wrap .sparkle:nth-child(9) { top: 44%; left: 60%; }
+  .qty-input-wrap .sparkle:nth-child(10) { top: 30%; left: 72%; }
+  .dur-input-wrap .sparkle:nth-child(1) { top: 28%; left: 24%; }
+  .dur-input-wrap .sparkle:nth-child(2) { top: 62%; left: 32%; }
+  .dur-input-wrap .sparkle:nth-child(3) { top: 32%; left: 44%; }
+  .dur-input-wrap .sparkle:nth-child(4) { top: 68%; left: 42%; }
+  .dur-input-wrap .sparkle:nth-child(5) { top: 26%; left: 58%; }
+  .dur-input-wrap .sparkle:nth-child(6) { top: 62%; left: 66%; }
+  .dur-input-wrap .sparkle:nth-child(7) { top: 40%; left: 30%; }
+  .dur-input-wrap .sparkle:nth-child(8) { top: 76%; left: 50%; }
+  .dur-input-wrap .sparkle:nth-child(9) { top: 44%; left: 60%; }
+  .dur-input-wrap .sparkle:nth-child(10) { top: 30%; left: 72%; }
   .dur-input-wrap {
     display: flex;
     align-items: center;
