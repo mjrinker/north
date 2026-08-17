@@ -188,12 +188,13 @@
     <div
       class="dial"
       class:met={standardMet}
-      class:running={timer.running}
       oncontextmenu={(e) => e.preventDefault()}
     >
       <ProgressRing
         value={habit.type === 'quantity' ? entryValue : (timer.running ? timer.elapsed : entryValue)}
         rev={ringRev}
+        dragRev={habit.type === 'quantity' ? Math.max(ringRev, 15) : ringRev}
+        running={timer.running}
         target={targetSec}
         uid={habit.id}
         onchange={handleRingChange}
@@ -285,7 +286,6 @@
     height: 230px;
     border-radius: 50%;
     background: var(--input-bg, #f5f5f5);
-    border: 2px solid var(--card-border, #ddd);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -298,11 +298,9 @@
     color: var(--text-primary, #222);
   }
   .dial.met {
-    border-color: #2e7d32;
     background: rgba(46, 125, 50, 0.08);
     color: #2e7d32;
   }
-  .dial.running { border-color: #f59e0b; }
   .dial-num {
     font-size: 4rem;
     font-weight: 800;

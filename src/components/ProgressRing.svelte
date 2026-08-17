@@ -3,6 +3,8 @@
 		value,
 		rev,
 		target = null as number | null,
+		dragRev,
+		running = false,
 		uid,
 		onchange,
 		ondragstart
@@ -10,12 +12,15 @@
 		value: number;
 		rev: number;
 		target?: number | null;
+		dragRev?: number;
+		running?: boolean;
 		uid: string;
 		onchange: (v: number) => void;
 		ondragstart?: () => void;
 	} = $props();
 
 	let fullRev = $derived(rev > 0 ? rev : (target ?? 3600));
+	let stepRev = $derived(dragRev ?? fullRev);
 	let standardReached = $derived(rev > 0 ? value >= rev : value > 0);
 	let standardProgress = $derived(
 		rev > 0 ? Math.max(0, Math.min(1, value / rev)) : value > 0 ? 1 : 0
@@ -26,9 +31,11 @@
 	);
 	let targetMet = $derived(target != null && value >= target);
 
-	const R = 16.5;
+	const R = 17.6;
 	const CIRC = 2 * Math.PI * R;
-	let knobDeg = $derived(handleAngle - 90);
+	let active = false;
+	let grabAngle: number | null = null;
+	let knobDeg = $derived(active && grabAngle != null ? grabAngle : handleAngle - 90);
 	let knobX = $derived(18 + R * Math.cos((knobDeg * Math.PI) / 180));
 	let knobY = $derived(18 + R * Math.sin((knobDeg * Math.PI) / 180));
 
@@ -51,15 +58,19 @@
 		centerY = r.top + r.height / 2;
 		lastAngle = angleFromPoint(e.clientX, e.clientY);
 		accum = 0;
+		active = true;
+		grabAngle = lastAngle;
 		ondragstart?.();
 	}
 	function onPointerMove(e: PointerEvent) {
 		if (lastAngle == null) return;
-		let delta = angleFromPoint(e.clientX, e.clientY) - lastAngle;
+		const ang = angleFromPoint(e.clientX, e.clientY);
+		grabAngle = ang;
+		let delta = ang - lastAngle;
 		if (delta > 180) delta -= 360;
 		if (delta < -180) delta += 360;
-		lastAngle = angleFromPoint(e.clientX, e.clientY);
-		accum += (delta / 360) * fullRev;
+		lastAngle = ang;
+		accum += (delta / 360) * stepRev;
 		const whole = Math.trunc(accum);
 		if (whole !== 0) {
 			accum -= whole;
@@ -68,6 +79,8 @@
 	}
 	function onPointerUp() {
 		lastAngle = null;
+		active = false;
+		grabAngle = null;
 	}
 
 	function sparkleTime(i: number): { delay: number; dur: number } {
@@ -82,6 +95,7 @@
 <div
 	class="ring-layer"
 	class:target-met={targetMet}
+	class:running={running}
 	bind:this={ringEl}
 	role="slider"
 	tabindex="0"
@@ -187,6 +201,12 @@
 	}
 	.ring-layer.target-met {
 		animation: gold-pulse 1.8s ease-in-out infinite;
+	}
+	.ring-layer.running .ring-track {
+		stroke: #f59e0b;
+	}
+	.ring-layer.running .ring-knob {
+		stroke: #f59e0b;
 	}
 	.ring-layer.target-met .ring-knob {
 		stroke: #e8c64a;
