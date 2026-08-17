@@ -11,6 +11,7 @@
   import { formatHms } from '../lib/duration';
   import { isStandardMet } from '../lib/thresholds';
   import { fireHabitStart } from '../services/webhooks';
+  import ProgressRing from './ProgressRing.svelte';
 
   let { habit, date = getLocalDateString() }: { habit: Habit; date?: string } = $props();
 
@@ -24,26 +25,19 @@
   let standardMet = $derived(isStandardMet(habit, entryValue));
   let unitLabel = $derived(habit.unit ? pluralizeUnit(habit.unit, Math.round(entryValue)) : '');
 
-  // Progress ring around the reset button: a full cycle = the standard goal.
-  let standardSec = $derived(habit.standard || 0);
+  // Progress ring: a full revolution = the standard goal.
   let targetSec = $derived(habit.target ?? null);
-  let standardProgress = $derived(
-    standardSec > 0 ? Math.max(0, Math.min(1, entryValue / standardSec)) : (entryValue > 0 ? 1 : 0)
-  );
-  let standardReached = $derived(standardProgress >= 1);
-  let targetProgress = $derived(
-    targetSec != null && targetSec > standardSec
-      ? Math.max(0, Math.min(1, (entryValue - standardSec) / (targetSec - standardSec)))
-      : 0
-  );
-  let targetMet = $derived(targetSec != null && entryValue >= targetSec);
+  let ringRev = $derived(habit.standard > 0 ? habit.standard : (habit.type === 'duration' ? 3600 : 10));
 
-  function sparkleTime(i: number): { delay: number; dur: number } {
-    const frac = (seed: number) => {
-      const v = Math.abs(Math.sin(i * seed + 78.233) % 1) * 43758.5453;
-      return v - Math.floor(v);
-    };
-    return { delay: frac(12.9898) * 2, dur: 0.6 + frac(39.3467) * 1.4 };
+  function pauseIfRunning() {
+    if (timer.running && !timer.paused) pauseTimer();
+  }
+  function handleRingChange(v: number) {
+    log(v);
+    const s = allTimerStates[habit.id];
+    if (s && (s.running || s.paused)) {
+      setTimerState(habit.id, { ...s, elapsed: v, pausedElapsed: v });
+    }
   }
 
   async function log(value: number) {
@@ -63,49 +57,6 @@
   }
   async function inc() { await log(entryValue + baseStep()); }
   async function dec() { await log(entryValue - baseStep()); }
-
-  // ---- Circular dial (swipe to change) ----
-  let dialEl = $state<HTMLElement>();
-  let dialCenterX = 0;
-  let dialCenterY = 0;
-  let dialLastAngle: number | null = null;
-  let dialAccum = 0;
-  const DIAL_STEP_DEG = 24;
-
-  function angleFromPoint(x: number, y: number): number {
-    return Math.atan2(y - dialCenterY, x - dialCenterX) * 180 / Math.PI;
-  }
-  function onDialDown(e: PointerEvent) {
-    if (habit.type === 'binary') return;
-    e.preventDefault();
-    const el = dialEl;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    dialCenterX = r.left + r.width / 2;
-    dialCenterY = r.top + r.height / 2;
-    dialLastAngle = angleFromPoint(e.clientX, e.clientY);
-    dialAccum = 0;
-    window.addEventListener('pointermove', onDialMove);
-    window.addEventListener('pointerup', onDialUp);
-  }
-  function onDialMove(e: PointerEvent) {
-    if (dialLastAngle == null) return;
-    let delta = angleFromPoint(e.clientX, e.clientY) - dialLastAngle;
-    if (delta > 180) delta -= 360;
-    if (delta < -180) delta += 360;
-    dialLastAngle = angleFromPoint(e.clientX, e.clientY);
-    dialAccum += delta;
-    const units = Math.trunc(dialAccum / DIAL_STEP_DEG);
-    if (units !== 0) {
-      dialAccum -= units * DIAL_STEP_DEG;
-      log(entryValue + units * baseStep());
-    }
-  }
-  function onDialUp() {
-    dialLastAngle = null;
-    window.removeEventListener('pointermove', onDialMove);
-    window.removeEventListener('pointerup', onDialUp);
-  }
 
   // ---- Custom quick steps ----
   let steps = $state<number[]>([...(habit.metadata?.quickSteps ?? [])]);
@@ -238,19 +189,32 @@
       class="dial"
       class:met={standardMet}
       class:running={timer.running}
-      bind:this={dialEl}
-      onpointerdown={onDialDown}
       oncontextmenu={(e) => e.preventDefault()}
     >
+      <ProgressRing
+        value={habit.type === 'quantity' ? entryValue : (timer.running ? timer.elapsed : entryValue)}
+        rev={ringRev}
+        target={targetSec}
+        uid={habit.id}
+        onchange={handleRingChange}
+        ondragstart={habit.type === 'duration' ? pauseIfRunning : undefined}
+      />
       {#if habit.type === 'quantity'}
         <span class="dial-num">{Math.round(entryValue)}</span>
         {#if habit.unit}<span class="dial-unit">{unitLabel}</span>{/if}
+        <div class="dial-actions">
+          {#if entryValue > 0}
+            <button class="act reset" onclick={resetValue} aria-label="Reset to 0"><Icon icon="mdi:rotate-left" /></button>
+          {/if}
+        </div>
       {:else}
         <span class="dial-time">
           {#if dispH > 0}{pad(dispH)}:{/if}{pad(dispM)}:{pad(dispS)}
         </span>
-        <div class="dial-actions" onpointerdown={(e) => e.stopPropagation()} onclick={() => {}}
-          onpointerup={(e) => e.stopPropagation()}>
+        <div class="dial-actions">
+          {#if (timer.running ? timer.elapsed : entryValue) > 0}
+            <button class="act reset" onclick={resetValue} aria-label="Reset to 0"><Icon icon="mdi:rotate-left" /></button>
+          {/if}
           {#if timer.running}
             {#if timer.paused}
               <button class="act play" onclick={resumeTimer} aria-label="Resume"><Icon icon="mdi:play" /></button>
@@ -259,34 +223,7 @@
             {/if}
             <button class="act done" onclick={doneTimer} aria-label="Done"><Icon icon="mdi:check" /></button>
             <button class="act cancel" onclick={cancelTimer} aria-label="Cancel"><Icon icon="mdi:close" /></button>
-{:else}
-            {#if entryValue > 0}
-              <button class="act progress" class:target-met={targetMet} onclick={resetValue} aria-label="Reset to 0">
-                <svg viewBox="0 0 36 36" class="ring" aria-hidden="true">
-                  <defs>
-                    <linearGradient id="gold-{habit.id}" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stop-color="#f5d778" />
-                      <stop offset="55%" stop-color="#e8c64a" />
-                      <stop offset="100%" stop-color="#c9a227" />
-                    </linearGradient>
-                  </defs>
-                  <circle class="ring-track" cx="18" cy="18" r="15.9155" />
-                  {#if standardReached}
-                    <circle class="ring-prog green" cx="18" cy="18" r="15.9155" stroke-dasharray="100" stroke-dashoffset="0" transform="rotate(-90 18 18)" />
-                    {#if targetSec != null}
-                      <circle class="ring-prog gold" cx="18" cy="18" r="15.9155" stroke-dasharray="100" stroke-dashoffset={100 - targetProgress * 100} transform="rotate(-90 18 18)" style:stroke="url(#gold-{habit.id})" />
-                    {/if}
-                  {:else}
-                    <circle class="ring-prog green" cx="18" cy="18" r="15.9155" stroke-dasharray="100" stroke-dashoffset={100 - standardProgress * 100} transform="rotate(-90 18 18)" />
-                  {/if}
-                </svg>
-                {#if targetMet}
-                  {#each [0,1,2,3,4,5] as i (i)}
-                    <span class="sparkle" style:--tw-delay={`${sparkleTime(i).delay}s`} style:--tw-dur={`${sparkleTime(i).dur}s`}></span>
-                  {/each}
-                {/if}
-              </button>
-            {/if}
+          {:else}
             <button class="act play" onclick={startTimer} aria-label="Start"><Icon icon="mdi:play" /></button>
           {/if}
         </div>
@@ -405,6 +342,8 @@
   }
   .dial.binary.checked.met { background: rgba(46, 125, 50, 0.15); }
   .dial-actions {
+    position: relative;
+    z-index: 3;
     display: flex;
     gap: 0.5rem;
     margin-top: 0.15rem;
@@ -427,62 +366,7 @@
   .dial-actions .act.pause { background: #f59e0b; }
   .dial-actions .act.done { background: #2e7d32; }
   .dial-actions .act.cancel { background: #d32f2f; }
-  .dial-actions .act.progress {
-    position: relative;
-    background: transparent;
-    border: none;
-    padding: 0;
-    width: 2.5rem;
-    height: 2.5rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-  }
-  .dial-actions .act.progress .ring {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-  .ring-track {
-    fill: none;
-    stroke: var(--card-border, #ddd);
-    stroke-width: 2;
-  }
-  .ring-prog {
-    fill: none;
-    stroke-width: 4;
-    stroke-linecap: round;
-  }
-  .ring-prog.green { stroke: #2e7d32; }
-  .dial-actions .act.progress.target-met { animation: gold-pulse 1.8s ease-in-out infinite; }
-  .dial-actions .act.progress .sparkle {
-    position: absolute;
-    z-index: 1;
-    width: 2px;
-    height: 2px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #fff 0%, rgba(255, 255, 255, 0.9) 45%, rgba(255, 255, 255, 0) 72%);
-    opacity: 0;
-    pointer-events: none;
-    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.8));
-    animation: twinkle var(--tw-dur, 1.6s) ease-in-out infinite;
-    animation-delay: var(--tw-delay, 0s);
-  }
-  .dial-actions .act.progress .sparkle:nth-of-type(1) { top: 12%; left: 18%; }
-  .dial-actions .act.progress .sparkle:nth-of-type(2) { top: 68%; left: 24%; }
-  .dial-actions .act.progress .sparkle:nth-of-type(3) { top: 22%; left: 58%; }
-  .dial-actions .act.progress .sparkle:nth-of-type(4) { top: 62%; left: 70%; }
-  .dial-actions .act.progress .sparkle:nth-of-type(5) { top: 44%; left: 42%; }
-  .dial-actions .act.progress .sparkle:nth-of-type(6) { top: 80%; left: 52%; }
-  @keyframes gold-pulse {
-    0%, 100% { filter: drop-shadow(0 0 1px rgba(232, 198, 74, 0.4)); }
-    50% { filter: drop-shadow(0 0 5px rgba(232, 198, 74, 0.9)); }
-  }
-  @keyframes twinkle {
-    0%, 100% { opacity: 0; transform: scale(0.5); }
-    50% { opacity: 1; transform: scale(1.2); }
-  }
+  .dial-actions .act.reset { background: #757575; }
   .stepper {
     display: flex;
     flex-direction: column;
