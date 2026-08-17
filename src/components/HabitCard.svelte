@@ -30,6 +30,16 @@
   let trigger = $state(0);
   entriesStore.subscribe(() => trigger++);
   let _gen = 0;
+
+  // Deterministic pseudo-random twinkle timing per sparkle so the glitter
+  // looks organic but stays stable across renders.
+  function sparkleTime(i: number): { delay: number; dur: number } {
+    const frac = (seed: number) => {
+      const v = Math.abs(Math.sin(i * seed + 78.233) % 1) * 43758.5453;
+      return v - Math.floor(v);
+    };
+    return { delay: frac(12.9898) * 2, dur: 0.55 + frac(39.3467) * 1.6 };
+  }
   let autoCompleted = $state(new Set<string>());
   let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + date) : false);
   let isStandardMet = $derived(todayEntry ? metStandard(habit, todayEntry.value) : false);
@@ -364,7 +374,7 @@
         <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(-1); }} class="btn small">−</button>
         <div class="qty-input-wrap" class:target-met={isTargetMet} onclick={(e) => e.stopPropagation()}>
           {#each [0,1,2,3,4,5,6,7,8,9,10,11,12,13] as i (i)}
-            <span class="sparkle" style:--tw-delay={`${i * 0.25}s`} style:--tw-dur={`${0.85 + (i % 6) * 0.12}s`}></span>
+            <span class="sparkle" style:--tw-delay={`${sparkleTime(i).delay}s`} style:--tw-dur={`${sparkleTime(i).dur}s`}></span>
           {/each}
           <input
             type="number"
@@ -419,7 +429,7 @@
         {/if}
         <div class="dur-input-wrap" class:running={timerState.running} class:standard-met={isStandardMet} class:target-met={isTargetMet} style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
           {#each [0,1,2,3,4,5,6,7,8,9,10,11,12,13] as i (i)}
-            <span class="sparkle" style:--tw-delay={`${i * 0.25}s`} style:--tw-dur={`${0.85 + (i % 6) * 0.12}s`}></span>
+            <span class="sparkle" style:--tw-delay={`${sparkleTime(i).delay}s`} style:--tw-dur={`${sparkleTime(i).dur}s`}></span>
           {/each}
           {#if (timerState.running ? timerHrs : durHours) > 0}
             <input
