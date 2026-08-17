@@ -176,6 +176,11 @@
     stopInterval();
     clearTimerState(habit.id);
   }
+  async function resetValue() {
+    stopInterval();
+    clearTimerState(habit.id);
+    await log(0);
+  }
 
   onMount(() => {
     if (timer.running && !timer.paused) startInterval();
@@ -233,9 +238,9 @@
             <button class="act done" onclick={doneTimer} aria-label="Done"><Icon icon="mdi:check" /></button>
             <button class="act cancel" onclick={cancelTimer} aria-label="Cancel"><Icon icon="mdi:close" /></button>
           {:else}
-            {#if entryValue > 0}
-              <button class="act restart" onclick={cancelTimer} aria-label="Reset"><Icon icon="mdi:restart" /></button>
-            {/if}
+{#if entryValue > 0}
+                  <button class="act restart" onclick={resetValue} aria-label="Reset"><Icon icon="mdi:restart" /></button>
+                {/if}
             <button class="act play" onclick={startTimer} aria-label="Start"><Icon icon="mdi:play" /></button>
           {/if}
         </div>
