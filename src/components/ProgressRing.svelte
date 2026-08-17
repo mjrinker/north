@@ -25,13 +25,13 @@
 	let standardProgress = $derived(
 		rev > 0 ? Math.max(0, Math.min(1, value / rev)) : value > 0 ? 1 : 0
 	);
-	let handleAngle = $derived((value / fullRev) * 360);
+	let handleAngle = $derived((value / stepRev) * 360);
 	let targetProgress = $derived(
 		target != null && target > rev ? Math.max(0, Math.min(1, (value - rev) / (target - rev))) : 0
 	);
 	let targetMet = $derived(target != null && value >= target);
 
-	const R = 17.6;
+	const R = 17;
 	const CIRC = 2 * Math.PI * R;
 	let active = false;
 	let grabAngle: number | null = null;
@@ -118,16 +118,16 @@
 		</defs>
 		<circle class="ring-track" cx="18" cy="18" r={R} />
 		{#if standardReached}
-			<circle
-				class="ring-prog green"
-				cx="18"
-				cy="18"
-				r={R}
-				stroke-dasharray={CIRC}
-				stroke-dashoffset="0"
-				transform="rotate(-90 18 18)"
-			/>
-			{#if target != null}
+			{#if target != null && target > rev}
+				<circle
+					class="ring-prog green"
+					cx="18"
+					cy="18"
+					r={R}
+					stroke-dasharray={CIRC}
+					stroke-dashoffset="0"
+					transform="rotate(-90 18 18)"
+				/>
 				<circle
 					class="ring-prog gold"
 					cx="18"
@@ -137,6 +137,27 @@
 					stroke-dashoffset={CIRC * (1 - targetProgress)}
 					transform="rotate(-90 18 18)"
 					style:stroke="url(#ring-gold-{uid})"
+				/>
+			{:else if target != null}
+				<circle
+					class="ring-prog gold"
+					cx="18"
+					cy="18"
+					r={R}
+					stroke-dasharray={CIRC}
+					stroke-dashoffset="0"
+					transform="rotate(-90 18 18)"
+					style:stroke="url(#ring-gold-{uid})"
+				/>
+			{:else}
+				<circle
+					class="ring-prog green"
+					cx="18"
+					cy="18"
+					r={R}
+					stroke-dasharray={CIRC}
+					stroke-dashoffset="0"
+					transform="rotate(-90 18 18)"
 				/>
 			{/if}
 		{:else}
@@ -150,7 +171,7 @@
 				transform="rotate(-90 18 18)"
 			/>
 		{/if}
-		<circle class="ring-knob" cx={knobX} cy={knobY} r="1.2" />
+		<circle class="ring-knob" cx={knobX} cy={knobY} r="0.9" />
 	</svg>
 	{#if targetMet}
 		{#each [0, 1, 2, 3, 4, 5] as i (i)}
@@ -184,11 +205,11 @@
 	.ring-track {
 		fill: none;
 		stroke: var(--card-border, #ddd);
-		stroke-width: 0.8;
+		stroke-width: 1.2;
 	}
 	.ring-prog {
 		fill: none;
-		stroke-width: 0.8;
+		stroke-width: 1.8;
 		stroke-linecap: round;
 	}
 	.ring-prog.green {
@@ -197,7 +218,7 @@
 	.ring-knob {
 		fill: #fff;
 		stroke: #2e7d32;
-		stroke-width: 0.5;
+		stroke-width: 0.6;
 	}
 	.ring-layer.target-met {
 		animation: gold-pulse 1.8s ease-in-out infinite;
