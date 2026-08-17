@@ -60,6 +60,21 @@ async function idbClear(storeName: string): Promise<void> {
   await db.clear(storeName);
 }
 
+// Atomic replace: clear + bulk put inside a single readwrite transaction. If
+// anything fails the whole transaction rolls back, so the cache is never left
+// empty or partially written.
+async function idbReplaceAll<T>(storeName: string, values: T[]): Promise<void> {
+  if (!isBrowser) return;
+  const db = await getDB();
+  const tx = db.transaction(storeName, 'readwrite');
+  const store = tx.objectStore(storeName);
+  await store.clear();
+  for (const value of values) {
+    await store.put(value);
+  }
+  await tx.done;
+}
+
 // --- Habit methods ---
 export async function saveHabit(habit: Habit): Promise<void> {
   await idbPut('habits', habit);
@@ -67,6 +82,10 @@ export async function saveHabit(habit: Habit): Promise<void> {
 
 export async function clearAllHabits(): Promise<void> {
   await idbClear('habits');
+}
+
+export async function replaceAllHabits(habits: Habit[]): Promise<void> {
+  await idbReplaceAll('habits', habits);
 }
 
 export async function getHabit(id: string): Promise<Habit | undefined> {
@@ -92,6 +111,10 @@ export async function saveEntry(entry: HabitEntry): Promise<void> {
 
 export async function clearAllEntries(): Promise<void> {
   await idbClear('entries');
+}
+
+export async function replaceAllEntries(entries: HabitEntry[]): Promise<void> {
+  await idbReplaceAll('entries', entries);
 }
 
 export async function getEntry(habitId: string, date: string): Promise<HabitEntry | undefined> {
@@ -159,6 +182,10 @@ export async function clearAllIdentities(): Promise<void> {
   await idbClear('identities');
 }
 
+export async function replaceAllIdentities(identities: Identity[]): Promise<void> {
+  await idbReplaceAll('identities', identities);
+}
+
 export async function getIdentity(id: string): Promise<Identity | undefined> {
   return await idbGet<Identity>('identities', id);
 }
@@ -178,6 +205,10 @@ export async function saveNote(note: HabitNote): Promise<void> {
 
 export async function clearAllNotes(): Promise<void> {
   await idbClear('notes');
+}
+
+export async function replaceAllNotes(notes: HabitNote[]): Promise<void> {
+  await idbReplaceAll('notes', notes);
 }
 
 export async function getNotesByHabitDate(habitId: string, date: string): Promise<HabitNote[]> {

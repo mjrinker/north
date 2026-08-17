@@ -396,11 +396,14 @@ class ApiSyncProvider implements SyncProvider {
       const { setSyncEnabled } = await import('../sync');
       setSyncEnabled(false);
 
-      const { saveHabit, saveEntry, saveIdentity, saveNote } = await import('../storage');
+      const {
+        getAllHabits, getAllEntries, getAllIdentities, getAllNotes,
+        saveHabit, saveEntry, saveIdentity, saveNote,
+      } = await import('../storage');
 
       const data = await this.fetchRemoteData(opts?.dateFrom ?? null, opts?.dateTo ?? null);
 
-      const localHabits = get(habitsStore);
+      const localHabits = await getAllHabits();
       const mergedHabits = [...localHabits];
       for (const row of data.habits ?? []) {
         try {
@@ -427,7 +430,7 @@ class ApiSyncProvider implements SyncProvider {
         try { await saveHabit(h); } catch {}
       }
 
-      const localEntries = get(entriesStore);
+      const localEntries = await getAllEntries();
       const mergedByKey = new Map<string, HabitEntry>();
       const keyOf = (e: HabitEntry) => `${e.habitId}|${e.date}`;
       for (const e of localEntries) {
@@ -451,7 +454,7 @@ class ApiSyncProvider implements SyncProvider {
         try { await saveEntry(e); } catch {}
       }
 
-      const localIdentities = get(identitiesStore);
+      const localIdentities = await getAllIdentities();
       const mergedIdentities = [...localIdentities];
       for (const row of data.identities ?? []) {
         try {
@@ -466,7 +469,7 @@ class ApiSyncProvider implements SyncProvider {
         try { await saveIdentity(i); } catch {}
       }
 
-      const localNotes = get(notesStore);
+      const localNotes = await getAllNotes();
       const mergedNotes = [...localNotes];
       for (const row of data.notes ?? []) {
         try {
@@ -508,10 +511,13 @@ class ApiSyncProvider implements SyncProvider {
   }
 
   // Network-first refresh: pulls the full dataset from the server and rewrites
-  // the in-memory stores + IndexedDB cache to the server snapshot (cache
-  // eviction), while preserving local edits that haven't reached the server yet
-  // (LWW merge, same as downloadAll). Stores are updated only after the cache is
-  // fully rewritten so subscribers never read a half-written cache.
+  // the in-memory stores + IndexedDB cache to the server snapshot, while
+  // preserving local edits that haven't reached the server yet (LWW merge, same
+  // as downloadAll). The local merge baseline is the IndexedDB cache itself
+  // (never the in-memory store, which can be empty/stale), so a refresh can
+  // never drop data that exists on the device. The cache is rewritten per
+  // collection in a single atomic transaction, so subscribers never observe a
+  // partially-written or empty cache.
   async replaceAll(): Promise<SyncResult> {
     const start = new Date();
     if (!getToken()) return { lastSynced: start, status: 'error', conflicts: [] };
@@ -520,13 +526,13 @@ class ApiSyncProvider implements SyncProvider {
       setSyncEnabled(false);
 
       const {
-        clearAllHabits, clearAllEntries, clearAllIdentities, clearAllNotes,
-        saveHabit, saveEntry, saveIdentity, saveNote,
+        getAllHabits, getAllEntries, getAllIdentities, getAllNotes,
+        replaceAllHabits, replaceAllEntries, replaceAllIdentities, replaceAllNotes,
       } = await import('../storage');
 
       const data = await this.fetchRemoteData();
 
-      const localHabits = get(habitsStore);
+      const localHabits = await getAllHabits();
       const mergedHabits = [...localHabits];
       for (const row of data.habits ?? []) {
         try {
@@ -543,7 +549,7 @@ class ApiSyncProvider implements SyncProvider {
         } catch {}
       }
 
-      const localEntries = get(entriesStore);
+      const localEntries = await getAllEntries();
       const mergedByKey = new Map<string, HabitEntry>();
       const keyOf = (e: HabitEntry) => `${e.habitId}|${e.date}`;
       for (const e of localEntries) {
@@ -561,7 +567,7 @@ class ApiSyncProvider implements SyncProvider {
       }
       const mergedEntries = Array.from(mergedByKey.values());
 
-      const localIdentities = get(identitiesStore);
+      const localIdentities = await getAllIdentities();
       const mergedIdentities = [...localIdentities];
       for (const row of data.identities ?? []) {
         try {
@@ -572,7 +578,7 @@ class ApiSyncProvider implements SyncProvider {
         } catch {}
       }
 
-      const localNotes = get(notesStore);
+      const localNotes = await getAllNotes();
       const mergedNotes = [...localNotes];
       for (const row of data.notes ?? []) {
         try {
@@ -586,17 +592,12 @@ class ApiSyncProvider implements SyncProvider {
         } catch {}
       }
 
-      // Rewrite the cache to the merged snapshot first, then publish to the
-      // stores so subscribers observe a fully consistent IndexedDB.
-      await clearAllHabits();
-      await clearAllEntries();
-      await clearAllIdentities();
-      await clearAllNotes();
-
-      for (const h of mergedHabits) { try { await saveHabit(h); } catch {} }
-      for (const e of mergedEntries) { try { await saveEntry(e); } catch {} }
-      for (const i of mergedIdentities) { try { await saveIdentity(i); } catch {} }
-      for (const n of mergedNotes) { try { await saveNote(n); } catch {} }
+      // Rewrite the cache first (atomically per collection), then publish to
+      // the stores so subscribers read a fully consistent IndexedDB.
+      await replaceAllHabits(mergedHabits);
+      await replaceAllEntries(mergedEntries);
+      await replaceAllIdentities(mergedIdentities);
+      await replaceAllNotes(mergedNotes);
 
       habitsStore.set(mergedHabits);
       entriesStore.set(mergedEntries);
