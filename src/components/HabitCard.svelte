@@ -13,7 +13,6 @@
   import { tick as svelteTick } from 'svelte';
   import Icon from '@iconify/svelte';
   import { pluralizeUnit } from '../lib/units';
-  import { addLog } from '../lib/completionLog';
   import { fireHabitStart } from '../services/webhooks';
   import { marked } from 'marked';
   import type { DepPopoverState } from '../types';
@@ -143,7 +142,6 @@
     setTimerState(habit.id, { running: true, paused: false, elapsed: startSec, pausedElapsed: startSec, startedAt: Date.now() });
     startTimerInterval();
     manualSeconds = '';
-    addLog(habit.id, 'start');
     fireHabitStart(habit, date, startSec);
   }
 
@@ -159,7 +157,6 @@
     if (!s) return;
     setTimerState(habit.id, { ...s, paused: false, startedAt: Date.now() });
     startTimerInterval();
-    addLog(habit.id, 'resume');
   }
 
   function doneTimer() {
@@ -169,7 +166,6 @@
     const seconds = s.elapsed;
     clearTimerState(habit.id);
     logAndRefresh(seconds);
-    addLog(habit.id, 'complete');
   }
 
   function cancelTimer() {
@@ -281,7 +277,6 @@
       await logAndRefresh(value);
       await svelteTick();
       window.scrollTo(0, savedScrollY);
-      if (value === 1) addLog(habit.id, 'complete');
     } catch (e) {
       console.error('handleBinaryChange error:', e);
     }
@@ -292,8 +287,6 @@
     try {
       const current = todayEntry?.value ?? 0;
       await logAndRefresh(Math.max(0, current + delta));
-      if (delta > 0) addLog(habit.id, 'increment');
-      else addLog(habit.id, 'decrement');
     } catch (e) {
       console.error('handleQuantityDelta error:', e);
     }
@@ -303,7 +296,6 @@
     if (!habit) return;
     try {
       await logAndRefresh(value);
-      addLog(habit.id, 'complete');
     } catch (e) {
       console.error('handleQuantitySet error:', e);
     }

@@ -11,11 +11,8 @@
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import NotesModal from '../../components/NotesModal.svelte';
   import Icon from '@iconify/svelte';
-  import { computeSuggestions, getCurrentLocation } from '../../lib/completionLog';
-  import type { SuggestedPlace, DepPopoverState } from '../../types';
+  import type { DepPopoverState } from '../../types';
   import { notesStore } from '../../stores/notes';
-  import { entriesStore } from '../../stores/entries';
-  import { HabitEngine } from '../../services/habitEngine';
   import { getLocalDateString } from '../../lib/dates';
   import { showCreateHabit } from '../../stores/createHabit';
   import { onDestroy } from 'svelte';
@@ -100,33 +97,6 @@
     }
     return groups;
   });
-  let currentLocation = $state<GeolocationPosition | null>(null);
-  let locationChecked = $state(false);
-
-  $effect(() => {
-    getCurrentLocation().then(pos => { currentLocation = pos; locationChecked = true; });
-  });
-
-  let suggestedHabits = $derived(computeSuggestions(habits, undefined, currentLocation));
-
-  let rawEntries = $state<import('../../types').HabitEntry[]>([]);
-  let unsubEntries = entriesStore.subscribe(v => rawEntries = v);
-  onDestroy(() => unsubEntries());
-  let allEntries = $derived((rawEntries ?? []).filter(e => e.date === viewDate));
-  let completedHabitIds = $derived.by(() => {
-    const ids = new Set<string>();
-    for (const e of allEntries) {
-      if (e.standardMet) ids.add(e.habitId);
-    }
-    return ids;
-  });
-  let filteredSuggested = $derived(viewDate === today ? (suggestedHabits ?? []).filter(h => !completedHabitIds.has(h.id)) : []);
-  let visibleSuggested = $derived.by(() => {
-    if (searchScope !== 'habits' || !searchQueryNorm) return filteredSuggested;
-    return filteredSuggested.filter(habitMatches);
-  });
-  let suggestedCollapsed = $state(false);
-
   let allNotes = $state<import('../../types').HabitNote[]>([]);
   let unsubNotes = notesStore.subscribe(v => allNotes = v);
   onDestroy(() => unsubNotes());
@@ -568,33 +538,6 @@
   </div>
 {/if}
 
-{#if visibleSuggested.length > 0}
-  <section class="suggested-section">
-    <button class="suggested-header" on:click={() => suggestedCollapsed = !suggestedCollapsed}>
-      <span class="collapse-arrow">{suggestedCollapsed ? '▶' : '▼'}</span>
-      <span class="suggested-icon">💡</span>
-      Suggested
-    </button>
-    {#if !suggestedCollapsed}
-    <div class="habits-grid">
-      {#each visibleSuggested as habit, i (habit.id)}
-        <div>
-          <div class="habit-wrapper" data-habit-id={habit.id}>
-            <div class="habit-slider" style="transform: {sliderTransform(habit.id)}"
-              on:touchstart|nonpassive={(e) => handleTouchStart(e, habit.id)}
-              on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
-              on:touchend={(e) => handleTouchEnd(e, habit.id)}
-            >
-              <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} isFirst={i === 0} isLast={i === visibleSuggested.length - 1} />
-            </div>
-          </div>
-        </div>
-      {/each}
-    </div>
-    {/if}
-  </section>
-{/if}
-
 {#each tagGroups as group}
   <div class="tag-section">
     <button class="tag-header" on:click={() => toggleGroup(group.tag)}>
@@ -647,7 +590,7 @@
   </div>
 {/each}
 
-{#if searchScope === 'habits' && searchQueryNorm && visibleHabits.length === 0 && visibleSuggested.length === 0}
+{#if searchScope === 'habits' && searchQueryNorm && visibleHabits.length === 0}
   <p class="search-empty">No habits match "{searchQuery}".</p>
 {/if}
 
@@ -877,37 +820,6 @@
   }
   .paused-resume:hover { background: var(--accent, #0066cc); color: var(--accent-text, #fff); }
   .paused-section .habits-grid { margin-bottom: 0; }
-  .suggested-section {
-    margin-bottom: 1.5rem;
-  }
-  .suggested-section .habits-grid { margin-bottom: 0; }
-  .suggested-header {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-secondary, #666);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 0.75rem;
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 0;
-    width: 100%;
-    text-align: left;
-  }
-  .suggested-icon { font-size: 1rem; }
-  .suggested-time {
-    font-size: 0.7rem;
-    background: var(--accent, #0066cc);
-    color: var(--accent-text, #fff);
-    border-radius: 999px;
-    padding: 1px 8px;
-    font-weight: 600;
-    text-transform: capitalize;
-  }
   .habit-wrapper {
     position: relative;
     overflow: hidden;

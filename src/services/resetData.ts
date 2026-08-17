@@ -21,8 +21,6 @@ const LOCAL_STORAGE_KEYS = [
   'appSettings',
   'sortMode',
   'collapsedGroups',
-  'completionLogs',
-  'suggestedPlaces',
   '__allTimerStates'
 ]
 
