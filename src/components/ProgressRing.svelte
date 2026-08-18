@@ -4,7 +4,6 @@
 		rev,
 		target = null as number | null,
 		dragRev,
-		running = false,
 		uid,
 		onchange,
 		ondragstart
@@ -13,7 +12,6 @@
 		rev: number;
 		target?: number | null;
 		dragRev?: number;
-		running?: boolean;
 		uid: string;
 		onchange: (v: number) => void;
 		ondragstart?: () => void;
@@ -96,7 +94,6 @@
 <div
 	class="ring-layer"
 	class:target-met={targetMet}
-	class:running={running}
 	bind:this={ringEl}
 	role="slider"
 	tabindex="0"
@@ -223,12 +220,6 @@
 	}
 	.ring-layer.target-met {
 		animation: gold-pulse 1.8s ease-in-out infinite;
-	}
-	.ring-layer.running .ring-track {
-		stroke: #f59e0b;
-	}
-	.ring-layer.running .ring-knob {
-		stroke: #f59e0b;
 	}
 	.ring-layer.target-met .ring-knob {
 		stroke: #e8c64a;

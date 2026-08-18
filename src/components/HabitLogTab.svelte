@@ -194,7 +194,6 @@
         value={habit.type === 'quantity' ? entryValue : (timer.running ? timer.elapsed : entryValue)}
         rev={ringRev}
         dragRev={habit.type === 'quantity' ? Math.max(ringRev, 15) : ringRev}
-        running={timer.running}
         target={targetSec}
         uid={habit.id}
         onchange={handleRingChange}
