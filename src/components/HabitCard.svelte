@@ -627,7 +627,7 @@
   }
   .btn-icon:hover { opacity: 0.85; }
   .btn-icon :global(svg), .btn-icon :global(.iconify) { font-size: 1.3rem; color: inherit; }
-  .btn-icon.play { background: var(--accent, #0066cc); color: white; }
+  .btn-icon.play { background: #0066cc; color: white; }
   .btn-icon.pause { background: #f59e0b; color: white; }
   .btn-icon.done { background: #2e7d32; color: white; }
   .btn-icon.cancel { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
