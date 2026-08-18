@@ -33,11 +33,12 @@
 
 	const R = 17;
 	const CIRC = 2 * Math.PI * R;
+	const KNOB_C = 16.4;
 	let active = false;
 	let grabAngle: number | null = null;
 	let knobDeg = $derived(active && grabAngle != null ? grabAngle : handleAngle - 90);
-	let knobX = $derived(18 + R * Math.cos((knobDeg * Math.PI) / 180));
-	let knobY = $derived(18 + R * Math.sin((knobDeg * Math.PI) / 180));
+	let knobX = $derived(18 + KNOB_C * Math.cos((knobDeg * Math.PI) / 180));
+	let knobY = $derived(18 + KNOB_C * Math.sin((knobDeg * Math.PI) / 180));
 
 	let ringEl = $state<HTMLElement>();
 	let centerX = 0;
@@ -171,7 +172,7 @@
 				transform="rotate(-90 18 18)"
 			/>
 		{/if}
-		<circle class="ring-knob" cx={knobX} cy={knobY} r="0.9" />
+		<circle class="ring-knob" cx={knobX} cy={knobY} r="1.4" />
 	</svg>
 	{#if targetMet}
 		{#each [0, 1, 2, 3, 4, 5] as i (i)}
