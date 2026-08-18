@@ -63,7 +63,7 @@ export const habitResolvers = {
     notes: async (habit: { id: string }, args: { dateFrom?: string; dateTo?: string; limit?: number }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       const habitId = requireGlobalId(habit.id, 'Habit');
-      let query = ctx.db.from('notes').select('*').eq('habit_id', habitId);
+      let query = ctx.db.from('notes').select('*').contains('habit_ids', [habitId]);
       if (args.dateFrom) query = query.gte('date', args.dateFrom);
       if (args.dateTo) query = query.lte('date', args.dateTo);
       query = query.order('created_at', { ascending: false });

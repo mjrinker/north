@@ -103,6 +103,7 @@ export const schema = createSchema<GraphQLContext>({
     type HabitNote {
       id: ID!
       habitId: String!
+      habitIds: [String!]!
       date: String!
       content: String
       status: String
@@ -235,11 +236,12 @@ export const schema = createSchema<GraphQLContext>({
       entries: [HabitEntry!]!
     }
 
-    input AddNoteInput {
+input AddNoteInput {
       id: ID
       habitId: String!
-      date: String!
+      date: String!          # YYYY-MM-DD
       content: String
+      habitIds: [String!]    # all linked habits; dominates habitId when set
     }
 
     input UpsertSettingsInput {

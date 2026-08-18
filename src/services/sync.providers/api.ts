@@ -15,7 +15,7 @@ import { getLastSyncedAt } from '../syncState';
 
 const HABIT_FIELDS = `id title description type standard target unit schedule metadata dependsOn identityId tags status sortOrder createdAt updatedAt`;
 const ENTRY_FIELDS = `id habitId date value standardMet targetMet notes updatedAt`;
-const NOTE_FIELDS = `id habitId date content status createdAt`;
+const NOTE_FIELDS = `id habitId habitIds date content status createdAt`;
 const IDENTITY_FIELDS = `id name description goals`;
 
 function toDate(v: string | null | undefined): Date {
@@ -103,6 +103,7 @@ function fromApiNote(n: any): HabitNote {
   return {
     id: decodeId(n.id),
     habitId: decodeId(n.habitId),
+    habitIds: (Array.isArray(n.habitIds) && n.habitIds.length ? n.habitIds : [n.habitId]).map(decodeId),
     date: n.date,
     content: n.content ?? '',
     createdAt: toDate(n.createdAt),
@@ -205,6 +206,7 @@ class ApiSyncProvider implements SyncProvider {
           habitId: encodeId('Habit', n.habitId),
           date: n.date,
           content: n.content,
+          habitIds: (n.habitIds?.length ? n.habitIds : [n.habitId]).map(hid => encodeId('Habit', hid)),
         },
       },
     );

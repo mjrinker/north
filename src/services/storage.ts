@@ -217,7 +217,12 @@ export async function getNotesByHabitDate(habitId: string, date: string): Promis
   const tx = db.transaction('notes', 'readonly');
   const store = tx.objectStore('notes');
   const all = await store.getAll();
-  return all.filter(n => n.habitId === habitId && n.date === date).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  return all
+    .filter(n => {
+      const linked = n.habitIds && n.habitIds.length ? n.habitIds.includes(habitId) : n.habitId === habitId;
+      return linked && n.date === date;
+    })
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 }
 
 export async function getAllNotes(): Promise<HabitNote[]> {

@@ -103,7 +103,10 @@
   let notesCountMap = $derived.by(() => {
     const map = new Map<string, number>();
     for (const n of allNotes) {
-      if (n.date === viewDate && n.status !== 'deleted') map.set(n.habitId, (map.get(n.habitId) ?? 0) + 1);
+      if (n.date === viewDate && n.status !== 'deleted') {
+        const ids = n.habitIds && n.habitIds.length ? n.habitIds : [n.habitId];
+        for (const hid of ids) map.set(hid, (map.get(hid) ?? 0) + 1);
+      }
     }
     return map;
   });
@@ -519,7 +522,7 @@
 {/if}
 
 {#if notesHabitId}
-  <NotesModal habitId={notesHabitId} date={viewDate} onClose={() => notesHabitId = null} />
+  <NotesModal habitId={notesHabitId} date={viewDate} allHabits={allHabits} onClose={() => notesHabitId = null} />
 {/if}
 
 {#if depPopover}

@@ -10,10 +10,17 @@ export function addNote(note: HabitNote) {
   pushRecord('notes', note.id, note);
 }
 
-export function updateNote(id: string, content: string) {
+export function updateNote(id: string, content: string, habitIds?: string[]) {
   let found: HabitNote | undefined;
   notesStore.update(list => list.map(n => {
-    if (n.id === id) { found = { ...n, content }; return found; }
+    if (n.id === id) {
+      found = {
+        ...n,
+        content,
+        ...(habitIds && habitIds.length ? { habitIds, habitId: habitIds[0] } : {}),
+      };
+      return found;
+    }
     return n;
   }));
   if (found) {

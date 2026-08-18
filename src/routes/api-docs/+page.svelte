@@ -436,18 +436,20 @@
   addNote(input: $input) {
     id
     habitId
+    habitIds
     date
     content
     status
     createdAt
   }
 }`,
-          variables: { input: { habitId: 'HABIT_ID', date: '2026-08-04', content: 'Felt great after the walk' } },
+          variables: { input: { habitId: 'HABIT_ID', habitIds: ['HABIT_ID', 'OTHER_HABIT_ID'], date: '2026-08-04', content: 'Felt great after the walk' } },
           response: `{
   "data": {
     "addNote": {
       "id": "SGFiaXROdXRlOjZjYzE5NmI2LTBjZjAtNDQ3Zi05NGJlLTU2MThjZGYxMFBmYQ==",
       "habitId": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTkxMTgtM2I1ZmQxZTJiNGY5",
+      "habitIds": ["SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTkxMTgtM2I1ZmQxZTJiNGY5", "SGFiaXQ6OGZiNjU0Y2QtMGE3Zi00YjIyLTliZmItY2YxMDIyM2ZkY2E4"],
       "date": "2026-08-04",
       "content": "Felt great after the walk",
       "status": null,
@@ -817,6 +819,7 @@ type HabitEntry {
 type HabitNote {
   id: ID!
   habitId: String!
+  habitIds: [String!]!
   date: String!
   content: String
   status: String
@@ -970,6 +973,7 @@ input AddNoteInput {
   habitId: String!
   date: String!          # YYYY-MM-DD
   content: String
+  habitIds: [String!]    # all linked habits; dominates habitId when set
 }
 
 input UpsertSettingsInput {

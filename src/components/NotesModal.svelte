@@ -1,35 +1,60 @@
 <script lang="ts">
   import { marked } from 'marked';
   import { notesStore, addNote, removeNote, updateNote } from '../stores/notes';
-  import type { HabitNote } from '../types';
+  import type { Habit, HabitNote } from '../types';
   import { getLocalDateString } from '../lib/dates';
   import Modal from './Modal.svelte';
 
   let {
     habitId,
     date = getLocalDateString(),
+    allHabits = [] as Habit[],
     onClose
   }: {
     habitId: string;
     date?: string;
+    allHabits?: Habit[];
     onClose: () => void;
   } = $props();
 
   let allNotes = $state<HabitNote[]>([]);
   notesStore.subscribe(v => allNotes = v);
 
-  let notes = $derived(allNotes.filter(n => n.habitId === habitId && n.date === date && n.status !== 'deleted'));
+  let notes = $derived(allNotes.filter(n => {
+    const linked = n.habitIds && n.habitIds.length ? n.habitIds.includes(habitId) : n.habitId === habitId;
+    return linked && n.date === date && n.status !== 'deleted';
+  }));
   let expandedId = $state<string | null>(null);
   let editingId = $state<string | null>(null);
   let adding = $state(false);
   let newContent = $state('');
   let editContent = $state('');
+  let selHabitIds = $state<string[]>([]);
+
+  let activeHabits = $derived(allHabits.filter(h => h.status === 'active' && h.id));
+  let showPicker = $derived(activeHabits.length > 1);
+
+  function openAdd() {
+    adding = true;
+    newContent = '';
+    selHabitIds = [habitId];
+  }
+
+  function toggleSel(id: string) {
+    if (selHabitIds.includes(id)) {
+      if (selHabitIds.length > 1) selHabitIds = selHabitIds.filter(i => i !== id);
+    } else {
+      selHabitIds = [...selHabitIds, id];
+    }
+  }
 
   function handleAdd() {
     if (!newContent.trim()) return;
+    const ids = [...new Set([habitId, ...selHabitIds])];
     const note: HabitNote = {
       id: crypto.randomUUID(),
-      habitId,
+      habitId: ids[0],
+      habitIds: ids,
       date,
       content: newContent.trim(),
       createdAt: new Date(),
@@ -42,6 +67,7 @@
   function startEdit(note: HabitNote) {
     editingId = note.id;
     editContent = note.content;
+    selHabitIds = note.habitIds && note.habitIds.length ? [...note.habitIds] : [note.habitId];
   }
 
   function cancelEdit() {
@@ -51,21 +77,35 @@
 
   function saveEdit() {
     if (!editContent.trim() || !editingId) return;
-    updateNote(editingId, editContent.trim());
+    updateNote(editingId, editContent.trim(), selHabitIds);
     editingId = null;
     editContent = '';
   }
 </script>
 
+{#snippet habitPicker()}
+  {#if showPicker}
+    <div class="note-habits">
+      <span class="mini">Linked to</span>
+      <div class="chip-row">
+        {#each activeHabits as h (h.id)}
+          <button type="button" class="chip" class:selected={selHabitIds.includes(h.id)} onclick={() => toggleSel(h.id)}>{h.title}</button>
+        {/each}
+      </div>
+    </div>
+  {/if}
+{/snippet}
+
 <Modal {onClose}>
   <div class="header">
     <h2>Notes</h2>
-    <button class="add-btn" onclick={() => adding = true} aria-label="Add note">+</button>
+    <button class="add-btn" onclick={openAdd} aria-label="Add note">+</button>
   </div>
 
   {#if adding}
     <div class="add-area">
       <textarea bind:value={newContent} placeholder="Write a note (supports Markdown)..." class="note-input"></textarea>
+      {@render habitPicker()}
       <div class="add-actions">
         <button class="btn" onclick={handleAdd}>Save</button>
         <button class="btn btn-outline" onclick={() => { adding = false; newContent = ''; }}>Cancel</button>
@@ -78,6 +118,7 @@
       {#if editingId === note.id}
         <div class="note-card">
           <textarea bind:value={editContent} class="note-input edit-input"></textarea>
+          {@render habitPicker()}
           <div class="note-meta">
             <span class="note-time">{new Date(note.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             <div class="actions">
@@ -135,6 +176,29 @@
   .add-btn:hover { opacity: 0.85; }
 
   .add-area { margin-bottom: 1rem; }
+  .note-habits { margin: 0.5rem 0; }
+  .note-habits .mini {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-secondary, #666);
+    margin-bottom: 0.25rem;
+  }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip {
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 999px;
+    background: var(--card-bg, #f5f5f5);
+    cursor: pointer;
+    font-size: 0.78rem;
+    color: var(--text-primary, #222);
+    font-family: inherit;
+  }
+  .chip.selected {
+    background: #0066cc;
+    color: #fff;
+    border-color: #0066cc;
+  }
   .note-input {
     width: 100%;
     padding: 0.5rem;
