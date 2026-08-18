@@ -448,6 +448,24 @@
     updateHabit(updated);
   }
 
+  function hideHabit(habit: Habit) {
+    swipedActionsId = null;
+    swipedHandleId = null;
+    const updated = { ...habit, metadata: { ...habit.metadata, hidden: true }, updatedAt: new Date() };
+    updateHabit(updated);
+  }
+
+  let moreMenuHabit = $state<Habit | null>(null);
+  let moreMenuStyle = $state('');
+
+  function openMoreMenu(e: MouseEvent | TouchEvent, habit: Habit) {
+    swipedActionsId = null;
+    swipedHandleId = null;
+    const el = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    moreMenuStyle = `top: ${el.bottom + 4}px; right: ${window.innerWidth - el.right}px;`;
+    moreMenuHabit = habit;
+  }
+
   function sliderTransform(id: string): string {
     const off = currentOffset(id);
     if (off === 0) return '';
@@ -600,6 +618,21 @@
   </div>
 {/if}
 
+{#if moreMenuHabit}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class="dep-popover-backdrop" on:click={() => moreMenuHabit = null}></div>
+  <div class="dep-popover more-menu" style={moreMenuStyle} on:click|stopPropagation role="menu">
+    <button class="menu-row" role="menuitem" on:click={() => { if (moreMenuHabit) { archiveHabit(moreMenuHabit); moreMenuHabit = null; } }}>
+      <Icon icon="mdi:archive-outline" />
+      Archive
+    </button>
+    <button class="menu-row danger" role="menuitem" on:click={() => { if (moreMenuHabit) { deleteHabit(moreMenuHabit); moreMenuHabit = null; } }}>
+      <Icon icon="mdi:trash-can-outline" />
+      Delete
+    </button>
+  </div>
+{/if}
+
 {#snippet habitItem(habit: Habit, i: number, count: number)}
   <div class="habit-wrapper" data-habit-id={habit.id}>
     <div class="left-reveal">
@@ -624,11 +657,11 @@
       <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} isFirst={i === 0} isLast={i === count - 1} />
     </div>
     <div class="swipe-actions">
-      <button class="swipe-btn archive" on:click={() => archiveHabit(habit)} aria-label="Archive">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+      <button class="swipe-btn hide" on:click={() => hideHabit(habit)} aria-label="Hide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
       </button>
-      <button class="swipe-btn delete" on:click={() => deleteHabit(habit)} aria-label="Delete">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/></svg>
+      <button class="swipe-btn more" on:click={(e) => openMoreMenu(e, habit)} aria-label="More actions" aria-haspopup="menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
       </button>
     </div>
   </div>
@@ -1031,8 +1064,28 @@
     width: 22px;
     height: 22px;
   }
-  .swipe-btn.archive { background: #f59e0b; }
-  .swipe-btn.delete { background: #d32f2f; }
+  .swipe-btn.hide { background: #64748b; }
+  .swipe-btn.more { background: var(--text-secondary, #777); }
+
+  .more-menu { min-width: 150px; }
+  .menu-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: var(--text-primary, #222);
+    cursor: pointer;
+    text-align: left;
+    border-radius: 0;
+  }
+  .menu-row :global(svg), .menu-row :global(.iconify) { font-size: 1.1rem; flex-shrink: 0; }
+  .menu-row:hover { background: var(--btn-secondary-bg, #f5f5f5); }
+  .menu-row.danger { color: #d32f2f; }
 
   .dep-popover-backdrop {
     position: fixed;
