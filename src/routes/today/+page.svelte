@@ -25,8 +25,8 @@
   let unsubHabits = habitsStore.subscribe(v => allHabits = v);
   onDestroy(() => unsubHabits());
 
-  let habits = $derived(allHabits.filter(h => isHabitActive(h) && !isHabitHidden(h)));
-  let pausedHabits = $derived(allHabits.filter(h => isHabitPaused(h) && !isHabitHidden(h)));
+  let habits = $derived(allHabits.filter(h => isHabitActive(h) && (showHidden || !isHabitHidden(h))));
+  let pausedHabits = $derived(allHabits.filter(h => isHabitPaused(h) && (showHidden || !isHabitHidden(h))));
   let hiddenHabits = $derived(allHabits.filter(h => isHabitHidden(h) && (h.status === 'active' || h.status === 'paused')));
   let pausedCollapsed = $state(false);
 
@@ -34,7 +34,6 @@
     try { return localStorage.getItem('showHiddenHabits') === '1'; } catch {}
     return false;
   })());
-  let hiddenCollapsed = $state(false);
 
   $effect(() => {
     try { localStorage.setItem('showHiddenHabits', showHidden ? '1' : '0'); } catch {}
@@ -223,6 +222,95 @@
     ids.splice(fromIdx, 1);
     ids.splice(toIdx, 0, fromId);
     applyOrder(ids);
+  }
+
+  function habitInGroup(habit: Habit, tag: string): boolean {
+    return tag === 'Untagged' ? (habit.tags ?? []).length === 0 : (habit.tags ?? []).includes(tag);
+  }
+
+  // Moves a whole group (all its members as a block) in the single master
+  // custom order, so grouped and flat views stay in sync when toggled.
+  function reorderGroup(fromTag: string, targetTag: string) {
+    if (!fromTag || fromTag === targetTag) return;
+    const ordered = habits
+      .slice()
+      .sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
+    const fromIds = ordered.filter(h => habitInGroup(h, fromTag)).map(h => h.id);
+    if (fromIds.length === 0) return;
+    const fromSet = new Set(fromIds);
+    const targets = new Set(ordered.filter(h => habitInGroup(h, targetTag)).map(h => h.id));
+    const after = ordered.map(h => h.id).filter(id => !fromSet.has(id));
+    let at = after.findIndex(id => targets.has(id));
+    if (at === -1) at = after.length;
+    after.splice(at, 0, ...fromIds);
+    applyOrder(after);
+  }
+
+  let dragGroupTag = $state<string | null>(null);
+
+  function handleGroupDragStart(e: DragEvent, tag: string) {
+    if (sortMode !== 'custom') return;
+    dragGroupTag = tag;
+    e.dataTransfer!.effectAllowed = 'move';
+    e.dataTransfer!.setData('text/plain', tag);
+  }
+
+  function handleGroupDragOver(e: DragEvent, tag: string) {
+    if (sortMode !== 'custom' || !dragGroupTag || dragGroupTag === tag) return;
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = 'move';
+    clearGroupDropTargets();
+    (e.currentTarget as HTMLElement).closest<HTMLElement>('.tag-header-row')?.classList.add('drop-target');
+  }
+
+  function handleGroupDrop(e: DragEvent, tag: string) {
+    e.preventDefault();
+    clearGroupDropTargets();
+    const fromTag = e.dataTransfer?.getData('text/plain') || dragGroupTag;
+    if (fromTag) { reorderGroup(fromTag, tag); }
+    dragGroupTag = null;
+  }
+
+  function handleGroupDragEnd() {
+    clearGroupDropTargets();
+    dragGroupTag = null;
+  }
+
+  function clearGroupDropTargets() {
+    document.querySelectorAll('.tag-header-row.drop-target').forEach(n => n.classList.remove('drop-target'));
+  }
+
+  // Touch drag for group headers (mobile)
+  let touchGroupFrom: string | null = null;
+  let touchGroupTarget: string | null = null;
+
+  function handleGroupTouchStart(e: TouchEvent, tag: string) {
+    if (sortMode !== 'custom') return;
+    e.preventDefault();
+    e.stopPropagation();
+    touchGroupFrom = tag;
+    touchGroupTarget = null;
+  }
+
+  function handleGroupTouchMove(e: TouchEvent) {
+    if (!touchGroupFrom) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+    const el = target?.closest<HTMLElement>('.tag-header-row');
+    if (el && el.dataset.tag && el.dataset.tag !== touchGroupFrom) {
+      clearGroupDropTargets();
+      el.classList.add('drop-target');
+      touchGroupTarget = el.dataset.tag;
+    }
+  }
+
+  function handleGroupTouchEnd() {
+    if (!touchGroupFrom) return;
+    clearGroupDropTargets();
+    if (touchGroupTarget && touchGroupTarget !== touchGroupFrom) reorderGroup(touchGroupFrom, touchGroupTarget);
+    touchGroupFrom = null;
+    touchGroupTarget = null;
   }
 
   // HTML5 drag-and-drop (desktop)
@@ -634,7 +722,7 @@
 {/if}
 
 {#snippet habitItem(habit: Habit, i: number, count: number)}
-  <div class="habit-wrapper" data-habit-id={habit.id}>
+  <div class="habit-wrapper" class:habit-hidden={isHabitHidden(habit)} data-habit-id={habit.id}>
     <div class="left-reveal">
       {#if sortMode === 'custom'}
         <span
@@ -657,8 +745,12 @@
       <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} isFirst={i === 0} isLast={i === count - 1} />
     </div>
     <div class="swipe-actions">
-      <button class="swipe-btn hide" on:click={() => hideHabit(habit)} aria-label="Hide">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      <button class="swipe-btn hide" on:click={() => isHabitHidden(habit) ? unhideHabit(habit) : hideHabit(habit)} aria-label={isHabitHidden(habit) ? 'Show' : 'Hide'}>
+        {#if isHabitHidden(habit)}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+        {:else}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        {/if}
       </button>
       <button class="swipe-btn more" on:click={(e) => openMoreMenu(e, habit)} aria-label="More actions" aria-haspopup="menu">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
@@ -670,10 +762,28 @@
 {#if groupingEnabled}
   {#each tagGroups as group}
     <div class="tag-section">
-      <button class="tag-header" on:click={() => toggleGroup(group.tag)}>
-        <span class="collapse-arrow">{collapsedGroups.has(group.tag) ? '▶' : '▼'}</span>
-        {group.tag}
-      </button>
+      <div class="tag-header-row" class:drop-target={false} data-tag={group.tag}>
+        <button class="tag-header" on:click={() => toggleGroup(group.tag)}>
+          <span class="collapse-arrow">{collapsedGroups.has(group.tag) ? '▶' : '▼'}</span>
+          {group.tag}
+        </button>
+        {#if sortMode === 'custom'}
+          <span
+            class="group-drag-handle"
+            role="button"
+            tabindex="0"
+            draggable="true"
+            on:dragstart={(e) => handleGroupDragStart(e, group.tag)}
+            on:dragover={(e) => handleGroupDragOver(e, group.tag)}
+            on:drop={(e) => handleGroupDrop(e, group.tag)}
+            on:dragend={handleGroupDragEnd}
+            on:touchstart|nonpassive={(e) => handleGroupTouchStart(e, group.tag)}
+            on:touchmove|nonpassive={(e) => handleGroupTouchMove(e)}
+            on:touchend={handleGroupTouchEnd}
+            aria-label="Reorder group"
+          ><Icon icon="mdi:drag" /></span>
+        {/if}
+      </div>
       {#if !collapsedGroups.has(group.tag)}
       <div class="habits-grid"
         on:dragover={handleGridDragOver}
@@ -727,33 +837,6 @@
             <span class="paused-info">{pauseLabel(habit)}</span>
           </div>
           <button class="paused-resume" on:click={(e) => { e.stopPropagation(); handleResume(habit); }}>Resume</button>
-        </div>
-      {/each}
-    </div>
-    {/if}
-  </section>
-{/if}
-
-{#if showHidden && hiddenHabits.length > 0}
-  <section class="tag-section hidden-section">
-    <button class="tag-header" on:click={() => hiddenCollapsed = !hiddenCollapsed}>
-      <span class="collapse-arrow">{hiddenCollapsed ? '▶' : '▼'}</span>
-      Hidden ({hiddenHabits.length})
-    </button>
-    {#if !hiddenCollapsed}
-    <div class="habits-grid">
-      {#each hiddenHabits as habit (habit.id)}
-        <div class="paused-card" role="button" tabindex="0" on:click={() => openEdit(habit)} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(habit); } }}>
-          {#if habit.metadata?.emoji}
-            <span class="paused-glyph">{habit.metadata.emoji}</span>
-          {:else if habit.metadata?.icon}
-            <span class="paused-glyph"><Icon icon={habit.metadata.icon} style="color: inherit" /></span>
-          {/if}
-          <div class="paused-body">
-            <span class="paused-title">{habit.title}</span>
-            <span class="paused-info">Hidden from Today view</span>
-          </div>
-          <button class="paused-resume" on:click={(e) => { e.stopPropagation(); unhideHabit(habit); }}>Show</button>
         </div>
       {/each}
     </div>
@@ -939,8 +1022,34 @@
     justify-content: center;
     box-sizing: border-box;
   }
-  .hidden-section .paused-info { font-style: italic; }
   .tag-section { margin-bottom: 1rem; content-visibility: auto; contain-intrinsic-size: 200px; }
+  .tag-header-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .tag-section + .tag-section .tag-header-row { margin-top: 1rem; }
+  .tag-header-row .tag-header {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+  }
+  .tag-header-row.drop-target .tag-header {
+    outline: 2px dashed var(--text-secondary, #888);
+    outline-offset: -2px;
+  }
+  .group-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    flex-shrink: 0;
+    cursor: grab;
+    color: var(--text-secondary, #888);
+    touch-action: none;
+  }
+  .group-drag-handle:active { cursor: grabbing; }
+  .group-drag-handle :global(svg), .group-drag-handle :global(.iconify) { font-size: 1.3rem; }
   .tag-header {
     background: none;
     border: none;
@@ -959,6 +1068,7 @@
     text-align: left;
   }
   .tag-header:first-of-type { margin-top: 0; }
+  .habit-wrapper.habit-hidden .habit-slider { opacity: 0.7; }
   .collapse-arrow {
     font-size: 0.7rem;
     width: 1rem;
