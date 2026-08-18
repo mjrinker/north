@@ -742,7 +742,9 @@
       on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
       on:touchend={(e) => handleTouchEnd(e, habit.id)}
     >
-      <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} isFirst={i === 0} isLast={i === count - 1} />
+      <div class="habit-dim">
+        <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} isFirst={i === 0} isLast={i === count - 1} />
+      </div>
     </div>
     <div class="swipe-actions">
       <button class="swipe-btn hide" on:click={() => isHabitHidden(habit) ? unhideHabit(habit) : hideHabit(habit)} aria-label={isHabitHidden(habit) ? 'Show' : 'Hide'}>
@@ -1068,7 +1070,16 @@
     text-align: left;
   }
   .tag-header:first-of-type { margin-top: 0; }
-  .habit-wrapper.habit-hidden .habit-slider { opacity: 0.7; }
+  .habit-dim {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    min-width: 0;
+  }
+  .habit-wrapper.habit-hidden .habit-dim {
+    background: var(--card-bg, #fff);
+    opacity: 0.72;
+  }
   .collapse-arrow {
     font-size: 0.7rem;
     width: 1rem;
