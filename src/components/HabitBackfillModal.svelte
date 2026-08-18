@@ -41,8 +41,8 @@
   let durationSecs = $state<number>(habit.standard ?? 0);
 
   const otherHabits = $derived(allHabits.filter(h => h.id !== habit.id && h.status === 'active'));
-  let condIds = $state<string[]>([]);
-  let condMode = $state<'and' | 'or'>('and');
+  let condIds = $state<string[]>(habit.dependsOn?.habitIds ?? []);
+  let condMode = $state<'and' | 'or'>(habit.dependsOn?.mode ?? 'and');
 
   const WEEKDAYS = [
     { key: 1, label: 'Mon' },
