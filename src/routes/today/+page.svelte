@@ -28,6 +28,9 @@
   let habits = $derived(allHabits.filter(h => isHabitActive(h) && (showHidden || !isHabitHidden(h))));
   let pausedHabits = $derived(allHabits.filter(h => isHabitPaused(h) && (showHidden || !isHabitHidden(h))));
   let hiddenHabits = $derived(allHabits.filter(h => isHabitHidden(h) && (h.status === 'active' || h.status === 'paused')));
+  // Master custom order across ALL active habits (hidden ones included), so a
+  // hidden habit keeps its slot when it is shown again.
+  let activeOrdered = $derived(allHabits.filter(h => isHabitActive(h)).slice().sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity)));
   let pausedCollapsed = $state(false);
 
   let showHidden = $state((() => {
@@ -200,7 +203,7 @@
   let dragHabitId = $state<string | null>(null);
 
   function applyOrder(ids: string[]) {
-    const byId = new Map(habits.map(h => [h.id, h]));
+    const byId = new Map(activeOrdered.map(h => [h.id, h]));
     ids.forEach((id, idx) => {
       const h = byId.get(id);
       if (h && h.sortOrder !== idx) {
@@ -211,10 +214,7 @@
 
   function reorder(fromId: string, targetId: string) {
     if (!fromId || fromId === targetId) return;
-    const ids = habits
-      .slice()
-      .sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity))
-      .map(h => h.id);
+    const ids = activeOrdered.map(h => h.id);
     let fromIdx = ids.indexOf(fromId);
     let toIdx = ids.indexOf(targetId);
     if (fromIdx === -1) { ids.push(fromId); fromIdx = ids.length - 1; }
@@ -232,9 +232,7 @@
   // custom order, so grouped and flat views stay in sync when toggled.
   function reorderGroup(fromTag: string, targetTag: string) {
     if (!fromTag || fromTag === targetTag) return;
-    const ordered = habits
-      .slice()
-      .sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
+    const ordered = activeOrdered;
     const fromIds = ordered.filter(h => habitInGroup(h, fromTag)).map(h => h.id);
     if (fromIds.length === 0) return;
     const fromSet = new Set(fromIds);
@@ -1076,9 +1074,13 @@
     flex: 1;
     min-width: 0;
   }
-  .habit-wrapper.habit-hidden .habit-dim {
-    background: var(--card-bg, #fff);
-    opacity: 0.72;
+  .habit-wrapper.habit-hidden .habit-dim::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: rgba(128, 128, 128, 0.35);
+    pointer-events: none;
   }
   .collapse-arrow {
     font-size: 0.7rem;
