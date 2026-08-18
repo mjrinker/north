@@ -359,7 +359,7 @@
     box-sizing: border-box;
   }
   .dial-actions .act :global(svg), .dial-actions .act :global(.iconify) { font-size: 1.3rem; }
-  .dial-actions .act.play { background: #2e7d32; }
+  .dial-actions .act.play { background: var(--accent, #0066cc); }
   .dial-actions .act.pause { background: #f59e0b; }
   .dial-actions .act.done { background: #2e7d32; }
   .dial-actions .act.cancel { background: #d32f2f; }
