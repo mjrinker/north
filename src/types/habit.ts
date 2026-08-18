@@ -77,6 +77,8 @@ export interface HabitMetadata {
 	category?: HabitCategory;
 	// ISO date (YYYY-MM-DD) the habit auto-resumes on/after while paused; undefined = indefinite pause
 	pauseUntil?: string;
+	// Hidden habits stay active but are hidden from the Today view until revealed
+	hidden?: boolean;
 	remindersEnabled: boolean;
 	reminderAdvanceMinutes: number;
 	streakFreezeDays: number;

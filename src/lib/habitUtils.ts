@@ -3,6 +3,32 @@ import { get } from 'svelte/store';
 import { habitsStore, updateHabit } from '../stores/habits';
 import { toDateStr } from './dates';
 
+export type SortMode = 'tag' | 'name' | 'type' | 'custom';
+
+export function loadSortMode(): SortMode {
+  try {
+    const saved = localStorage.getItem('sortMode');
+    if (saved === 'tag' || saved === 'name' || saved === 'type' || saved === 'custom') return saved;
+  } catch {}
+  return 'tag';
+}
+
+// Flat ordering that mirrors the Today page sorting for a given mode. In 'tag'
+// mode, habits line up by their first tag, so History rows follow the group
+// order of the Today page.
+export function sortHabitsForMode(habits: Habit[], mode: SortMode): Habit[] {
+  const list = [...habits];
+  if (mode === 'custom') return list.sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity) || a.title.localeCompare(b.title));
+  if (mode === 'name') return list.sort((a, b) => a.title.localeCompare(b.title));
+  if (mode === 'type') return list.sort((a, b) => a.type.localeCompare(b.type) || a.title.localeCompare(b.title));
+  const tagOf = (h: Habit) => (h.tags ?? []).slice().sort()[0] ?? '';
+  return list.sort((a, b) => tagOf(a).localeCompare(tagOf(b)) || a.title.localeCompare(b.title));
+}
+
+export function isHabitHidden(habit: Habit): boolean {
+  return !!habit.metadata?.hidden;
+}
+
 // A paused habit is effectively paused only while:
 //   - status === 'paused' AND
 //   - no pauseUntil (indefinite) OR today <= pauseUntil (inclusive through the pause date)

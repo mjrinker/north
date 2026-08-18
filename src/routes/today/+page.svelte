@@ -16,7 +16,7 @@
   import { getLocalDateString } from '../../lib/dates';
   import { showCreateHabit } from '../../stores/createHabit';
   import { onDestroy } from 'svelte';
-  import { isHabitPaused, isHabitActive, resumeHabit, expiredPausedHabits, pauseLabel } from '../../lib/habitUtils';
+  import { isHabitPaused, isHabitActive, isHabitHidden, resumeHabit, expiredPausedHabits, pauseLabel, sortHabitsForMode, loadSortMode } from '../../lib/habitUtils';
 
   let today = getLocalDateString();
   let viewDate = $state(today);
@@ -25,9 +25,29 @@
   let unsubHabits = habitsStore.subscribe(v => allHabits = v);
   onDestroy(() => unsubHabits());
 
-  let habits = $derived(allHabits.filter(h => isHabitActive(h)));
-  let pausedHabits = $derived(allHabits.filter(h => isHabitPaused(h)));
+  let habits = $derived(allHabits.filter(h => isHabitActive(h) && !isHabitHidden(h)));
+  let pausedHabits = $derived(allHabits.filter(h => isHabitPaused(h) && !isHabitHidden(h)));
+  let hiddenHabits = $derived(allHabits.filter(h => isHabitHidden(h) && (h.status === 'active' || h.status === 'paused')));
   let pausedCollapsed = $state(false);
+
+  let showHidden = $state((() => {
+    try { return localStorage.getItem('showHiddenHabits') === '1'; } catch {}
+    return false;
+  })());
+  let hiddenCollapsed = $state(false);
+
+  $effect(() => {
+    try { localStorage.setItem('showHiddenHabits', showHidden ? '1' : '0'); } catch {}
+  });
+
+  let groupingEnabled = $state((() => {
+    try { return localStorage.getItem('groupingEnabled') !== '0'; } catch {}
+    return true;
+  })());
+
+  $effect(() => {
+    try { localStorage.setItem('groupingEnabled', groupingEnabled ? '1' : '0'); } catch {}
+  });
 
   let visibleHabits = $derived.by(() => {
     if (searchScope !== 'habits' || !searchQueryNorm) return habits;
@@ -63,14 +83,6 @@
     return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
-  function loadSortMode(): 'tag' | 'name' | 'type' | 'custom' {
-    try {
-      const saved = localStorage.getItem('sortMode');
-      if (saved === 'tag' || saved === 'name' || saved === 'type' || saved === 'custom') return saved;
-    } catch {}
-    return 'tag';
-  }
-
   let sortMode = $state(loadSortMode());
 
   $effect(() => {
@@ -78,25 +90,44 @@
   });
 
   let tagGroups = $derived.by(() => {
-    const groups: { tag: string; habits: Habit[] }[] = [];
     const list = visibleHabits;
+    const groups: { tag: string; habits: Habit[] }[] = [];
+    if (sortMode === 'custom') {
+      const ordered = sortHabitsForMode(list, 'custom');
+      const pos = new Map(ordered.map((h, i) => [h.id, i]));
+      const byTag = new Map<string, Habit[]>();
+      const untagged: Habit[] = [];
+      for (const h of ordered) {
+        const tags = h.tags ?? [];
+        if (tags.length === 0) { untagged.push(h); continue; }
+        for (const tag of tags) {
+          if (!byTag.has(tag)) byTag.set(tag, []);
+          byTag.get(tag)!.push(h);
+        }
+      }
+      const buckets: { tag: string; habits: Habit[] }[] = [];
+      for (const [tag, hs] of byTag) buckets.push({ tag, habits: hs });
+      if (untagged.length > 0) buckets.push({ tag: 'Untagged', habits: untagged });
+      const minPos = (hs: Habit[]) => Math.min(...hs.map(h => pos.get(h.id) ?? Infinity));
+      buckets.sort((a, b) => (minPos(a.habits) - minPos(b.habits)) || a.tag.localeCompare(b.tag));
+      return buckets;
+    }
     const tags = Array.from(new Set(list.flatMap(h => h.tags ?? []))).sort();
     for (const tag of tags) {
       let tagged = list.filter(h => (h.tags ?? []).includes(tag));
-      if (sortMode === 'custom') tagged = tagged.sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
-      else if (sortMode === 'name') tagged = tagged.sort((a, b) => a.title.localeCompare(b.title));
+      if (sortMode === 'name') tagged = tagged.sort((a, b) => a.title.localeCompare(b.title));
       else if (sortMode === 'type') tagged = tagged.sort((a, b) => a.type.localeCompare(b.type));
       groups.push({ tag, habits: tagged });
     }
     let untagged = list.filter(h => (h.tags ?? []).length === 0);
     if (untagged.length > 0) {
-      if (sortMode === 'custom') untagged = untagged.sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
-      else if (sortMode === 'name') untagged = untagged.sort((a, b) => a.title.localeCompare(b.title));
+      if (sortMode === 'name') untagged = untagged.sort((a, b) => a.title.localeCompare(b.title));
       else if (sortMode === 'type') untagged = untagged.sort((a, b) => a.type.localeCompare(b.type));
       groups.push({ tag: 'Untagged', habits: untagged });
     }
     return groups;
   });
+  let flatVisible = $derived(sortHabitsForMode(visibleHabits, sortMode));
   let allNotes = $state<import('../../types').HabitNote[]>([]);
   let unsubNotes = notesStore.subscribe(v => allNotes = v);
   onDestroy(() => unsubNotes());
@@ -410,6 +441,13 @@
     }
   }
 
+  function unhideHabit(habit: Habit) {
+    swipedActionsId = null;
+    swipedHandleId = null;
+    const updated = { ...habit, metadata: { ...habit.metadata, hidden: undefined }, updatedAt: new Date() };
+    updateHabit(updated);
+  }
+
   function sliderTransform(id: string): string {
     const off = currentOffset(id);
     if (off === 0) return '';
@@ -499,6 +537,27 @@
       <option value="custom">Custom</option>
     </select>
   </label>
+  <button
+    class="tool-icon-btn"
+    class:active={groupingEnabled}
+    on:click={() => groupingEnabled = !groupingEnabled}
+    aria-label={groupingEnabled ? 'Turn off grouping' : 'Turn on grouping'}
+    aria-pressed={groupingEnabled}
+  >
+    <Icon icon={groupingEnabled ? 'mdi:view-grid' : 'mdi:view-list'} />
+  </button>
+  <button
+    class="tool-icon-btn"
+    class:active={showHidden}
+    on:click={() => showHidden = !showHidden}
+    aria-label={showHidden ? 'Hide hidden habits' : 'Show hidden habits'}
+    aria-pressed={showHidden}
+  >
+    <Icon icon={showHidden ? 'mdi:eye' : 'mdi:eye-off'} />
+    {#if hiddenHabits.length > 0}
+      <span class="hidden-badge">{hiddenHabits.length}</span>
+    {/if}
+  </button>
 </div>
 
 {#if searchScope === 'notes' && searchFocused && matchingNotes.length > 0}
@@ -541,57 +600,75 @@
   </div>
 {/if}
 
-{#each tagGroups as group}
-  <div class="tag-section">
-    <button class="tag-header" on:click={() => toggleGroup(group.tag)}>
-      <span class="collapse-arrow">{collapsedGroups.has(group.tag) ? '▶' : '▼'}</span>
-      {group.tag}
-    </button>
-    {#if !collapsedGroups.has(group.tag)}
-    <div class="habits-grid"
-      on:dragover={handleGridDragOver}
-      on:drop={handleGridDrop}
-      on:dragend={handleDragEnd}
-    >
-      {#each group.habits as habit, i (habit.id)}
-        <div animate:flip={{ duration: 200 }}>
-          <div class="habit-wrapper" data-habit-id={habit.id}>
-            <div class="left-reveal">
-              {#if sortMode === 'custom'}
-                <span
-                  class="drag-handle"
-                  draggable="true"
-                  on:dragstart={(e) => handleDragStart(e, habit.id)}
-                  on:touchstart|nonpassive={(e) => handleTouchDragStart(e, habit.id)}
-                  on:touchmove|nonpassive={(e) => handleTouchDragMove(e)}
-                  on:touchend={(e) => handleTouchDragEnd(e)}
-                ><Icon icon="mdi:drag" /></span>
-              {/if}
-            </div>
-            <div
-              class="habit-slider"
-              style="transform: {sliderTransform(habit.id)}"
-              on:touchstart|nonpassive={(e) => handleTouchStart(e, habit.id)}
-              on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
-              on:touchend={(e) => handleTouchEnd(e, habit.id)}
-            >
-              <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} isFirst={i === 0} isLast={i === group.habits.length - 1} />
-            </div>
-            <div class="swipe-actions">
-              <button class="swipe-btn archive" on:click={() => archiveHabit(habit)} aria-label="Archive">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
-              </button>
-              <button class="swipe-btn delete" on:click={() => deleteHabit(habit)} aria-label="Delete">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/></svg>
-              </button>
-            </div>
-          </div>
-        </div>
-{/each}
+{#snippet habitItem(habit: Habit, i: number, count: number)}
+  <div class="habit-wrapper" data-habit-id={habit.id}>
+    <div class="left-reveal">
+      {#if sortMode === 'custom'}
+        <span
+          class="drag-handle"
+          draggable="true"
+          on:dragstart={(e) => handleDragStart(e, habit.id)}
+          on:touchstart|nonpassive={(e) => handleTouchDragStart(e, habit.id)}
+          on:touchmove|nonpassive={(e) => handleTouchDragMove(e)}
+          on:touchend={(e) => handleTouchDragEnd(e)}
+        ><Icon icon="mdi:drag" /></span>
+      {/if}
     </div>
-    {/if}
+    <div
+      class="habit-slider"
+      style="transform: {sliderTransform(habit.id)}"
+      on:touchstart|nonpassive={(e) => handleTouchStart(e, habit.id)}
+      on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
+      on:touchend={(e) => handleTouchEnd(e, habit.id)}
+    >
+      <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} isFirst={i === 0} isLast={i === count - 1} />
+    </div>
+    <div class="swipe-actions">
+      <button class="swipe-btn archive" on:click={() => archiveHabit(habit)} aria-label="Archive">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+      </button>
+      <button class="swipe-btn delete" on:click={() => deleteHabit(habit)} aria-label="Delete">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/></svg>
+      </button>
+    </div>
   </div>
+{/snippet}
+
+{#if groupingEnabled}
+  {#each tagGroups as group}
+    <div class="tag-section">
+      <button class="tag-header" on:click={() => toggleGroup(group.tag)}>
+        <span class="collapse-arrow">{collapsedGroups.has(group.tag) ? '▶' : '▼'}</span>
+        {group.tag}
+      </button>
+      {#if !collapsedGroups.has(group.tag)}
+      <div class="habits-grid"
+        on:dragover={handleGridDragOver}
+        on:drop={handleGridDrop}
+        on:dragend={handleDragEnd}
+      >
+        {#each group.habits as habit, i (habit.id)}
+          <div animate:flip={{ duration: 200 }}>
+            {@render habitItem(habit, i, group.habits.length)}
+          </div>
 {/each}
+      </div>
+      {/if}
+    </div>
+  {/each}
+{:else}
+  <div class="habits-grid"
+    on:dragover={handleGridDragOver}
+    on:drop={handleGridDrop}
+    on:dragend={handleDragEnd}
+  >
+    {#each flatVisible as habit, i (habit.id)}
+      <div animate:flip={{ duration: 200 }}>
+        {@render habitItem(habit, i, flatVisible.length)}
+      </div>
+    {/each}
+  </div>
+{/if}
 
 {#if searchScope === 'habits' && searchQueryNorm && visibleHabits.length === 0}
   <p class="search-empty">No habits match "{searchQuery}".</p>
@@ -617,6 +694,33 @@
             <span class="paused-info">{pauseLabel(habit)}</span>
           </div>
           <button class="paused-resume" on:click={(e) => { e.stopPropagation(); handleResume(habit); }}>Resume</button>
+        </div>
+      {/each}
+    </div>
+    {/if}
+  </section>
+{/if}
+
+{#if showHidden && hiddenHabits.length > 0}
+  <section class="tag-section hidden-section">
+    <button class="tag-header" on:click={() => hiddenCollapsed = !hiddenCollapsed}>
+      <span class="collapse-arrow">{hiddenCollapsed ? '▶' : '▼'}</span>
+      Hidden ({hiddenHabits.length})
+    </button>
+    {#if !hiddenCollapsed}
+    <div class="habits-grid">
+      {#each hiddenHabits as habit (habit.id)}
+        <div class="paused-card" role="button" tabindex="0" on:click={() => openEdit(habit)} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(habit); } }}>
+          {#if habit.metadata?.emoji}
+            <span class="paused-glyph">{habit.metadata.emoji}</span>
+          {:else if habit.metadata?.icon}
+            <span class="paused-glyph"><Icon icon={habit.metadata.icon} style="color: inherit" /></span>
+          {/if}
+          <div class="paused-body">
+            <span class="paused-title">{habit.title}</span>
+            <span class="paused-info">Hidden from Today view</span>
+          </div>
+          <button class="paused-resume" on:click={(e) => { e.stopPropagation(); unhideHabit(habit); }}>Show</button>
         </div>
       {/each}
     </div>
@@ -763,6 +867,46 @@
     background: var(--input-bg, #fff);
     color: var(--text-primary, #222);
   }
+  .tool-icon-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 0;
+    background: var(--input-bg, #fff);
+    color: var(--text-secondary, #666);
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .tool-icon-btn :global(svg), .tool-icon-btn :global(.iconify) { font-size: 1.2rem; }
+  .tool-icon-btn:hover { border-color: var(--accent, #0066cc); color: var(--text-primary, #222); }
+  .tool-icon-btn.active {
+    border-color: var(--accent, #0066cc);
+    color: var(--accent, #0066cc);
+    background: rgba(0, 102, 204, 0.08);
+  }
+  .hidden-badge {
+    position: absolute;
+    top: -0.3rem;
+    right: -0.3rem;
+    min-width: 0.95rem;
+    height: 0.95rem;
+    padding: 0 0.2rem;
+    border-radius: 999px;
+    background: #f59e0b;
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  .hidden-section .paused-info { font-style: italic; }
   .tag-section { margin-bottom: 1rem; content-visibility: auto; contain-intrinsic-size: 200px; }
   .tag-header {
     background: none;

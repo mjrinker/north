@@ -37,7 +37,9 @@
   function openAdd() {
     adding = true;
     newContent = '';
-    selHabitIds = [habitId];
+    const linked = allHabits.find(h => h.id === habitId)?.linkedHabitIds ?? [];
+    const autoLinked = linked.filter(id => activeHabits.some(h => h.id === id));
+    selHabitIds = [...new Set([habitId, ...autoLinked])];
   }
 
   function toggleSel(id: string) {

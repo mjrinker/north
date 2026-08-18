@@ -6,6 +6,7 @@
   import { getLocalDateString, parseLocalDate, isToday } from '../../lib/dates';
   import { formatDurationLabel, hmsFromSeconds } from '../../lib/duration';
   import { autoCompleteDependencies, uncheckDependencies, cascadeCheck, cascadeUncheck } from '../../lib/dependencyEngine';
+import { sortHabitsForMode, loadSortMode } from '../../lib/habitUtils';
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
   import HabitBackfillModal from '../../components/HabitBackfillModal.svelte';
@@ -21,7 +22,7 @@
   });
 
   let habits = $state<Habit[]>([]);
-  let unsubHabits = habitsStore.subscribe(v => habits = v.filter(h => h.status === 'active'));
+  let unsubHabits = habitsStore.subscribe(v => habits = sortHabitsForMode(v.filter(h => h.status === 'active'), loadSortMode()));
   onDestroy(() => unsubHabits());
 
   // --- Row virtualization ---

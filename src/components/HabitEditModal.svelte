@@ -55,6 +55,7 @@
   let paused = $state(isHabitPaused(habit));
   let pauseMode = $state(habit.metadata?.pauseUntil ? 'until' : 'indefinite');
   let pauseUntilDate = $state(habit.metadata?.pauseUntil ?? '');
+  let hidden = $state(!!habit.metadata?.hidden);
 
   function handleSave() {
     if (type !== 'binary') {
@@ -89,6 +90,7 @@
       shortcuts,
       metadata: {
         ...habit.metadata,
+        hidden: hidden || undefined,
         category,
         color: color || undefined,
         icon: icon || undefined,
@@ -216,6 +218,15 @@
       {/if}
     {/if}
 
+    <label class="pause-row">
+      <span class="pause-label">Hidden</span>
+      <label class="toggle toggle-hidden">
+        <input type="checkbox" bind:checked={hidden} />
+        <span class="toggle-slider"></span>
+      </label>
+    </label>
+    <p class="hidden-hint">Hidden habits stay active but are hidden from the Today view until you reveal them.</p>
+
     <span class="field-label">Tags</span>
     <TagInput bind:tags={habitTags} allTags={existingTags} />
 
@@ -316,6 +327,7 @@
     justify-content: space-between;
   }
   .pause-label { font-weight: 500; color: var(--text-primary, #222); }
+  .hidden-hint { font-size: 0.75rem; color: var(--text-secondary, #888); margin: -0.4rem 0 0; }
   .toggle {
     position: relative;
     display: inline-block;
@@ -344,4 +356,5 @@
   }
   .toggle input:checked + .toggle-slider { background: #f59e0b; }
   .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+  .toggle-hidden input:checked + .toggle-slider { background: var(--accent, #0066cc); }
 </style>
