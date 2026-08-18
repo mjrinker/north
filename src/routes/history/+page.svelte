@@ -8,6 +8,7 @@
   import { autoCompleteDependencies, uncheckDependencies, cascadeCheck, cascadeUncheck } from '../../lib/dependencyEngine';
   import HabitCreateModal from '../../components/HabitCreateModal.svelte';
   import HabitEditModal from '../../components/HabitEditModal.svelte';
+  import HabitBackfillModal from '../../components/HabitBackfillModal.svelte';
   import Icon from '@iconify/svelte';
   import { showCreateHabit } from '../../stores/createHabit';
   import { onDestroy, tick } from 'svelte';
@@ -137,6 +138,7 @@
     }));
   }
   let editingHabit = $state<Habit | null>(null);
+  let backfillTarget = $state<Habit | null>(null);
 
   let entryMap = $derived.by(() => {
     const map = new Map<string, HabitEntry>();
@@ -331,6 +333,14 @@
   <HabitEditModal habit={editingHabit} allHabits={habits} onClose={() => editingHabit = null} />
 {/if}
 
+{#if backfillTarget}
+  <HabitBackfillModal
+    habit={backfillTarget}
+    allHabits={habits}
+    onClose={async () => { backfillTarget = null; await refreshEntries(); }}
+  />
+{/if}
+
 <div class="table-scroll" bind:this={tableContainer} onscroll={handleTableScroll}>
   <table>
     <thead>
@@ -389,7 +399,7 @@
               {/if}
             </td>
           {/each}
-          <td class="name-col habit-name">{habit.title}</td>
+          <td class="name-col habit-name"><button class="name-btn" onclick={() => backfillTarget = habit} title="Backfill {habit.title}">{habit.title}</button></td>
         </tr>
       {/each}
       {#if lastRow < totalRows}
@@ -497,11 +507,31 @@
     font-size: 0.85rem;
     font-weight: 500;
     color: var(--text-primary, #222);
-    padding: 8px;
+    padding: 0;
     border-bottom: 1px solid var(--card-border, #eee);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .name-btn {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary, #222);
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .name-btn:hover {
+    background: var(--hover-bg, rgba(0, 0, 0, 0.03));
+    color: #0066cc;
   }
   tr:hover td:not(.name-col) { background: var(--hover-bg, rgba(0,0,0,0.02)); }
   tr:hover td.name-col { filter: brightness(0.97); }

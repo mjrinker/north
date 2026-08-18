@@ -369,6 +369,61 @@
   }
 }`,
         },
+        {
+          name: 'Backfill a habit',
+          description: 'Bulk-write entries across a date range. The server resolves standard/target shortcuts, evaluates per-day conditions against other habits, and applies skip rules.',
+          query: `mutation BackfillHabit($input: BackfillHabitInput!) {
+  backfillHabit(input: $input) {
+    habitId
+    totalDays
+    appliedDays
+    skippedDays
+    entries {
+      date
+      value
+      standardMet
+      targetMet
+    }
+  }
+}`,
+          variables: {
+            input: {
+              habitId: 'HABIT_ID',
+              startDate: '2026-07-28',
+              endDate: '2026-08-04',
+              valueMode: 'STANDARD',
+              conditionHabitIds: ['OTHER_HABIT_ID'],
+              conditionMode: 'and',
+              skipWeekdays: [0, 6],
+              skipLogged: true,
+              skipAtOrAbove: false,
+            },
+          },
+          response: `{
+  "data": {
+    "backfillHabit": {
+      "habitId": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
+      "totalDays": 8,
+      "appliedDays": 6,
+      "skippedDays": 2,
+      "entries": [
+        {
+          "date": "2026-08-04",
+          "value": 8,
+          "standardMet": true,
+          "targetMet": false
+        },
+        {
+          "date": "2026-08-03",
+          "value": 8,
+          "standardMet": true,
+          "targetMet": false
+        }
+      ]
+    }
+  }
+}`,
+        },
       ],
     },
     {
@@ -815,6 +870,14 @@ type HabitEntryConnection {
   totalCount: Int!
 }
 
+type BackfillResult {
+  habitId: ID!
+  totalDays: Int!
+  appliedDays: Int!
+  skippedDays: Int!
+  entries: [HabitEntry!]!
+}
+
 type HabitNoteConnection {
   nodes: [HabitNote!]!
   pageInfo: PageInfo!
@@ -839,6 +902,12 @@ enum HabitSortBy {
   TITLE
   CREATED_AT
   UPDATED_AT
+}
+
+enum BackfillValueMode {
+  VALUE
+  STANDARD
+  TARGET
 }`,
     },
     {
@@ -850,6 +919,20 @@ enum HabitSortBy {
   standardMet: Boolean   # computed on the server if omitted
   targetMet: Boolean
   notes: String
+}
+
+input BackfillHabitInput {
+  habitId: String!
+  startDate: String!     # YYYY-MM-DD
+  endDate: String!       # YYYY-MM-DD
+  valueMode: BackfillValueMode!
+  value: Float           # required when valueMode = VALUE
+  conditionHabitIds: [String!]  # backfill only when each day's standard is met for every (or any) of these
+  conditionMode: String  # "and" | "or" (default "and")
+  skipWeekdays: [Int!]   # 0=Sun .. 6=Sat
+  skipDates: [String!]   # YYYY-MM-DD specific days to skip
+  skipLogged: Boolean    # skip days already logged (value > 0), even if below the backfill value
+  skipAtOrAbove: Boolean # skip days already at or above the backfill value
 }
 
 input CreateHabitInput {
@@ -928,6 +1011,7 @@ upsertHabit(id: ID!, input: UpdateHabitInput!): Habit!
 deleteHabit(id: ID!): Boolean!
 upsertEntry(input: UpsertEntryInput!): HabitEntry!
 deleteEntry(habitId: ID!, date: String!): Boolean!
+backfillHabit(input: BackfillHabitInput!): BackfillResult!
 addNote(input: AddNoteInput!): HabitNote!
 deleteNote(id: ID!): Boolean!
 createIdentity(name: String!, description: String, goals: [String!]): Identity!

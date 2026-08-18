@@ -207,6 +207,34 @@ export const schema = createSchema<GraphQLContext>({
       notes: String
     }
 
+    enum BackfillValueMode {
+      VALUE
+      STANDARD
+      TARGET
+    }
+
+    input BackfillHabitInput {
+      habitId: String!
+      startDate: String!          # YYYY-MM-DD
+      endDate: String!            # YYYY-MM-DD
+      valueMode: BackfillValueMode!
+      value: Float                # required when valueMode = VALUE
+      conditionHabitIds: [String!] # backfill only when each day's standard is met for every (or any) of these
+      conditionMode: String       # "and" | "or" (default "and")
+      skipWeekdays: [Int!]        # 0=Sun .. 6=Sat
+      skipDates: [String!]        # YYYY-MM-DD specific days to skip
+      skipLogged: Boolean         # skip days already logged (value > 0), even if below the backfill value
+      skipAtOrAbove: Boolean      # skip days already at or above the backfill value
+    }
+
+    type BackfillResult {
+      habitId: ID!
+      totalDays: Int!
+      appliedDays: Int!
+      skippedDays: Int!
+      entries: [HabitEntry!]!
+    }
+
     input AddNoteInput {
       id: ID
       habitId: String!
@@ -260,6 +288,7 @@ export const schema = createSchema<GraphQLContext>({
       deleteHabit(id: ID!): Boolean!
       upsertEntry(input: UpsertEntryInput!): HabitEntry!
       deleteEntry(habitId: ID!, date: String!): Boolean!
+      backfillHabit(input: BackfillHabitInput!): BackfillResult!
       addNote(input: AddNoteInput!): HabitNote!
       deleteNote(id: ID!): Boolean!
       createIdentity(name: String!, description: String, goals: [String!]): Identity!
