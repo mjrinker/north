@@ -9,7 +9,7 @@ import { encodeId, decodeId } from './globalId';
 import { saveEntry } from '../services/storage';
 import { entriesStore } from '../stores/entries';
 
-export type BackfillValueMode = 'VALUE' | 'STANDARD' | 'TARGET';
+export type BackfillValueMode = 'VALUE' | 'STANDARD' | 'TARGET' | 'LINKED';
 
 export interface BackfillOptions {
   habitId: string;
@@ -17,6 +17,7 @@ export interface BackfillOptions {
   endDate: string;
   valueMode: BackfillValueMode;
   value?: number;
+  linkedHabitId?: string;
   conditionHabitIds?: string[];
   conditionMode?: 'and' | 'or';
   skipWeekdays?: number[];
@@ -63,6 +64,7 @@ export async function backfillHabit(opts: BackfillOptions): Promise<BackfillResu
         endDate: opts.endDate,
         valueMode: opts.valueMode,
         value: opts.value ?? null,
+        linkedHabitId: opts.linkedHabitId ? encodeId('Habit', opts.linkedHabitId) : null,
         conditionHabitIds: (opts.conditionHabitIds ?? []).map(id => encodeId('Habit', id)),
         conditionMode: opts.conditionMode ?? 'and',
         skipWeekdays: opts.skipWeekdays ?? [],

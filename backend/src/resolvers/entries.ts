@@ -128,11 +128,11 @@ const { data, error } = await query;
     upsertEntry: async (_: unknown, args: { input: { habitId: string; date: string; value: number; standardMet?: boolean; targetMet?: boolean; notes?: string } }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       const habitId = requireGlobalId(args.input.habitId, 'Habit');
-      const { data: habit } = await ctx.db.from('habits').select('type, standard, target, metadata').eq('id', habitId).eq('user_id', ctx.userId).maybeSingle();
-      if (!habit) throw new Error('Habit not found');
+      const { data: habitRow } = await ctx.db.from('habits').select('type, standard, target, metadata, linked_habit_ids').eq('id', habitId).eq('user_id', ctx.userId).maybeSingle();
+      if (!habitRow) throw new Error('Habit not found');
 
       const value = args.input.value;
-      const met = computeMet(habit as ThresholdHabit, value);
+      const met = computeMet(habitRow as ThresholdHabit, value);
       const standardMet = met.standardMet;
       const targetMet = met.targetMet;
 
@@ -151,6 +151,45 @@ const { data, error } = await query;
       if (args.input.notes !== undefined) record.notes = args.input.notes;
       const { data, error } = await ctx.db.from('entries').upsert(record).select('*').single();
       if (error) throw new Error(error.message);
+
+      // Linked habits stay in lockstep: logging on one writes the same value to
+      // every linked habit for the same date (met computed per habit).
+      const linkedIds = (habitRow.linked_habit_ids ?? []) as string[];
+      if (linkedIds.length) {
+        const { data: linkedHabits } = await ctx.db
+          .from('habits')
+          .select('id, type, standard, target, metadata')
+          .in('id', linkedIds)
+          .eq('user_id', ctx.userId);
+        const { data: existingLinked } = await ctx.db
+          .from('entries')
+          .select('id, habit_id')
+          .in('habit_id', linkedIds)
+          .eq('date', args.input.date)
+          .eq('user_id', ctx.userId);
+        const existingIdByHabit = new Map<string, string>();
+        for (const r of existingLinked ?? []) {
+          existingIdByHabit.set((r as { habit_id: string }).habit_id, (r as { id: string }).id);
+        }
+        const linkedRecords: Record<string, unknown>[] = [];
+        for (const lh of linkedHabits ?? []) {
+          const lrow = lh as ThresholdHabit & { id: string };
+          const lmet = computeMet(lrow, value);
+          linkedRecords.push({
+            id: existingIdByHabit.get(lrow.id) ?? crypto.randomUUID(),
+            user_id: ctx.userId,
+            habit_id: lrow.id,
+            date: args.input.date,
+            value,
+            standard_met: lmet.standardMet,
+            target_met: lmet.targetMet,
+            updated_at: now,
+          });
+        }
+        const { error: linkedError } = await ctx.db.from('entries').upsert(linkedRecords);
+        if (linkedError) throw new Error(linkedError.message);
+      }
+
       return toEntry(data as EntryRow);
     },
 
@@ -171,6 +210,7 @@ const { data, error } = await query;
           endDate: string;
           valueMode: string;
           value?: number | null;
+          linkedHabitId?: string | null;
           conditionHabitIds?: string[];
           conditionMode?: string;
           skipWeekdays?: number[];
@@ -185,7 +225,7 @@ const { data, error } = await query;
       const rawHabitId = requireGlobalId(args.input.habitId, 'Habit');
       const { data: habitRow } = await ctx.db
         .from('habits')
-        .select('type, standard, target, metadata')
+        .select('type, standard, target, metadata, linked_habit_ids')
         .eq('id', rawHabitId)
         .eq('user_id', ctx.userId)
         .maybeSingle();
@@ -193,21 +233,45 @@ const { data, error } = await query;
       const habit = habitRow as ThresholdHabit;
 
       const dates = rangeDates(args.input.startDate, args.input.endDate);
+      const from = dates[0];
+      const to = dates[dates.length - 1];
 
-      let plannedValue: number;
       const valueMode = args.input.valueMode ?? 'VALUE';
+      let plannedValue: number;
+      let linkedValuesByDate: Map<string, number> | null = null;
       if (valueMode === 'STANDARD') {
         plannedValue = habit.standard ?? 0;
       } else if (valueMode === 'TARGET') {
         if (habit.target == null) throw new Error('This habit has no target');
         plannedValue = habit.target;
+      } else if (valueMode === 'LINKED') {
+        const linkedHabitId = requireGlobalId(args.input.linkedHabitId ?? '', 'Habit');
+        const linkedIds = (habitRow.linked_habit_ids ?? []) as string[];
+        if (!linkedIds.includes(linkedHabitId)) throw new Error('linkedHabitId is not one of this habit\'s linked habits');
+        const { data: linkedHabit } = await ctx.db
+          .from('habits')
+          .select('id')
+          .eq('id', linkedHabitId)
+          .eq('user_id', ctx.userId)
+          .maybeSingle();
+        if (!linkedHabit) throw new Error('Linked habit not found');
+        const { data: linkedEntries } = await ctx.db
+          .from('entries')
+          .select('date, value')
+          .eq('habit_id', linkedHabitId)
+          .eq('user_id', ctx.userId)
+          .gte('date', from)
+          .lte('date', to);
+        linkedValuesByDate = new Map<string, number>();
+        for (const r of linkedEntries ?? []) {
+          const row = r as { date: string; value: number };
+          linkedValuesByDate.set(row.date, row.value);
+        }
+        plannedValue = 0;
       } else {
         if (args.input.value == null || Number.isNaN(args.input.value)) throw new Error('A value is required');
         plannedValue = args.input.value;
       }
-
-      const from = dates[0];
-      const to = dates[dates.length - 1];
 
       // Existing entries for the target habit in range.
       const { data: existingRows } = await ctx.db
@@ -262,6 +326,12 @@ const { data, error } = await query;
       let skipped = 0;
       for (const date of dates) {
         const existing = existingByDate.get(date);
+
+        if (valueMode === 'LINKED') {
+          const v = linkedValuesByDate!.get(date);
+          if (v == null) { skipped++; continue; } // no value logged on the linked habit that day
+          plannedValue = v;
+        }
 
         if (skipDateSet.has(date)) { skipped++; continue; }
         if (skipWeekdaySet.has(new Date(date + 'T00:00:00').getDay())) { skipped++; continue; }

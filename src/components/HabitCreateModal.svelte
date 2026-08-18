@@ -1,9 +1,10 @@
 <script lang="ts">
   import type { Habit, DependsOn, HabitCategory, HabitWebhooks, HabitShortcuts } from '../types';
-  import { addHabit } from '../stores/habits';
+  import { addHabit, setLinkedHabits } from '../stores/habits';
   import Modal from './Modal.svelte';
   import TagInput from './TagInput.svelte';
   import DependencyPicker from './DependencyPicker.svelte';
+  import LinkedHabitPicker from './LinkedHabitPicker.svelte';
   import ModalActions from './ModalActions.svelte';
   import HabitColorPicker from './HabitColorPicker.svelte';
   import HabitIconPicker from './HabitIconPicker.svelte';
@@ -26,6 +27,8 @@
   let type: Habit['type'] = $state('binary');
   let depIds = $state<string[]>([]);
   let depMode = $state<'and' | 'or'>('and');
+  let linkIds = $state<string[]>([]);
+  let linkCandidates = $derived(habits.filter(h => h.type === type && h.status !== 'deleted' && h.id));
   let frequency = $state('daily');
   let interval = $state(1);
   let habitTags = $state<string[]>([]);
@@ -80,6 +83,7 @@
     const dependsOn: DependsOn | undefined = depIds.length > 0
       ? { habitIds: depIds, mode: depMode }
       : undefined;
+    const linkHabitIds = linkIds.filter(id => habits.find(h => h.id === id)?.type === type);
 
     const newHabit: Habit = {
       id: crypto.randomUUID(),
@@ -107,6 +111,7 @@
         allowBackdating: true
       },
       dependsOn,
+      linkedHabitIds: linkHabitIds.length ? [...linkHabitIds] : undefined,
       identityId: undefined,
       tags: habitTags,
       status: 'active',
@@ -117,6 +122,7 @@
     };
 
     addHabit(newHabit);
+    if (linkHabitIds.length) setLinkedHabits(newHabit, linkHabitIds);
     onClose();
   }
 </script>
@@ -198,6 +204,8 @@
     {#if type === 'binary'}
       <DependencyPicker {habits} bind:depIds bind:depMode />
     {/if}
+
+    <LinkedHabitPicker habits={linkCandidates} bind:linkedIds={linkIds} />
 
     <span class="field-label">Tags</span>
     <TagInput bind:tags={habitTags} allTags={existingTags} />

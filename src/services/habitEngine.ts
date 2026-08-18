@@ -1,5 +1,5 @@
 import type { Habit, HabitEntry, CompletionResult } from '../types';
-import { getAllEntries, saveEntry, getEntry, clearAllEntries } from './storage';
+import { getAllEntries, saveEntry, getEntry, clearAllEntries, getAllHabits } from './storage';
 import { getLocalDateString, getWeekStart, parseLocalDate, toDateStr } from '../lib/dates';
 import { computeDailyStreak, computeBreakDailyStreak, computeBreakWeeklyStreak } from '../lib/streakUtils';
 import { isStandardMet, isTargetMet, progressPercentage } from '../lib/thresholds';
@@ -37,7 +37,9 @@ export class HabitEngine {
     return HabitEngine.calculateCompletion(this.habit, value);
   }
 
-  static async logCompletion(habit: Habit, date: string, value: number, notes?: string): Promise<void> {
+  static async logCompletion(habit: Habit, date: string, value: number, notes?: string, seen?: Set<string>): Promise<void> {
+    if (seen?.has(habit.id)) return;
+    (seen ??= new Set<string>()).add(habit.id);
     const existing = await getEntry(habit.id, date);
     const entry: HabitEntry = existing
       ? { ...existing, value, notes, updatedAt: new Date() }
@@ -66,6 +68,21 @@ export class HabitEngine {
     });
     await pushRecord('entries', entry.id, entry);
     void fireHabitWebhooks(habit, date, value, completion.standardMet, completion.targetMet);
+
+    // Linked habits stay in lockstep: the same value is logged on every partner
+    // for the same date. The `seen` set stops the two-way relationship from
+    // recursing forever. Timer starts are NOT logged here, so starting a timer
+    // on one habit never starts (or writes to) the others — only pressing "done"
+    // or logging a value cascades.
+    const linkedIds = habit.linkedHabitIds ?? [];
+    if (linkedIds.length > 0) {
+      const all = await getAllHabits();
+      for (const id of linkedIds) {
+        if (seen.has(id)) continue;
+        const partner = all.find(h => h.id === id);
+        if (partner) await HabitEngine.logCompletion(partner, date, value, undefined, seen);
+      }
+    }
   }
 
   async logCompletion(date: string, value: number, notes?: string): Promise<void> {

@@ -60,3 +60,11 @@ export function decodeDependsOn(dependsOn: unknown): unknown {
     habitIds: (dependsOn as DependsOnLike).habitIds!.map((hid) => fromGlobalId(hid)?.id ?? hid),
   };
 }
+
+export function toGlobalIds(ids: string[] | null | undefined): string[] {
+  return (ids ?? []).filter(Boolean).map((id) => toGlobalId('Habit', id));
+}
+
+export function decodeGlobalIds(ids: string[] | null | undefined): string[] {
+  return (ids ?? []).filter(Boolean).map((id) => fromGlobalId(id)?.id ?? id);
+}

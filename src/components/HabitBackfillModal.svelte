@@ -41,8 +41,10 @@
   let durationSecs = $state<number>(habit.standard ?? 0);
 
   const otherHabits = $derived(allHabits.filter(h => h.id !== habit.id && h.status === 'active'));
+  const linkedHabits = $derived((habit.linkedHabitIds ?? []).map(id => allHabits.find(h => h.id === id)).filter((h): h is Habit => !!h && h.status !== 'deleted'));
   let condIds = $state<string[]>(habit.dependsOn?.habitIds ?? []);
   let condMode = $state<'and' | 'or'>(habit.dependsOn?.mode ?? 'and');
+  let linkHabitId = $state<string>((habit.linkedHabitIds?.[0]) ?? '');
 
   const WEEKDAYS = [
     { key: 1, label: 'Mon' },
@@ -95,6 +97,9 @@
         ? `Sets the value to Target (${formatHms(habit.target ?? 0)}).`
         : `Sets the value to Target (${habit.target ?? 0}${unit ? ` ${unit}` : ''}).`;
     }
+    if (valueMode === 'LINKED') {
+      return 'Copies each day\u2019s logged value from the linked habit you choose below.';
+    }
     return 'Uses the value you enter below.';
   });
 
@@ -110,6 +115,7 @@
       if (habit.type === 'duration' && !(durationSecs >= 0)) { error = 'Enter a duration.'; return; }
     }
     if (valueMode === 'TARGET' && !hasTarget) { error = 'This habit has no target set.'; return; }
+    if (valueMode === 'LINKED' && !linkHabitId) { error = 'Choose a linked habit to copy from.'; return; }
 
     busy = true;
     try {
@@ -119,6 +125,7 @@
         endDate,
         valueMode,
         value: !isBinary && valueMode === 'VALUE' ? (habit.type === 'duration' ? durationSecs : quantity) : 1,
+        linkedHabitId: valueMode === 'LINKED' ? linkHabitId || undefined : undefined,
         conditionHabitIds: condIds.length ? condIds : undefined,
         conditionMode: condIds.length ? condMode : undefined,
         skipWeekdays: skipWeekdays.length ? skipWeekdays : undefined,
@@ -166,6 +173,23 @@
     {#if isBinary}
       <span class="field-label">Value</span>
       <p class="hint">{valueHint}</p>
+      {#if linkedHabits.length > 0}
+        <div class="mode-chips">
+          <button type="button" class:active={valueMode === 'STANDARD'} onclick={() => valueMode = 'STANDARD'}>Complete</button>
+          <button type="button" class:active={valueMode === 'LINKED'} onclick={() => valueMode = 'LINKED'}>From linked habit</button>
+        </div>
+        {#if valueMode === 'LINKED'}
+          <label class="value-field">
+            <span class="mini">Linked habit</span>
+            <select bind:value={linkHabitId}>
+              {#each linkedHabits as lh (lh.id)}
+                <option value={lh.id}>{lh.title}</option>
+              {/each}
+            </select>
+          </label>
+        {/if}
+        <p class="hint">Copies each day's value from one linked habit. Days it has no entry are skipped.</p>
+      {/if}
     {:else}
       <span class="field-label">Value</span>
       <div class="mode-chips">
@@ -174,6 +198,9 @@
           <button type="button" class:active={valueMode === 'TARGET'} onclick={() => valueMode = 'TARGET'}>Target</button>
         {/if}
         <button type="button" class:active={valueMode === 'VALUE'} onclick={() => valueMode = 'VALUE'}>Custom value</button>
+        {#if linkedHabits.length > 0}
+          <button type="button" class:active={valueMode === 'LINKED'} onclick={() => valueMode = 'LINKED'}>Linked habit</button>
+        {/if}
       </div>
       {#if valueMode === 'VALUE'}
         {#if habit.type === 'duration'}
@@ -187,6 +214,15 @@
             <input type="number" bind:value={quantity} min="0" step="any" />
           </label>
         {/if}
+      {:else if valueMode === 'LINKED'}
+        <label class="value-field">
+          <span class="mini">Linked habit</span>
+          <select bind:value={linkHabitId}>
+            {#each linkedHabits as lh (lh.id)}
+              <option value={lh.id}>{lh.title}</option>
+            {/each}
+          </select>
+        </label>
       {/if}
       <p class="hint">{valueHint}</p>
     {/if}

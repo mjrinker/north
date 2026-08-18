@@ -50,6 +50,10 @@ export interface Habit {
 	// Optional dependency: complete this habit only if dependencies are met
 	dependsOn?: DependsOn;
 	
+	// Other habits (same type) that stay in lockstep: logging a value on any of
+	// them logs the same value on the rest. Stored symmetrically on every member.
+	linkedHabitIds?: string[];
+	
 	identityId?: string;
 	tags: string[];
 	

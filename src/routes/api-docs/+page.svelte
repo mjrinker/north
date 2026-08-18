@@ -424,6 +424,57 @@
   }
 }`,
         },
+        {
+          name: 'Backfill a habit from a linked habit',
+          description: 'Copies each day\'s logged value from one linked habit. Days the linked habit has no entry are skipped. Only one linked habit can be chosen at a time.',
+          query: `mutation BackfillHabit($input: BackfillHabitInput!) {
+  backfillHabit(input: $input) {
+    habitId
+    totalDays
+    appliedDays
+    skippedDays
+    entries {
+      date
+      value
+      standardMet
+      targetMet
+    }
+  }
+}`,
+          variables: {
+            input: {
+              habitId: 'HABIT_ID',
+              startDate: '2026-07-28',
+              endDate: '2026-08-04',
+              valueMode: 'LINKED',
+              linkedHabitId: 'LINKED_HABIT_ID',
+            },
+          },
+          response: `{
+  "data": {
+    "backfillHabit": {
+      "habitId": "SGFiaXQ6ZGU1MDU5ZTAtZWEyZi00ODNlLTk0MTgtM2I1ZmQxZTJiNGY5",
+      "totalDays": 8,
+      "appliedDays": 5,
+      "skippedDays": 3,
+      "entries": [
+        {
+          "date": "2026-08-04",
+          "value": 3,
+          "standardMet": false,
+          "targetMet": false
+        },
+        {
+          "date": "2026-08-03",
+          "value": 5,
+          "standardMet": true,
+          "targetMet": false
+        }
+      ]
+    }
+  }
+}`,
+        },
       ],
     },
     {
@@ -795,6 +846,7 @@
   schedule: JSON
   metadata: JSON         # e.g. quickSteps
   dependsOn: JSON
+  linkedHabitIds: [String!]!  # same-type habits that log in lockstep
   identityId: String
   tags: [String!]
   status: String         # "active" | "paused" | "deleted"
@@ -911,6 +963,7 @@ enum BackfillValueMode {
   VALUE
   STANDARD
   TARGET
+  LINKED  # copy the value from linkedHabitId per day (days with no entry are skipped)
 }`,
     },
     {
@@ -930,6 +983,7 @@ input BackfillHabitInput {
   endDate: String!       # YYYY-MM-DD
   valueMode: BackfillValueMode!
   value: Float           # required when valueMode = VALUE
+  linkedHabitId: String  # required when valueMode = LINKED
   conditionHabitIds: [String!]  # backfill only when each day's standard is met for every (or any) of these
   conditionMode: String  # "and" | "or" (default "and")
   skipWeekdays: [Int!]   # 0=Sun .. 6=Sat
@@ -948,6 +1002,7 @@ input CreateHabitInput {
   schedule: JSON
   metadata: JSON
   identityId: String
+  linkedHabitIds: [String!]  # other same-type habits to keep in lockstep
   tags: [String!]
   sortOrder: Int
 }
@@ -962,6 +1017,7 @@ input UpdateHabitInput {
   schedule: JSON
   metadata: JSON
   dependsOn: JSON
+  linkedHabitIds: [String!]  # omitted = leave links untouched; [] = unlink all
   identityId: String
   tags: [String!]
   status: String

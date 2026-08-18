@@ -1,10 +1,11 @@
 <script lang="ts">
   import type { Habit, HabitCategory, HabitWebhooks, HabitShortcuts } from '../types';
-  import { updateHabit } from '../stores/habits';
+  import { updateHabit, setLinkedHabits } from '../stores/habits';
   import { isHabitPaused } from '../lib/habitUtils';
   import Modal from './Modal.svelte';
   import TagInput from './TagInput.svelte';
   import DependencyPicker from './DependencyPicker.svelte';
+  import LinkedHabitPicker from './LinkedHabitPicker.svelte';
   import ModalActions from './ModalActions.svelte';
   import HabitColorPicker from './HabitColorPicker.svelte';
   import HabitIconPicker from './HabitIconPicker.svelte';
@@ -32,12 +33,14 @@
   let errorMsg = $state('');
   let depIds = $state<string[]>(habit.dependsOn?.habitIds ?? []);
   let depMode = $state<'and' | 'or'>(habit.dependsOn?.mode ?? 'and');
+  let linkIds = $state<string[]>([...(habit.linkedHabitIds ?? [])]);
   let frequency = $state(habit.schedule.frequency);
   let interval = $state(habit.schedule.interval);
   let habitTags = $state<string[]>(habit.tags ?? []);
   let existingTags = $derived(Array.from(new Set(allHabits.flatMap(h => h.tags ?? []))));
   let showStandard = $derived(type !== 'binary');
   let showDeps = $derived(type === 'binary' && allHabits.filter(h => h.id !== habit.id).length > 0);
+  let linkCandidates = $derived(allHabits.filter(h => h.id !== habit.id && h.type === type && h.status !== 'deleted'));
 
   let category = $state<HabitCategory>(habit.metadata?.category ?? 'build');
   let color = $state(habit.metadata?.color ?? '');
@@ -66,6 +69,7 @@
     }
     errorMsg = '';
     const dependsOn = depIds.length > 0 ? { habitIds: depIds, mode: depMode } : undefined;
+    const effectiveLinks = linkIds.filter(id => allHabits.find(h => h.id === id)?.type === type);
     let status = habit.status;
     if (paused) status = 'paused';
     else if (habit.status === 'paused') status = 'active';
@@ -78,6 +82,7 @@
       type,
       unit: unit.trim() || (type === 'duration' ? 'seconds' : 'times'),
       dependsOn,
+      linkedHabitIds: effectiveLinks.length ? [...effectiveLinks] : undefined,
       tags: habitTags,
       status,
       webhooks,
@@ -93,11 +98,12 @@
       schedule: { ...habit.schedule, frequency: frequency as 'daily' | 'weekly' | 'monthly' | 'custom' | 'days_per_week', interval, daysPerWeek: frequency === 'days_per_week' ? interval : undefined, startOfWeek }
     };
     updateHabit(updated);
+    if (effectiveLinks.length || habit.linkedHabitIds?.length) setLinkedHabits(updated, effectiveLinks);
     onClose();
   }
 
   function handleDelete() {
-    const updated: Habit = { ...habit, status: 'deleted', updatedAt: new Date() };
+    const updated: Habit = { ...habit, status: 'deleted', updatedAt: new Date(), linkedHabitIds: undefined };
     updateHabit(updated);
     onClose();
   }
@@ -188,6 +194,8 @@
     {#if showDeps}
       <DependencyPicker habits={allHabits} bind:depIds bind:depMode excludeId={habit.id} />
     {/if}
+
+    <LinkedHabitPicker habits={linkCandidates} bind:linkedIds={linkIds} excludeId={habit.id} />
 
     <label class="pause-row">
       <span class="pause-label">Paused</span>

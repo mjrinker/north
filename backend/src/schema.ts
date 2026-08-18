@@ -79,6 +79,7 @@ export const schema = createSchema<GraphQLContext>({
       schedule: JSON
       metadata: JSON
       dependsOn: JSON
+      linkedHabitIds: [String!]!
       identityId: String
       tags: [String!]
       status: String
@@ -179,6 +180,7 @@ export const schema = createSchema<GraphQLContext>({
       schedule: JSON
       metadata: JSON
       identityId: String
+      linkedHabitIds: [String!]
       tags: [String!]
       sortOrder: Int
     }
@@ -193,6 +195,7 @@ export const schema = createSchema<GraphQLContext>({
       schedule: JSON
       metadata: JSON
       dependsOn: JSON
+      linkedHabitIds: [String!]
       identityId: String
       tags: [String!]
       status: String
@@ -212,6 +215,7 @@ export const schema = createSchema<GraphQLContext>({
       VALUE
       STANDARD
       TARGET
+      LINKED
     }
 
     input BackfillHabitInput {
@@ -220,6 +224,7 @@ export const schema = createSchema<GraphQLContext>({
       endDate: String!            # YYYY-MM-DD
       valueMode: BackfillValueMode!
       value: Float                # required when valueMode = VALUE
+      linkedHabitId: String       # required when valueMode = LINKED (copy that habit's per-day value)
       conditionHabitIds: [String!] # backfill only when each day's standard is met for every (or any) of these
       conditionMode: String       # "and" | "or" (default "and")
       skipWeekdays: [Int!]        # 0=Sun .. 6=Sat

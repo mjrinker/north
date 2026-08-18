@@ -13,7 +13,7 @@ import { gql, ApiError, getToken } from '../../lib/api';
 import { encodeId, decodeId } from '../../lib/globalId';
 import { getLastSyncedAt } from '../syncState';
 
-const HABIT_FIELDS = `id title description type standard target unit schedule metadata dependsOn identityId tags status sortOrder createdAt updatedAt`;
+const HABIT_FIELDS = `id title description type standard target unit schedule metadata dependsOn linkedHabitIds identityId tags status sortOrder createdAt updatedAt`;
 const ENTRY_FIELDS = `id habitId date value standardMet targetMet notes updatedAt`;
 const NOTE_FIELDS = `id habitId habitIds date content status createdAt`;
 const IDENTITY_FIELDS = `id name description goals`;
@@ -43,6 +43,7 @@ function toApiHabitInput(h: Habit) {
     dependsOn: h.dependsOn
       ? { ...h.dependsOn, habitIds: (h.dependsOn.habitIds ?? []).map(hid => encodeId('Habit', hid)) }
       : null,
+    linkedHabitIds: (h.linkedHabitIds ?? []).map(hid => encodeId('Habit', hid)),
     tags: h.tags ?? [],
     status: h.status,
     sortOrder: h.sortOrder ?? null,
@@ -77,6 +78,7 @@ function fromApiHabit(h: any): Habit {
     webhooks: h.metadata?.webhooks,
     shortcuts: h.metadata?.shortcuts,
     dependsOn,
+    linkedHabitIds: Array.isArray(h.linkedHabitIds) ? (h.linkedHabitIds as string[]).map(decodeId) : undefined,
     identityId: h.identityId ? decodeId(h.identityId) : undefined,
     tags: h.tags ?? [],
     status: h.status ?? 'active',
