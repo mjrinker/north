@@ -31,12 +31,11 @@
 
 	const R = 17;
 	const CIRC = 2 * Math.PI * R;
-	const KNOB_C = 16.4;
 	let active = false;
 	let grabAngle: number | null = null;
 	let knobDeg = $derived(active && grabAngle != null ? grabAngle : handleAngle - 90);
-	let knobX = $derived(18 + KNOB_C * Math.cos((knobDeg * Math.PI) / 180));
-	let knobY = $derived(18 + KNOB_C * Math.sin((knobDeg * Math.PI) / 180));
+	let knobX = $derived(18 + R * Math.cos((knobDeg * Math.PI) / 180));
+	let knobY = $derived(18 + R * Math.sin((knobDeg * Math.PI) / 180));
 
 	let ringEl = $state<HTMLElement>();
 	let centerX = 0;
@@ -199,6 +198,7 @@
 		width: 100%;
 		height: 100%;
 		display: block;
+		overflow: visible;
 	}
 	.ring-track {
 		fill: none;
