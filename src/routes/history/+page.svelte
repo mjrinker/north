@@ -375,12 +375,14 @@ import { sortHabitsForMode, loadSortMode } from '../../lib/habitUtils';
               {#if habit.type === 'binary'}
                 <label class="hist-check-wrap" class:checked={entry?.value === 1} onclick={(e) => e.stopPropagation()}>
                   <input type="checkbox" checked={entry?.value === 1} onchange={() => handleBinary(habit, date)} />
-                  {#if entry?.value === 1}
-                    {#if habit.metadata?.category === 'break'}
+                  {#if habit.metadata?.category === 'break'}
+                    {#if entry?.value === 1}
                       <Icon icon="mdi:close" class="hist-check-icon break" />
                     {:else}
                       <Icon icon="mdi:check" class="hist-check-icon" />
                     {/if}
+                  {:else if entry?.value === 1}
+                    <Icon icon="mdi:check" class="hist-check-icon" />
                   {/if}
                 </label>
               {:else if habit.type === 'quantity'}

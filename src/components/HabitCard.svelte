@@ -360,12 +360,14 @@
       <div class="action-control">
         <label class="binary-input-wrap" class:checked={todayEntry?.value === 1} onclick={(e) => e.stopPropagation()}>
           <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} disabled={isAutoCompleted} onmousedown={(e) => e.preventDefault()} />
-          {#if todayEntry?.value === 1}
-            {#if isBreakHabit}
+          {#if isBreakHabit}
+            {#if todayEntry?.value === 1}
               <Icon icon="mdi:close" class="check-icon break" />
             {:else}
               <Icon icon="mdi:check" class="check-icon" />
             {/if}
+          {:else if todayEntry?.value === 1}
+            <Icon icon="mdi:check" class="check-icon" />
           {/if}
         </label>
       </div>
