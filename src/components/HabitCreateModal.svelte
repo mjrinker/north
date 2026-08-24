@@ -138,9 +138,14 @@
     <label for="description">Description (optional, supports Markdown)</label>
     <textarea bind:value={description} placeholder="Add details about this habit..." class="desc-input"></textarea>
 
-    <span class="field-label">Color or Icon</span>
-    <HabitColorPicker bind:color />
-    <HabitIconPicker bind:icon bind:emoji />
+    <div class="form-row">
+      <label>Color
+        <HabitColorPicker bind:color />
+      </label>
+      <label>Icon
+        <HabitIconPicker bind:icon bind:emoji />
+      </label>
+    </div>
 
     <div class="form-row">
       <label>Category
@@ -161,13 +166,24 @@
     {#if showStandard}
       <label for="unit">Unit</label>
       <input type="text" bind:value={unit} placeholder={type === 'duration' ? 'seconds' : 'times'} oninput={() => unitDefaulted = false} />
-      {#if type === 'duration'}
-        <label>Minimum <DurationField id="standard" bind:value={standard} placeholder="e.g. 5:00" touched={() => thresholdsDefaulted = false} /></label>
-        <label>Stretch goal <DurationField id="target" bind:value={target} placeholder="e.g. 15:00" touched={() => thresholdsDefaulted = false} /></label>
-      {:else}
-        <label>Minimum <input type="number" bind:value={standard} placeholder="Standard value" min="1" /></label>
-        <label>Stretch goal <input type="number" bind:value={target} placeholder="Goal (optional)" min="1" /></label>
-      {/if}
+
+      <div class="section-header">Goals</div>
+      <div class="form-row">
+        <label>Minimum
+          {#if type === 'duration'}
+            <DurationField id="standard" bind:value={standard} placeholder="e.g. 5:00" touched={() => thresholdsDefaulted = false} />
+          {:else}
+            <input type="number" bind:value={standard} placeholder="Standard value" min="1" />
+          {/if}
+        </label>
+        <label>Stretch goal
+          {#if type === 'duration'}
+            <DurationField id="target" bind:value={target} placeholder="e.g. 15:00" touched={() => thresholdsDefaulted = false} />
+          {:else}
+            <input type="number" bind:value={target} placeholder="Goal (optional)" min="1" />
+          {/if}
+        </label>
+      </div>
     {/if}
 
     <div class="form-row">
@@ -292,21 +308,30 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 0.5rem 0;
-    border: none;
-    background: none;
-    color: var(--accent, #0066cc);
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 4px;
+    background: var(--input-bg, #f5f5f5);
+    color: var(--text-primary, #222);
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
     font-family: inherit;
   }
-  .advanced-toggle:hover { text-decoration: underline; }
+  .advanced-toggle:hover { background: var(--btn-secondary-bg, #eee); }
   .advanced-toggle :global(svg) {
     transition: transform 0.2s;
     font-size: 1.2rem;
   }
   .advanced-toggle :global(svg).rotated { transform: rotate(180deg); }
+  .section-header {
+    margin: 1rem 0 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
   .advanced-content {
     display: flex;
     flex-direction: column;

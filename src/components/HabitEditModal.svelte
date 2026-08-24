@@ -133,8 +133,9 @@
       <textarea bind:value={description} class="desc-input" placeholder="Add details about this habit..."></textarea>
     </label>
 
-    <span class="field-label">Color or Icon</span>
+    <span class="field-label">Color</span>
     <HabitColorPicker bind:color />
+    <span class="field-label">Icon</span>
     <HabitIconPicker bind:icon bind:emoji />
 
     <div class="form-row">
@@ -154,24 +155,25 @@
     </div>
 
     {#if showStandard}
+      <label>Unit <input type="text" bind:value={unit} placeholder={type === 'duration' ? 'seconds' : 'singular, e.g. cup'} /></label>
+
+      <div class="section-header">Goals</div>
       <div class="form-row">
-        <label>Unit <input type="text" bind:value={unit} placeholder={type === 'duration' ? 'seconds' : 'singular, e.g. cup'} /></label>
-        <label class="min-goal">
-          <span class="sub-label">Minimum</span>
+        <label>Minimum
           {#if type === 'duration'}
-            <DurationField bind:value={standard} />
+            <DurationField bind:value={standard} placeholder="e.g. 5:00" />
           {:else}
             <input type="number" bind:value={standard} min="1" />
           {/if}
         </label>
+        <label>Stretch goal
+          {#if type === 'duration'}
+            <DurationField bind:value={target} placeholder="e.g. 1:00:00" />
+          {:else}
+            <input type="number" bind:value={target} min="1" />
+          {/if}
+        </label>
       </div>
-      {#if type === 'duration'}
-        <label>Minimum <DurationField bind:value={standard} placeholder="e.g. 5:00" /></label>
-        <label>Stretch goal <DurationField bind:value={target} placeholder="e.g. 1:00:00" /></label>
-      {:else}
-        <label>Minimum <input type="number" bind:value={standard} min="1" /></label>
-        <label>Stretch goal <input type="number" bind:value={target} min="1" /></label>
-      {/if}
     {/if}
 
     <div class="form-row">
@@ -399,21 +401,30 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 0.5rem 0;
-    border: none;
-    background: none;
-    color: var(--accent, #0066cc);
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--card-border, #ccc);
+    border-radius: 4px;
+    background: var(--input-bg, #f5f5f5);
+    color: var(--text-primary, #222);
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
     font-family: inherit;
   }
-  .advanced-toggle:hover { text-decoration: underline; }
+  .advanced-toggle:hover { background: var(--btn-secondary-bg, #eee); }
   .advanced-toggle :global(svg) {
     transition: transform 0.2s;
     font-size: 1.2rem;
   }
   .advanced-toggle :global(svg).rotated { transform: rotate(180deg); }
+  .section-header {
+    margin: 1rem 0 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
   .advanced-content {
     display: flex;
     flex-direction: column;

@@ -53,6 +53,7 @@
 <style>
   .dropdown-picker {
     margin-bottom: 0.75rem;
+    position: relative;
   }
   .dropdown-label {
     display: block;
