@@ -65,6 +65,8 @@
   let stepSign = $state<'inc' | 'dec'>('inc');
   let showAddStep = $state(false);
   let editSteps = $state(false);
+  let editingStepIdx = $state<number | null>(null);
+  let editStepValue = $state('');
 
   // Sorted steps: ascending by value (negative first, then positive)
   let sortedSteps = $derived([...steps].sort((a, b) => a - b));
@@ -84,6 +86,27 @@
   function removeStep(i: number) {
     persistSteps(steps.filter((_, idx) => idx !== i));
   }
+
+  function startEditStep(idx: number) {
+    editingStepIdx = idx;
+    editStepValue = String(Math.abs(steps[idx]));
+  }
+
+  function saveEditStep() {
+    if (editingStepIdx === null) return;
+    const n = parseInt(editStepValue);
+    if (isNaN(n) || n <= 0) return;
+    const sign = steps[editingStepIdx] < 0 ? -1 : 1;
+    persistSteps(steps.map((v, i) => i === editingStepIdx ? sign * n : v));
+    editingStepIdx = null;
+    editStepValue = '';
+  }
+
+  function cancelEditStep() {
+    editingStepIdx = null;
+    editStepValue = '';
+  }
+
   async function applyStep(sec: number) {
     await log(entryValue + sec);
   }
@@ -251,9 +274,17 @@
         </div>
         {#each sortedSteps as sec (sec)}
           <div class="step-wrap">
-            <button class="step-btn custom" onclick={() => applyStep(sec)}>{fmtStep(sec)}</button>
-            {#if editSteps}
-              <button class="step-del" aria-label="Remove step" onclick={() => removeStep(steps.indexOf(sec))}>×</button>
+            {#if editingStepIdx === steps.indexOf(sec)}
+              <div class="step-edit">
+                <input type="number" min="1" bind:value={editStepValue} onkeydown={(e) => { if (e.key === 'Enter') saveEditStep(); if (e.key === 'Escape') cancelEditStep(); }} />
+                <button class="edit-save" onclick={saveEditStep} aria-label="Save"><Icon icon="mdi:check" /></button>
+                <button class="edit-cancel" onclick={cancelEditStep} aria-label="Cancel"><Icon icon="mdi:close" /></button>
+              </div>
+            {:else}
+              <button class="step-btn custom" onclick={() => editSteps ? startEditStep(steps.indexOf(sec)) : applyStep(sec)}>{fmtStep(sec)}</button>
+              {#if editSteps}
+                <button class="step-del" aria-label="Remove step" onclick={() => removeStep(steps.indexOf(sec))}>×</button>
+              {/if}
             {/if}
           </div>
         {/each}
@@ -524,4 +555,43 @@
     border-color: var(--accent, #0066cc);
   }
   .edit-toggle :global(svg), .edit-toggle :global(.iconify) { font-size: 1.1rem; }
+  .step-edit {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    width: 100%;
+    max-width: 200px;
+  }
+  .step-edit input {
+    flex: 1;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--accent, #0066cc);
+    border-radius: 0;
+    font-size: 0.9rem;
+    background: var(--input-bg, #fff);
+    color: var(--text-primary, #222);
+    box-sizing: border-box;
+  }
+  .edit-save, .edit-cancel {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  .edit-save {
+    background: var(--accent, #0066cc);
+    color: var(--accent-text, #fff);
+  }
+  .edit-cancel {
+    background: var(--btn-secondary-bg, #eee);
+    color: var(--text-primary, #222);
+  }
+  .edit-save:hover { opacity: 0.85; }
+  .edit-cancel:hover { background: var(--btn-secondary-hover, #ddd); }
+  .edit-save :global(svg), .edit-cancel :global(svg), .edit-save :global(.iconify), .edit-cancel :global(.iconify) { font-size: 1rem; }
 </style>
