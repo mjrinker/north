@@ -308,17 +308,16 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 4px;
-    background: var(--input-bg, #f5f5f5);
-    color: var(--text-primary, #222);
+    padding: 0.5rem 0;
+    border: none;
+    background: none;
+    color: var(--accent, #0066cc);
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
     font-family: inherit;
   }
-  .advanced-toggle:hover { background: var(--btn-secondary-bg, #eee); }
+  .advanced-toggle:hover { color: var(--accent-hover, #0052a3); }
   .advanced-toggle :global(svg) {
     transition: transform 0.2s;
     font-size: 1.2rem;
