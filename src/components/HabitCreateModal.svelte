@@ -217,6 +217,9 @@
       </select>
     {/if}
 
+    <span class="field-label">Tags</span>
+    <TagInput bind:tags={habitTags} allTags={existingTags} />
+
     <div class="advanced-section">
       <button class="advanced-toggle" onclick={() => advancedOpen = !advancedOpen} aria-expanded={advancedOpen}>
         <span>Advanced</span>
@@ -237,9 +240,6 @@
         </div>
       {/if}
     </div>
-
-    <span class="field-label">Tags</span>
-    <TagInput bind:tags={habitTags} allTags={existingTags} />
 
     {#if errorMsg}
       <p class="form-error">{errorMsg}</p>
