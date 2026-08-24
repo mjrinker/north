@@ -164,9 +164,6 @@
     </div>
 
     {#if showStandard}
-      <label for="unit">Unit</label>
-      <input type="text" bind:value={unit} placeholder={type === 'duration' ? 'seconds' : 'times'} oninput={() => unitDefaulted = false} />
-
       <div class="section-header">Goals</div>
       <div class="form-row">
         <label>Minimum
@@ -184,6 +181,8 @@
           {/if}
         </label>
       </div>
+      <label for="unit">Unit</label>
+      <input type="text" bind:value={unit} placeholder={type === 'duration' ? 'seconds' : 'times'} oninput={() => unitDefaulted = false} />
     {/if}
 
     <div class="form-row">
