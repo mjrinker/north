@@ -59,19 +59,20 @@
   async function dec() { await log(entryValue - baseStep()); }
 
   // ---- Custom quick steps ----
-  let steps = $state<number[]>([...(habit.metadata?.quickSteps ?? [])]);
+  type QuickStep = { value: number; label?: string };
+  let steps = $state<QuickStep[]>([...(habit.metadata?.quickSteps ?? [])].map(v => typeof v === 'number' ? { value: v } : v));
   let stepInput = $state('');
+  let stepLabel = $state('');
   let stepUnit = $state<'min' | 'sec'>('min');
   let stepSign = $state<'inc' | 'dec'>('inc');
   let showAddStep = $state(false);
   let editSteps = $state(false);
   let editingStepIdx = $state<number | null>(null);
-  let editStepValue = $state('');
 
   // Sorted steps: ascending by value (negative first, then positive)
-  let sortedSteps = $derived([...steps].sort((a, b) => a - b));
+  let sortedSteps = $derived([...steps].sort((a, b) => a.value - b.value));
 
-  function persistSteps(next: number[]) {
+  function persistSteps(next: QuickStep[]) {
     steps = next;
     updateHabit({ ...habit, metadata: { ...habit.metadata, quickSteps: next } });
   }
@@ -79,8 +80,9 @@
     const n = parseInt(stepInput);
     if (isNaN(n) || n <= 0) return;
     const amt = habit.type === 'duration' ? (stepUnit === 'min' ? n * 60 : n) : n;
-    persistSteps([...steps, stepSign === 'dec' ? -amt : amt]);
+    persistSteps([...steps, { value: stepSign === 'dec' ? -amt : amt, label: stepLabel.trim() || undefined }]);
     stepInput = '';
+    stepLabel = '';
     showAddStep = false;
   }
   function removeStep(i: number) {
@@ -89,22 +91,29 @@
 
   function startEditStep(idx: number) {
     editingStepIdx = idx;
-    editStepValue = String(Math.abs(steps[idx]));
+    const step = steps[idx];
+    stepInput = String(Math.abs(step.value));
+    stepLabel = step.label ?? '';
+    stepSign = step.value < 0 ? 'dec' : 'inc';
+    stepUnit = 'min';
+    showAddStep = false;
   }
 
   function saveEditStep() {
     if (editingStepIdx === null) return;
-    const n = parseInt(editStepValue);
+    const n = parseInt(stepInput);
     if (isNaN(n) || n <= 0) return;
-    const sign = steps[editingStepIdx] < 0 ? -1 : 1;
-    persistSteps(steps.map((v, i) => i === editingStepIdx ? sign * n : v));
+    const amt = habit.type === 'duration' ? (stepUnit === 'min' ? n * 60 : n) : n;
+    persistSteps(steps.map((s, i) => i === editingStepIdx ? { value: stepSign === 'dec' ? -amt : amt, label: stepLabel.trim() || undefined } : s));
     editingStepIdx = null;
-    editStepValue = '';
+    stepInput = '';
+    stepLabel = '';
   }
 
   function cancelEditStep() {
     editingStepIdx = null;
-    editStepValue = '';
+    stepInput = '';
+    stepLabel = '';
   }
 
   async function applyStep(sec: number) {
@@ -272,36 +281,47 @@
             <Icon icon={editSteps ? 'mdi:check' : 'mdi:pencil'} />
           </button>
         </div>
-        {#each sortedSteps as sec (sec)}
+        {#each sortedSteps as step (step.value)}
           <div class="step-wrap">
-            {#if editingStepIdx === steps.indexOf(sec)}
-              <div class="step-edit">
-                <input type="number" min="1" bind:value={editStepValue} onkeydown={(e) => { if (e.key === 'Enter') saveEditStep(); if (e.key === 'Escape') cancelEditStep(); }} />
-                <button class="edit-save" onclick={saveEditStep} aria-label="Save"><Icon icon="mdi:check" /></button>
-                <button class="edit-cancel" onclick={cancelEditStep} aria-label="Cancel"><Icon icon="mdi:close" /></button>
+            {#if editingStepIdx === steps.indexOf(step)}
+              <div class="add-step">
+                <button class="sign-toggle" onclick={() => stepSign = stepSign === 'inc' ? 'dec' : 'inc'} aria-label="Toggle sign">{stepSign === 'inc' ? '+' : '−'}</button>
+                <input type="number" min="1" placeholder={habit.type === 'duration' ? 'e.g. 5' : 'e.g. 3'} bind:value={stepInput} onkeydown={(e) => { if (e.key === 'Enter') saveEditStep(); if (e.key === 'Escape') cancelEditStep(); }} />
+                {#if habit.type === 'duration'}
+                  <select bind:value={stepUnit}>
+                    <option value="min">min</option>
+                    <option value="sec">sec</option>
+                  </select>
+                {/if}
+                <input type="text" placeholder="Label (optional)" bind:value={stepLabel} />
+                <button class="add-ok" onclick={saveEditStep}>Save</button>
+                <button class="step-btn add-close" onclick={cancelEditStep} aria-label="Cancel"><Icon icon="mdi:close" /></button>
               </div>
             {:else}
-              <button class="step-btn custom" onclick={() => editSteps ? startEditStep(steps.indexOf(sec)) : applyStep(sec)}>{fmtStep(sec)}</button>
+              <button class="step-btn custom" onclick={() => editSteps ? startEditStep(steps.indexOf(step)) : applyStep(step.value)}>
+                {step.label ? step.label : fmtStep(step.value)}
+              </button>
               {#if editSteps}
-                <button class="step-del" aria-label="Remove step" onclick={() => removeStep(steps.indexOf(sec))}>×</button>
+                <button class="step-del" aria-label="Remove step" onclick={() => removeStep(steps.indexOf(step))}>×</button>
               {/if}
             {/if}
           </div>
         {/each}
-        {#if !showAddStep}
+        {#if !showAddStep && editingStepIdx === null}
           <button class="step-fab" onclick={() => showAddStep = true} aria-label="Add custom step"><Icon icon="mdi:bookmark-plus-outline" /></button>
-        {:else}
+        {:else if showAddStep || editingStepIdx !== null}
           <div class="add-step">
             <button class="sign-toggle" onclick={() => stepSign = stepSign === 'inc' ? 'dec' : 'inc'} aria-label="Toggle sign">{stepSign === 'inc' ? '+' : '−'}</button>
-            <input type="number" min="0" placeholder={habit.type === 'duration' ? 'e.g. 5' : 'e.g. 3'} bind:value={stepInput} onkeydown={(e) => { if (e.key === 'Enter') handleAddStep(); }} />
+            <input type="number" min="1" placeholder={habit.type === 'duration' ? 'e.g. 5' : 'e.g. 3'} bind:value={stepInput} onkeydown={(e) => { if (e.key === 'Enter') handleAddStep(); }} />
             {#if habit.type === 'duration'}
               <select bind:value={stepUnit}>
                 <option value="min">min</option>
                 <option value="sec">sec</option>
               </select>
             {/if}
-            <button class="add-ok" onclick={handleAddStep}>Add</button>
-            <button class="step-btn add-close" onclick={() => { showAddStep = false; stepInput = ''; }}>×</button>
+            <input type="text" placeholder="Label (optional)" bind:value={stepLabel} />
+            <button class="add-ok" onclick={editingStepIdx !== null ? saveEditStep : handleAddStep}>{editingStepIdx !== null ? 'Save' : 'Add'}</button>
+            <button class="step-btn add-close" onclick={() => { showAddStep = false; editingStepIdx = null; stepInput = ''; stepLabel = ''; }} aria-label="Cancel"><Icon icon="mdi:close" /></button>
           </div>
         {/if}
       </div>
