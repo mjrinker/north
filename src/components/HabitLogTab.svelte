@@ -64,6 +64,10 @@
   let stepUnit = $state<'min' | 'sec'>('min');
   let stepSign = $state<'inc' | 'dec'>('inc');
   let showAddStep = $state(false);
+  let editSteps = $state(false);
+
+  // Sorted steps: ascending by value (negative first, then positive)
+  let sortedSteps = $derived([...steps].sort((a, b) => a - b));
 
   function persistSteps(next: number[]) {
     steps = next;
@@ -239,10 +243,18 @@
         <button class="step-btn step-default plus" onclick={inc} aria-label="Increase"><Icon icon="mdi:plus" /></button>
       </div>
       <div class="stepper-custom">
-        {#each steps as sec, i (sec + '-' + i)}
+        <div class="stepper-custom-header">
+          <span>Quick steps</span>
+          <button class="edit-toggle" onclick={() => editSteps = !editSteps} aria-label={editSteps ? 'Done editing' : 'Edit steps'}>
+            <Icon icon={editSteps ? 'mdi:check' : 'mdi:pencil'} />
+          </button>
+        </div>
+        {#each sortedSteps as sec (sec)}
           <div class="step-wrap">
             <button class="step-btn custom" onclick={() => applyStep(sec)}>{fmtStep(sec)}</button>
-            <button class="step-del" aria-label="Remove step" onclick={() => removeStep(i)}>×</button>
+            {#if editSteps}
+              <button class="step-del" aria-label="Remove step" onclick={() => removeStep(steps.indexOf(sec))}>×</button>
+            {/if}
           </div>
         {/each}
         {#if !showAddStep}
@@ -482,4 +494,34 @@
     background: var(--card-border, #ccc);
   }
   .status-dot.met { background: #2e7d32; }
+  .stepper-custom-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary, #666);
+  }
+  .edit-toggle {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1px solid var(--card-border, #ccc);
+    background: var(--btn-secondary-bg, #eee);
+    color: var(--text-primary, #222);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  .edit-toggle:hover {
+    background: var(--accent, #0066cc);
+    color: var(--accent-text, #fff);
+    border-color: var(--accent, #0066cc);
+  }
+  .edit-toggle :global(svg), .edit-toggle :global(.iconify) { font-size: 1.1rem; }
 </style>

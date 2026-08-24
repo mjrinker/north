@@ -1082,6 +1082,12 @@
     background: rgba(128, 128, 128, 0.35);
     pointer-events: none;
   }
+  .habit-wrapper.habit-hidden .left-reveal {
+    display: none;
+  }
+  .habit-wrapper.habit-hidden .swipe-actions {
+    display: none;
+  }
   .collapse-arrow {
     font-size: 0.7rem;
     width: 1rem;

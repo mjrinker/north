@@ -3,14 +3,15 @@
   import { addHabit, setLinkedHabits } from '../stores/habits';
   import Modal from './Modal.svelte';
   import TagInput from './TagInput.svelte';
-  import DependencyPicker from './DependencyPicker.svelte';
-  import LinkedHabitPicker from './LinkedHabitPicker.svelte';
+  import DependencyDropdownPicker from './DependencyDropdownPicker.svelte';
+  import LinkedDropdownPicker from './LinkedDropdownPicker.svelte';
   import ModalActions from './ModalActions.svelte';
   import HabitColorPicker from './HabitColorPicker.svelte';
   import HabitIconPicker from './HabitIconPicker.svelte';
   import HabitWebhookSection from './HabitWebhookSection.svelte';
   import HabitShortcutSection from './HabitShortcutSection.svelte';
   import DurationField from './DurationField.svelte';
+  import Icon from '@iconify/svelte';
 
   let {
     habits,
@@ -47,6 +48,7 @@
   let thresholdsDefaulted = $state(true);
   let startOfWeek = $state(1);
   let showStartOfWeek = $derived(frequency === 'weekly' || frequency === 'days_per_week');
+  let advancedOpen = $state(false);
 
   $effect(() => {
     if (!unitDefaulted) return;
@@ -136,57 +138,56 @@
     <label for="description">Description (optional, supports Markdown)</label>
     <textarea bind:value={description} placeholder="Add details about this habit..." class="desc-input"></textarea>
 
-    <span class="field-label">Color</span>
+    <span class="field-label">Color or Icon</span>
     <HabitColorPicker bind:color />
-
-    <span class="field-label">Icon or Emoji</span>
     <HabitIconPicker bind:icon bind:emoji />
 
-    <label for="category">Category</label>
-    <select bind:value={category}>
-      <option value="build">Build</option>
-      <option value="break">Break</option>
-    </select>
-
-    <label for="type">Type</label>
-    <select bind:value={type} required>
-      <option value="binary">Binary (Done / Not Done)</option>
-      <option value="quantity">Quantity (Count)</option>
-      <option value="duration">Duration (Time)</option>
-    </select>
+    <div class="form-row">
+      <label>Category
+        <select bind:value={category}>
+          <option value="build">Build</option>
+          <option value="break">Break</option>
+        </select>
+      </label>
+      <label>Type
+        <select bind:value={type} required>
+          <option value="binary">Binary (Done / Not Done)</option>
+          <option value="quantity">Quantity (Count)</option>
+          <option value="duration">Duration (Time)</option>
+        </select>
+      </label>
+    </div>
 
     {#if showStandard}
       <label for="unit">Unit</label>
       <input type="text" bind:value={unit} placeholder={type === 'duration' ? 'seconds' : 'times'} oninput={() => unitDefaulted = false} />
       {#if type === 'duration'}
-        <label for="standard">Standard (hh:mm:ss)</label>
-        <DurationField id="standard" bind:value={standard} placeholder="e.g. 5:00" touched={() => thresholdsDefaulted = false} />
-        <label for="target">Goal (hh:mm:ss)</label>
-        <DurationField id="target" bind:value={target} placeholder="e.g. 15:00" touched={() => thresholdsDefaulted = false} />
+        <label>Minimum <DurationField id="standard" bind:value={standard} placeholder="e.g. 5:00" touched={() => thresholdsDefaulted = false} /></label>
+        <label>Stretch goal <DurationField id="target" bind:value={target} placeholder="e.g. 15:00" touched={() => thresholdsDefaulted = false} /></label>
       {:else}
-        <label for="standard">Standard</label>
-        <input type="number" bind:value={standard} placeholder="Standard value" min="1" />
-        <label for="target">Goal</label>
-        <input type="number" bind:value={target} placeholder="Goal (optional)" min="1" />
+        <label>Minimum <input type="number" bind:value={standard} placeholder="Standard value" min="1" /></label>
+        <label>Stretch goal <input type="number" bind:value={target} placeholder="Goal (optional)" min="1" /></label>
       {/if}
     {/if}
 
-    <label for="frequency">Frequency</label>
-    <select bind:value={frequency}>
-      <option value="daily">Daily</option>
-      <option value="days_per_week">X Days/Week</option>
-      <option value="weekly">Weekly</option>
-      <option value="monthly">Monthly</option>
-      <option value="custom">Every X Days</option>
-    </select>
-
-    {#if frequency === 'days_per_week'}
-      <label for="interval">Days per week</label>
-      <input type="number" bind:value={interval} min="1" max="7" />
-    {:else}
-      <label for="interval">Every</label>
-      <input type="number" bind:value={interval} min="1" />
-    {/if}
+    <div class="form-row">
+      <label>Frequency
+        <select bind:value={frequency}>
+          <option value="daily">Daily</option>
+          <option value="days_per_week">X Days/Week</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="custom">Every X Days</option>
+        </select>
+      </label>
+      <label>Interval
+        {#if frequency === 'days_per_week'}
+          <input type="number" bind:value={interval} min="1" max="7" />
+        {:else}
+          <input type="number" bind:value={interval} min="1" />
+        {/if}
+      </label>
+    </div>
 
     {#if showStartOfWeek}
       <label for="startOfWeek">Start of week</label>
@@ -201,18 +202,29 @@
       </select>
     {/if}
 
-    {#if type === 'binary'}
-      <DependencyPicker {habits} bind:depIds bind:depMode />
-    {/if}
+    <div class="advanced-section">
+      <button class="advanced-toggle" onclick={() => advancedOpen = !advancedOpen} aria-expanded={advancedOpen}>
+        <span>Advanced</span>
+        <span class:rotated={advancedOpen}><Icon icon="mdi:chevron-down" /></span>
+      </button>
 
-    <LinkedHabitPicker habits={linkCandidates} bind:linkedIds={linkIds} />
+      {#if advancedOpen}
+        <div class="advanced-content">
+          {#if type === 'binary'}
+            <DependencyDropdownPicker habits={habits} bind:depIds bind:depMode />
+          {/if}
+
+          <LinkedDropdownPicker habits={linkCandidates} bind:linkedIds={linkIds} />
+
+          <HabitWebhookSection bind:webhooks {type} />
+
+          <HabitShortcutSection bind:shortcuts {type} />
+        </div>
+      {/if}
+    </div>
 
     <span class="field-label">Tags</span>
     <TagInput bind:tags={habitTags} allTags={existingTags} />
-
-    <HabitWebhookSection bind:webhooks {type} />
-
-    <HabitShortcutSection bind:shortcuts {type} />
 
     {#if errorMsg}
       <p class="form-error">{errorMsg}</p>
@@ -255,6 +267,13 @@
     font-weight: 500;
     color: var(--text-primary, #222);
   }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  .form-row > * { margin-bottom: 0; }
+  .form-row > label { display: flex; flex-direction: column; gap: 0.25rem; }
   .form-error {
     margin: 0.5rem 0 0.75rem;
     padding: 0.5rem;
@@ -262,5 +281,41 @@
     background: rgba(198, 40, 40, 0.1);
     color: #c62828;
     font-size: 0.85rem;
+  }
+  .advanced-section {
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--card-border, #ccc);
+    padding-top: 0.75rem;
+  }
+  .advanced-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.5rem 0;
+    border: none;
+    background: none;
+    color: var(--accent, #0066cc);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .advanced-toggle:hover { text-decoration: underline; }
+  .advanced-toggle :global(svg) {
+    transition: transform 0.2s;
+    font-size: 1.2rem;
+  }
+  .advanced-toggle :global(svg).rotated { transform: rotate(180deg); }
+  .advanced-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+    animation: slideDown 0.2s ease;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 </style>

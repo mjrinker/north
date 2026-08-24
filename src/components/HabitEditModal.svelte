@@ -4,8 +4,8 @@
   import { isHabitPaused } from '../lib/habitUtils';
   import Modal from './Modal.svelte';
   import TagInput from './TagInput.svelte';
-  import DependencyPicker from './DependencyPicker.svelte';
-  import LinkedHabitPicker from './LinkedHabitPicker.svelte';
+  import DependencyDropdownPicker from './DependencyDropdownPicker.svelte';
+  import LinkedDropdownPicker from './LinkedDropdownPicker.svelte';
   import ModalActions from './ModalActions.svelte';
   import HabitColorPicker from './HabitColorPicker.svelte';
   import HabitIconPicker from './HabitIconPicker.svelte';
@@ -13,6 +13,7 @@
   import HabitShortcutSection from './HabitShortcutSection.svelte';
   import DurationField from './DurationField.svelte';
   import HabitLogTab from './HabitLogTab.svelte';
+  import Icon from '@iconify/svelte';
 
   let {
     habit,
@@ -56,6 +57,7 @@
   let pauseMode = $state(habit.metadata?.pauseUntil ? 'until' : 'indefinite');
   let pauseUntilDate = $state(habit.metadata?.pauseUntil ?? '');
   let hidden = $state(!!habit.metadata?.hidden);
+  let advancedOpen = $state(false);
 
   function handleSave() {
     if (type !== 'binary') {
@@ -131,53 +133,65 @@
       <textarea bind:value={description} class="desc-input" placeholder="Add details about this habit..."></textarea>
     </label>
 
-    <span class="field-label">Color</span>
+    <span class="field-label">Color or Icon</span>
     <HabitColorPicker bind:color />
-
-    <span class="field-label">Icon or Emoji</span>
     <HabitIconPicker bind:icon bind:emoji />
 
-    <label>Category
-      <select bind:value={category}>
-        <option value="build">Build</option>
-        <option value="break">Break</option>
-      </select>
-    </label>
-
-    <label>Type
-      <select bind:value={type}>
-        <option value="binary">Binary (Done / Not Done)</option>
-        <option value="quantity">Quantity (Count)</option>
-        <option value="duration">Duration (Time)</option>
-      </select>
-    </label>
+    <div class="form-row">
+      <label>Category
+        <select bind:value={category}>
+          <option value="build">Build</option>
+          <option value="break">Break</option>
+        </select>
+      </label>
+      <label>Type
+        <select bind:value={type}>
+          <option value="binary">Binary (Done / Not Done)</option>
+          <option value="quantity">Quantity (Count)</option>
+          <option value="duration">Duration (Time)</option>
+        </select>
+      </label>
+    </div>
 
     {#if showStandard}
-      <label>Unit <input type="text" bind:value={unit} placeholder={type === 'duration' ? 'seconds' : 'singular, e.g. cup'} /></label>
+      <div class="form-row">
+        <label>Unit <input type="text" bind:value={unit} placeholder={type === 'duration' ? 'seconds' : 'singular, e.g. cup'} /></label>
+        <label class="min-goal">
+          <span class="sub-label">Minimum</span>
+          {#if type === 'duration'}
+            <DurationField bind:value={standard} />
+          {:else}
+            <input type="number" bind:value={standard} min="1" />
+          {/if}
+        </label>
+      </div>
       {#if type === 'duration'}
-        <label>Standard <DurationField bind:value={standard} placeholder="e.g. 30:00" /></label>
-        <label>Goal <DurationField bind:value={target} placeholder="e.g. 1:00:00" /></label>
+        <label>Minimum <DurationField bind:value={standard} placeholder="e.g. 5:00" /></label>
+        <label>Stretch goal <DurationField bind:value={target} placeholder="e.g. 1:00:00" /></label>
       {:else}
-        <label>Standard <input type="number" bind:value={standard} /></label>
-        <label>Goal <input type="number" bind:value={target} /></label>
+        <label>Minimum <input type="number" bind:value={standard} min="1" /></label>
+        <label>Stretch goal <input type="number" bind:value={target} min="1" /></label>
       {/if}
     {/if}
 
-    <label>Frequency
-      <select bind:value={frequency}>
-        <option value="daily">Daily</option>
-        <option value="days_per_week">X Days/Week</option>
-        <option value="weekly">Weekly</option>
-        <option value="monthly">Monthly</option>
-        <option value="custom">Every X Days</option>
-      </select>
-    </label>
-
-    {#if frequency === 'days_per_week'}
-      <label>Days per week <input type="number" bind:value={interval} min="1" max="7" /></label>
-    {:else}
-      <label>Interval <input type="number" bind:value={interval} min="1" /></label>
-    {/if}
+    <div class="form-row">
+      <label>Frequency
+        <select bind:value={frequency}>
+          <option value="daily">Daily</option>
+          <option value="days_per_week">X Days/Week</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="custom">Every X Days</option>
+        </select>
+      </label>
+      <label>Interval
+        {#if frequency === 'days_per_week'}
+          <input type="number" bind:value={interval} min="1" max="7" />
+        {:else}
+          <input type="number" bind:value={interval} min="1" />
+        {/if}
+      </label>
+    </div>
 
     {#if showStartOfWeek}
       <label>Start of week
@@ -193,46 +207,57 @@
       </label>
     {/if}
 
-    {#if showDeps}
-      <DependencyPicker habits={allHabits} bind:depIds bind:depMode excludeId={habit.id} />
-    {/if}
+    <div class="advanced-section">
+      <button class="advanced-toggle" onclick={() => advancedOpen = !advancedOpen} aria-expanded={advancedOpen}>
+        <span>Advanced</span>
+        <span class:rotated={advancedOpen}><Icon icon="mdi:chevron-down" /></span>
+      </button>
 
-    <LinkedHabitPicker habits={linkCandidates} bind:linkedIds={linkIds} excludeId={habit.id} />
+      {#if advancedOpen}
+        <div class="advanced-content">
+          {#if showDeps}
+            <DependencyDropdownPicker habits={allHabits} bind:depIds bind:depMode excludeId={habit.id} />
+          {/if}
 
-    <label class="pause-row">
-      <span class="pause-label">Paused</span>
-      <label class="toggle">
-        <input type="checkbox" bind:checked={paused} />
-        <span class="toggle-slider"></span>
-      </label>
-    </label>
-    {#if paused}
-      <label>Pause
-        <select bind:value={pauseMode}>
-          <option value="until">Until a date</option>
-          <option value="indefinite">Indefinitely</option>
-        </select>
-      </label>
-      {#if pauseMode === 'until'}
-        <label>Pause until <input type="date" bind:value={pauseUntilDate} /></label>
+          <LinkedDropdownPicker habits={linkCandidates} bind:linkedIds={linkIds} excludeId={habit.id} />
+
+          <label class="pause-row">
+            <span class="pause-label">Paused</span>
+            <label class="toggle">
+              <input type="checkbox" bind:checked={paused} />
+              <span class="toggle-slider"></span>
+            </label>
+          </label>
+          {#if paused}
+            <label>Pause
+              <select bind:value={pauseMode}>
+                <option value="until">Until a date</option>
+                <option value="indefinite">Indefinitely</option>
+              </select>
+            </label>
+            {#if pauseMode === 'until'}
+              <label>Pause until <input type="date" bind:value={pauseUntilDate} /></label>
+            {/if}
+          {/if}
+
+          <label class="pause-row">
+            <span class="pause-label">Hidden</span>
+            <label class="toggle toggle-hidden">
+              <input type="checkbox" bind:checked={hidden} />
+              <span class="toggle-slider"></span>
+            </label>
+          </label>
+          <p class="hidden-hint">Hidden habits stay active but are hidden from the Today view until you reveal them.</p>
+
+          <HabitWebhookSection bind:webhooks {type} />
+
+          <HabitShortcutSection bind:shortcuts {type} />
+        </div>
       {/if}
-    {/if}
-
-    <label class="pause-row">
-      <span class="pause-label">Hidden</span>
-      <label class="toggle toggle-hidden">
-        <input type="checkbox" bind:checked={hidden} />
-        <span class="toggle-slider"></span>
-      </label>
-    </label>
-    <p class="hidden-hint">Hidden habits stay active but are hidden from the Today view until you reveal them.</p>
+    </div>
 
     <span class="field-label">Tags</span>
     <TagInput bind:tags={habitTags} allTags={existingTags} />
-
-    <HabitWebhookSection bind:webhooks {type} />
-
-    <HabitShortcutSection bind:shortcuts {type} />
 
     {#if errorMsg}
       <p class="form-error">{errorMsg}</p>
@@ -321,6 +346,13 @@
     font-weight: 500;
     color: var(--text-primary, #222);
   }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  .form-row > * { margin-bottom: 0; }
+  .form-row > label { display: flex; flex-direction: column; gap: 0.25rem; }
   .pause-row {
     display: flex;
     align-items: center;
@@ -357,4 +389,40 @@
   .toggle input:checked + .toggle-slider { background: #f59e0b; }
   .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
   .toggle-hidden input:checked + .toggle-slider { background: var(--accent, #0066cc); }
+  .advanced-section {
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--card-border, #ccc);
+    padding-top: 0.75rem;
+  }
+  .advanced-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.5rem 0;
+    border: none;
+    background: none;
+    color: var(--accent, #0066cc);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .advanced-toggle:hover { text-decoration: underline; }
+  .advanced-toggle :global(svg) {
+    transition: transform 0.2s;
+    font-size: 1.2rem;
+  }
+  .advanced-toggle :global(svg).rotated { transform: rotate(180deg); }
+  .advanced-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+    animation: slideDown 0.2s ease;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 </style>
