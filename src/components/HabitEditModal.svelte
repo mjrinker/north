@@ -133,10 +133,14 @@
       <textarea bind:value={description} class="desc-input" placeholder="Add details about this habit..."></textarea>
     </label>
 
-    <span class="field-label">Color</span>
-    <HabitColorPicker bind:color />
-    <span class="field-label">Icon</span>
-    <HabitIconPicker bind:icon bind:emoji />
+    <div class="form-row">
+      <label>Color
+        <HabitColorPicker bind:color />
+      </label>
+      <label>Icon
+        <HabitIconPicker bind:icon bind:emoji />
+      </label>
+    </div>
 
     <div class="form-row">
       <label>Category
