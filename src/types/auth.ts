@@ -34,14 +34,14 @@ export const ROLE_DEFINITIONS: RoleDefinition[] = [
     name: 'beta',
     label: 'Beta Tester',
     description: 'Access to preview features',
-    features: ['IOS_NATIVE_UI'],
+    features: [],
     permissions: [],
   },
   {
     name: 'admin',
     label: 'Admin',
     description: 'Full access to all features and user management',
-    features: ['STATS'],
+    features: [],
     permissions: ['access_admin', 'manage_roles'],
   },
 ]
