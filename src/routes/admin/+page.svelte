@@ -21,6 +21,10 @@
       <h2>Users</h2>
       <p>Manage user roles and permissions</p>
     </a>
+    <a href="/admin/roles" class="card">
+      <h2>Roles & Features</h2>
+      <p>Create roles, assign features and permissions</p>
+    </a>
     <a href="/admin/api-keys" class="card">
       <h2>API Keys</h2>
       <p>Mint and revoke API keys for users</p>

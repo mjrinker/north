@@ -218,7 +218,17 @@ export const schema = createSchema<GraphQLContext>({
       LINKED
     }
 
-    input BackfillHabitInput {
+    type RoleDef {
+    name: String!
+    label: String!
+    description: String
+    features: [String!]!
+    permissions: [String!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  input BackfillHabitInput {
       habitId: String!
       startDate: String!          # YYYY-MM-DD
       endDate: String!            # YYYY-MM-DD
@@ -269,6 +279,7 @@ input AddNoteInput {
     type Query {
       me: User
       myRoles: [String!]!
+      roleDefs: [RoleDef!]!
       usersWithRoles: [UserWithRoles!]!
       habits(userId: String, status: String, tags: [String!], title: String, type: String, sortBy: HabitSortBy, sortDir: SortDirection): [Habit!]!
       habitsConnection(first: Int, after: String, offset: Int, limit: Int, userId: String, status: String, tags: [String!], title: String, type: String, sortBy: HabitSortBy, sortDir: SortDirection): HabitConnection!
@@ -289,6 +300,7 @@ input AddNoteInput {
     type Mutation {
       googleSignIn(idToken: String!): AuthPayload!
       setRoles(userId: ID!, roles: [String!]!): Boolean!
+      setRoleDefs(defs: JSON!): Boolean!
       createHabit(input: CreateHabitInput!): Habit!
       updateHabit(id: ID!, input: UpdateHabitInput!): Habit
       upsertHabit(id: ID!, input: UpdateHabitInput!): Habit!

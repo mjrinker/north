@@ -39,6 +39,16 @@ async function getRolesForUser(ctx: GraphQLContext, userId: string): Promise<str
 export const userResolvers = {
   Query: {
     myRoles: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
+
+    roleDefs: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      if (!(await isAdmin(ctx))) throw new Error('Forbidden');
+      const { data, error } = await ctx.db.from('app_role_defs').select('*');
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+
+    myRoles: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
       if (!ctx.userId) return [];
       const { data } = await ctx.db.from('app_user_roles').select('role_name').eq('user_id', ctx.userId);
       const roles = (data ?? []).map((r: { role_name: string }) => r.role_name);
@@ -99,6 +109,24 @@ export const userResolvers = {
         const { error: insErr } = await ctx.db.from('app_user_roles').insert(rows);
         if (insErr) throw new Error(insErr.message);
       }
+      return true;
+    },
+
+    setRoleDefs: async (_: unknown, args: { defs: any[] }, ctx: GraphQLContext) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      if (!(await isAdmin(ctx))) throw new Error('Forbidden');
+
+      const { error } = await ctx.db.from('app_role_defs').upsert(
+        args.defs.map((d: any) => ({
+          name: d.name,
+          label: d.label,
+          description: d.description,
+          features: d.features,
+          permissions: d.permissions,
+        })),
+        { onConflict: 'name' }
+      );
+      if (error) throw new Error(error.message);
       return true;
     },
   },
