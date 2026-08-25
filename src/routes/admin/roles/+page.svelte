@@ -94,7 +94,7 @@ export const ssr = false;
     showCreate = false;
   }
 
-  const allFeatures: Feature[] = ['stats', 'sync', 'beta', 'IOS_NATIVE_UI'];
+  const allFeatures: Feature[] = ['STATS', 'IOS_NATIVE_UI'];
   const allPermissions: Permission[] = ['access_admin', 'manage_roles'];
 
   function toggleFeature(role: any, feature: Feature) {

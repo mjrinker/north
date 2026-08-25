@@ -1,9 +1,7 @@
 // src/types/auth.ts
 
 export type Feature =
-  | 'stats'
-  | 'sync'
-  | 'beta'
+  | 'STATS'
   | 'IOS_NATIVE_UI';
 
 export type Permission =
@@ -36,14 +34,14 @@ export const ROLE_DEFINITIONS: RoleDefinition[] = [
     name: 'beta',
     label: 'Beta Tester',
     description: 'Access to preview features',
-    features: ['stats', 'beta', 'IOS_NATIVE_UI'],
+    features: ['IOS_NATIVE_UI'],
     permissions: [],
   },
   {
     name: 'admin',
     label: 'Admin',
     description: 'Full access to all features and user management',
-    features: ['stats', 'sync', 'beta'],
+    features: ['STATS', 'IOS_NATIVE_UI'],
     permissions: ['access_admin', 'manage_roles'],
   },
 ]
