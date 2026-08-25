@@ -41,7 +41,7 @@ export const ROLE_DEFINITIONS: RoleDefinition[] = [
     name: 'admin',
     label: 'Admin',
     description: 'Full access to all features and user management',
-    features: ['STATS', 'IOS_NATIVE_UI'],
+    features: ['STATS'],
     permissions: ['access_admin', 'manage_roles'],
   },
 ]
