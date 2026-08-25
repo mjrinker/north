@@ -141,6 +141,10 @@
       </button>
       {#if showAvatarMenu}
         <div class="avatar-menu" role="menu">
+          <a href="/accountability" class="menu-item" role="menuitem" onclick={() => showAvatarMenu = false}>
+            <Icon icon="mdi:account-heart" />
+            Accountability
+          </a>
           {#if userHasPermission(roles, 'access_admin')}
             <a href="/admin" class="menu-item" role="menuitem" onclick={() => showAvatarMenu = false}>
               <Icon icon="mdi:shield-account" />

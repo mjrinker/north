@@ -10,6 +10,7 @@ import { settingsResolvers } from './resolvers/settings.js';
 import { userResolvers } from './resolvers/users.js';
 import { logResolvers } from './resolvers/logs.js';
 import { apiKeyResolvers } from './resolvers/apiKeys.js';
+import { accountabilityResolvers } from './resolvers/accountability.js';
 
 const DateTimeScalar = new GraphQLScalarType({
   name: 'DateTime',
@@ -228,6 +229,47 @@ export const schema = createSchema<GraphQLContext>({
     updatedAt: DateTime!
   }
 
+  type AccountabilityInvitation {
+    id: ID!
+    inviter: User!
+    inviteeEmail: String!
+    invitee: User
+    status: String!
+    message: String
+    createdAt: DateTime!
+    acceptedAt: DateTime
+    expiresAt: DateTime!
+  }
+
+  type AccountabilityPartnership {
+    id: ID!
+    user: User!
+    partner: User!
+    createdAt: DateTime!
+  }
+
+  type SharedHabit {
+    id: ID!
+    partnership: AccountabilityPartnership!
+    habit: Habit!
+    sharedAt: DateTime!
+  }
+
+  type PartnerSharedHabit {
+    habit: Habit!
+    sharedAt: DateTime!
+    todayEntry: HabitEntry
+    standardMet: Boolean
+    targetMet: Boolean
+  }
+
+  type PartnerHistoryEntry {
+    date: String!
+    value: Float!
+    standardMet: Boolean!
+    targetMet: Boolean
+  }
+
   input BackfillHabitInput {
       habitId: String!
       startDate: String!          # YYYY-MM-DD
@@ -295,6 +337,11 @@ input AddNoteInput {
       settings: UserSettings
       myApiKeys: [ApiKey!]!
       apiKeys(userId: String): [ApiKey!]!
+      accountabilityInvitations: [AccountabilityInvitation!]!
+      accountabilityPartnerships: [AccountabilityPartnership!]!
+      sharedHabits(partnershipId: ID!): [SharedHabit!]!
+      partnerSharedHabits(partnerId: ID!): [PartnerSharedHabit!]!
+      partnerHistory(partnerId: ID!, habitId: ID!, dateFrom: String, dateTo: String): [PartnerHistoryEntry!]!
     }
 
     type Mutation {
@@ -320,6 +367,13 @@ input AddNoteInput {
       createApiKey(userId: ID!, name: String): ApiKey!
       revokeApiKey(id: ID!): Boolean!
       clientLogs(entries: [ClientLogInput!]!): Boolean!
+      sendAccountabilityInvitation(email: String!, message: String): AccountabilityInvitation!
+      acceptAccountabilityInvitation(invitationId: ID!): AccountabilityPartnership!
+      declineAccountabilityInvitation(invitationId: ID!): Boolean!
+      cancelAccountabilityInvitation(invitationId: ID!): Boolean!
+      removeAccountabilityPartnership(partnerId: ID!): Boolean!
+      shareHabitsWithPartner(partnershipId: ID!, habitIds: [ID!]!): [SharedHabit!]!
+      unshareHabitsWithPartner(partnershipId: ID!, habitIds: [ID!]!): Boolean!
     }
   `,
   resolvers: [
@@ -333,5 +387,6 @@ input AddNoteInput {
     userResolvers,
     logResolvers,
     apiKeyResolvers,
+    accountabilityResolvers,
   ] as any,
 });
