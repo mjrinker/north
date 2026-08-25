@@ -4,6 +4,7 @@ export type Feature =
   | 'stats'
   | 'sync'
   | 'beta'
+  | 'IOS_NATIVE_UI';
 
 export type Permission =
   | 'access_admin'
@@ -35,7 +36,7 @@ export const ROLE_DEFINITIONS: RoleDefinition[] = [
     name: 'beta',
     label: 'Beta Tester',
     description: 'Access to preview features',
-    features: ['stats', 'beta'],
+    features: ['stats', 'beta', 'IOS_NATIVE_UI'],
     permissions: [],
   },
   {

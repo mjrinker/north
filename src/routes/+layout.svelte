@@ -13,6 +13,7 @@
   import { showCreateHabit } from '../stores/createHabit';
   import ErrorBoundary from '../components/ErrorBoundary.svelte';
   import LogoutConfirmModal from '../components/LogoutConfirmModal.svelte';
+  import IOSNativeStyles from '../components/IOSNativeStyles.svelte';
   import Icon from '@iconify/svelte';
   import { iconDataUrl } from '../lib/icon';
   let { children }: { children: any } = $props();
@@ -107,6 +108,7 @@
 
 <svelte:window on:keydown={handleMenuKeydown} />
 
+<IOSNativeStyles />
 <ErrorBoundary>
   <div class="page-content">
     {@render children()}
