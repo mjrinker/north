@@ -123,7 +123,7 @@ export const ssr = false;
       </div>
       <div class="modal-body">
         <label class="multiselect-label">Roles</label>
-        <div class="multiselect" tabindex="0" role="combobox" aria-expanded={isDropdownOpen} aria-haspopup="listbox" onclick={() => isDropdownOpen = true}>
+        <div class="multiselect" tabindex="0" role="combobox" aria-expanded={isDropdownOpen} aria-haspopup="listbox" onclick={(e) => { e.stopPropagation(); isDropdownOpen = true; }}>
           <div class="multiselect-selected">
             {#if selectedRoles.length === 0}
               <span class="placeholder">Select roles...</span>
