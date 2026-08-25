@@ -30,25 +30,39 @@
 
   $effect(() => { loadRoleDefs(); });
 
+  let errorMessage = $state('');
+
   async function saveRole() {
     if (!editingRole) return;
-    const idx = roleDefs.findIndex(r => r.name === editingRole.name);
-    if (idx >= 0) {
-      roleDefs[idx] = { ...editingRole, updatedAt: new Date().toISOString() };
-    } else {
-      roleDefs.push({ ...editingRole, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+    errorMessage = '';
+    try {
+      const idx = roleDefs.findIndex(r => r.name === editingRole.name);
+      if (idx >= 0) {
+        roleDefs[idx] = { ...editingRole, updatedAt: new Date().toISOString() };
+      } else {
+        roleDefs.push({ ...editingRole, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      }
+      await persistRoles();
+      editingRole = null;
+      showCreate = false;
+      await loadRoleDefs();
+    } catch (e: any) {
+      errorMessage = e.message ?? 'Failed to save role';
+      console.error('saveRole error:', e);
     }
-    await persistRoles();
-    editingRole = null;
-    showCreate = false;
-    await loadRoleDefs();
   }
 
   async function deleteRole(name: string) {
     if (name === 'default' || name === 'admin') return;
-    roleDefs = roleDefs.filter(r => r.name !== name);
-    await persistRoles();
-    await loadRoleDefs();
+    errorMessage = '';
+    try {
+      roleDefs = roleDefs.filter(r => r.name !== name);
+      await persistRoles();
+      await loadRoleDefs();
+    } catch (e: any) {
+      errorMessage = e.message ?? 'Failed to delete role';
+      console.error('deleteRole error:', e);
+    }
   }
 
   async function persistRoles() {
@@ -97,6 +111,10 @@
 <div class="admin-page">
   <h1>Roles & Features</h1>
   <p class="subtitle">Define roles and assign features/permissions. Features are defined in code.</p>
+
+  {#if errorMessage}
+    <div class="error-banner">{errorMessage}</div>
+  {/if}
 
   {#if loading}
     <p class="status">Loading roles...</p>
@@ -273,4 +291,13 @@
   }
   .meta-group { display: flex; flex-direction: column; gap: 0.25rem; }
   .meta-group strong { color: var(--text-primary, #222); font-size: 0.8rem; }
+  .error-banner {
+    padding: 0.75rem 1rem;
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+  }
 </style>
