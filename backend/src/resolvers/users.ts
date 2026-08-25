@@ -38,8 +38,6 @@ async function getRolesForUser(ctx: GraphQLContext, userId: string): Promise<str
 
 export const userResolvers = {
   Query: {
-    myRoles: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
-
     roleDefs: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       if (!(await isAdmin(ctx))) throw new Error('Forbidden');
