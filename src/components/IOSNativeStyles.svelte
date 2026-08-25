@@ -17,5 +17,5 @@
 </script>
 
 <svelte:head>
-  <link rel="stylesheet" href="/src/styles/ios-native.css" />
+  <link rel="stylesheet" href="/styles/ios-native.css" />
 </svelte:head>
