@@ -43,7 +43,15 @@ export const userResolvers = {
       if (!(await isAdmin(ctx))) throw new Error('Forbidden');
       const { data, error } = await ctx.db.from('app_role_defs').select('*');
       if (error) throw new Error(error.message);
-      return data ?? [];
+      return (data ?? []).map(d => ({
+        name: d.name,
+        label: d.label,
+        description: d.description,
+        features: d.features,
+        permissions: d.permissions,
+        createdAt: d.created_at,
+        updatedAt: d.updated_at,
+      }));
     },
 
     myRoles: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
