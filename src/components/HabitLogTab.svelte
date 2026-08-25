@@ -294,7 +294,7 @@
                   </select>
                 {/if}
                 <input type="text" placeholder="Label (optional)" bind:value={stepLabel} />
-                <button class="add-ok" onclick={saveEditStep}>Save</button>
+                <button class="add-ok" onclick={saveEditStep} aria-label="Save"><Icon icon="mdi:check" /></button>
                 <button class="step-btn add-close" onclick={cancelEditStep} aria-label="Cancel"><Icon icon="mdi:close" /></button>
               </div>
             {:else}
