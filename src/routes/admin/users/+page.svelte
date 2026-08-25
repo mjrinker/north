@@ -17,6 +17,7 @@ export const ssr = false;
   let allRoleDefs = $state<{ name: string; label: string }[]>([]);
   let editingUserId: string | null = $state(null);
   let selectedRoles = $state<string[]>([]);
+  let isDropdownOpen = $state(false);
 
   async function loadUsers() {
     loading = true;
@@ -49,6 +50,7 @@ export const ssr = false;
   function closeEditRoles() {
     editingUserId = null;
     selectedRoles = [];
+    isDropdownOpen = false;
   }
 
   function toggleRoleInSelection(role: string) {
@@ -112,7 +114,7 @@ export const ssr = false;
 
 {#if editingUserId}
   <div class="modal-overlay" onclick={closeEditRoles}>
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
+    <div class="modal" onclick={(e) => { e.stopPropagation(); isDropdownOpen = false; }}>
       <div class="modal-header">
         <h2>Edit Roles</h2>
         <button class="modal-close" onclick={closeEditRoles} aria-label="Close">
@@ -121,7 +123,7 @@ export const ssr = false;
       </div>
       <div class="modal-body">
         <label class="multiselect-label">Roles</label>
-        <div class="multiselect" tabindex="0" role="combobox" aria-expanded="true" aria-haspopup="listbox">
+        <div class="multiselect" tabindex="0" role="combobox" aria-expanded={isDropdownOpen} aria-haspopup="listbox" onclick={() => isDropdownOpen = true}>
           <div class="multiselect-selected">
             {#if selectedRoles.length === 0}
               <span class="placeholder">Select roles...</span>
@@ -132,24 +134,26 @@ export const ssr = false;
                     const def = allRoleDefs.find(d => d.name === r);
                     return def ? def.label : r;
                   })()}
-                  <button class="chip-remove" onclick={() => toggleRoleInSelection(r)} aria-label="Remove">×</button>
+                  <button class="chip-remove" onclick={(e) => { e.stopPropagation(); toggleRoleInSelection(r); }} aria-label="Remove">×</button>
                 </span>
               {/each}
             {/if}
           </div>
-          <div class="multiselect-dropdown" role="listbox">
-            {#each allRoleDefs as def}
-              <button
-                class="dropdown-option" class:selected={selectedRoles.includes(def.name)}
-                role="option"
-                aria-selected={selectedRoles.includes(def.name)}
-                onclick={() => toggleRoleInSelection(def.name)}
-              >
-                <Icon icon={selectedRoles.includes(def.name) ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'} size="18" />
-                {def.label}
-              </button>
-            {/each}
-          </div>
+          {#if isDropdownOpen}
+            <div class="multiselect-dropdown" role="listbox" onclick={(e) => e.stopPropagation()}>
+              {#each allRoleDefs as def}
+                <button
+                  class="dropdown-option" class:selected={selectedRoles.includes(def.name)}
+                  role="option"
+                  aria-selected={selectedRoles.includes(def.name)}
+                  onclick={(e) => { e.stopPropagation(); toggleRoleInSelection(def.name); }}
+                >
+                  <Icon icon={selectedRoles.includes(def.name) ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'} size="18" />
+                  {def.label}
+                </button>
+              {/each}
+            </div>
+          {/if}
         </div>
       </div>
       <div class="modal-footer">
