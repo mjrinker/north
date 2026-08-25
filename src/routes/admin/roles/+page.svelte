@@ -5,6 +5,8 @@
   import { gql } from '../../../lib/api';
   import { userRoles as userRolesStore } from '../../../stores/roles';
 
+export const ssr = false;
+
   let currentUser = $state<any>(null);
   user.subscribe(v => currentUser = v);
 

@@ -5,6 +5,8 @@
   import { getAllUsersWithRoles } from '../../../stores/roles';
   import { getUserApiKeys, createUserApiKey, revokeUserApiKey, copyToClipboard, type ApiKey } from '../../../lib/apiKeys';
 
+export const ssr = false;
+
   let roles = $state<string[]>([]);
   userRoles.subscribe(v => { roles = v; if (!userHasPermission(roles, 'access_admin')) goto('/admin'); });
 

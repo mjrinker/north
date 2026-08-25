@@ -3,6 +3,8 @@
   import { goto } from '$app/navigation';
   import { userRoles, getAllUsersWithRoles, setUserRoles } from '../../../stores/roles';
 
+export const ssr = false;
+
   let roles = $state<string[]>([]);
   userRoles.subscribe(v => { roles = v; if (!userHasPermission(roles, 'manage_roles')) goto('/admin'); });
 
