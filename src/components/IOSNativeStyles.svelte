@@ -1,8 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { iosNativeEnabled } from '../stores/platform';
+  import { get } from 'svelte/store';
 
   onMount(() => {
+    // Ensure clean initial state
+    if (!get(iosNativeEnabled)) {
+      document.documentElement.classList.remove('ios-native');
+      document.body.classList.remove('ios-native');
+    }
     const unsubscribe = iosNativeEnabled.subscribe((enabled) => {
       if (enabled) {
         document.documentElement.classList.add('ios-native');
