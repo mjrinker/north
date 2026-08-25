@@ -309,7 +309,7 @@
         {/each}
         {#if !showAddStep && editingStepIdx === null}
           <button class="step-fab" onclick={() => showAddStep = true} aria-label="Add custom step"><Icon icon="mdi:bookmark-plus-outline" /></button>
-        {:else if showAddStep || editingStepIdx !== null}
+        {:else if showAddStep}
           <div class="add-step">
             <button class="sign-toggle" onclick={() => stepSign = stepSign === 'inc' ? 'dec' : 'inc'} aria-label="Toggle sign">{stepSign === 'inc' ? '+' : '−'}</button>
             <input type="number" min="1" placeholder={habit.type === 'duration' ? 'e.g. 5' : 'e.g. 3'} bind:value={stepInput} onkeydown={(e) => { if (e.key === 'Enter') handleAddStep(); }} />
@@ -320,8 +320,8 @@
               </select>
             {/if}
             <input type="text" placeholder="Label (optional)" bind:value={stepLabel} />
-            <button class="add-ok" onclick={editingStepIdx !== null ? saveEditStep : handleAddStep}>{editingStepIdx !== null ? 'Save' : 'Add'}</button>
-            <button class="step-btn add-close" onclick={() => { showAddStep = false; editingStepIdx = null; stepInput = ''; stepLabel = ''; }} aria-label="Cancel"><Icon icon="mdi:close" /></button>
+            <button class="add-ok" onclick={handleAddStep}>Add</button>
+            <button class="step-btn add-close" onclick={() => { showAddStep = false; stepInput = ''; stepLabel = ''; }} aria-label="Cancel"><Icon icon="mdi:close" /></button>
           </div>
         {/if}
       </div>
