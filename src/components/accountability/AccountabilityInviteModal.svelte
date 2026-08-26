@@ -4,42 +4,27 @@
 
   let { onClose, onInviteSent }: { onClose: () => void; onInviteSent: () => void } = $props();
 
-  let email = $state('');
-  let message = $state('');
-  let sending = $state(false);
+  let creating = $state(false);
   let error = $state('');
   let showLink = $state(false);
   let inviteLink = $state('');
 
-  async function sendInvite() {
+  async function createInvite() {
     error = '';
-    if (!email.trim()) {
-      error = 'Email is required';
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      error = 'Invalid email address';
-      return;
-    }
-
-    sending = true;
+    creating = true;
     try {
       const result = await gql<{ createAccountabilityInvitation: any }>(
-        `mutation ($email: String!, $message: String) { createAccountabilityInvitation(email: $email, message: $message) { id } }`,
-        { email: email.trim(), message: message.trim() || null }
+        `mutation { createAccountabilityInvitation(email: "", message: "") { id } }`,
+        {}
       );
       if (result?.createAccountabilityInvitation?.id) {
-        inviteLink = `${window.location.origin}/accountability/invite/${result.sendAccountabilityInvitation.id}`;
+        inviteLink = `${window.location.origin}/accountability/invite/${result.createAccountabilityInvitation.id}`;
         showLink = true;
       }
-      email = '';
-      message = '';
       onInviteSent();
     } catch (e: any) {
-      error = e.message ?? 'Failed to send invitation';
+      error = e.message ?? 'Failed to create invitation';
     }
-    sending = false;
   }
 
   function copyLink() {
@@ -62,7 +47,7 @@
           <div class="success-icon">
             <Icon icon="mdi:check-circle" size="48" />
           </div>
-          <h3>Invitation Created!</h3>
+          <h3>Invitation Link Created!</h3>
           <p>Share this link with your partner:</p>
           <div class="link-box">
             <input type="text" value={inviteLink} readonly />
@@ -74,39 +59,16 @@
           <button class="btn btn-secondary" onclick={() => { showLink = false; onClose(); }}>Done</button>
         </div>
       {:else}
-        <p class="modal-description">Enter their email to send an invitation link. They'll receive a link to join as your accountability partner.</p>
+        <p class="modal-description">Create a shareable link to invite someone as your accountability partner. No email needed — just share the link however you want.</p>
 
         {#if error}
           <div class="error-banner">{error}</div>
         {/if}
 
-        <div class="form-group">
-          <label for="email">Email Address</label>
-          <input
-            id="email"
-            type="email"
-            bind:value={email}
-            placeholder="partner@example.com"
-            autocomplete="email"
-            disabled={sending}
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="message">Personal Message (optional)</label>
-          <textarea
-            id="message"
-            bind:value={message}
-            placeholder="Hey, want to be accountability partners?"
-            rows="3"
-            disabled={sending}
-          ></textarea>
-        </div>
-
         <div class="form-actions">
-          <button class="btn btn-secondary" onclick={onClose} disabled={sending}>Cancel</button>
-          <button class="btn" onclick={sendInvite} disabled={sending || !email.trim()}>
-            {sending ? 'Sending...' : 'Send Invitation'}
+          <button class="btn btn-secondary" onclick={onClose} disabled={creating}>Cancel</button>
+          <button class="btn" onclick={createInvite} disabled={creating}>
+            {creating ? 'Creating...' : 'Create Invite Link'}
           </button>
         </div>
       {/if}
@@ -155,22 +117,6 @@
   .modal-close:hover { background: var(--btn-secondary-bg, #eee); }
   .modal-body { padding: 1.25rem; }
   .modal-description { color: var(--text-secondary, #666); margin-bottom: 1rem; font-size: 0.9rem; }
-  .form-group { margin-bottom: 1rem; }
-  .form-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-primary, #222); margin-bottom: 0.35rem; }
-  .form-group input, .form-group textarea {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-family: inherit;
-    box-sizing: border-box;
-  }
-  .form-group input:focus, .form-group textarea:focus {
-    outline: none;
-    border-color: var(--accent, #0066cc);
-    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
-  }
   .form-actions {
     display: flex;
     justify-content: flex-end;

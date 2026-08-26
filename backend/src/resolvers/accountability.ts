@@ -216,20 +216,19 @@ export const accountabilityResolvers = {
   },
 
   Mutation: {
-    createAccountabilityInvitation: async (_: unknown, args: { email: string; message?: string }, ctx: GraphQLContext) => {
+    createAccountabilityInvitation: async (_: unknown, args: { email?: string; message?: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      if (ctx.userId === args.email) throw new Error('Cannot invite yourself');
+      if (args.email && ctx.userId === args.email) throw new Error('Cannot invite yourself');
 
-      const invitee = await getUserByEmail(ctx, args.email);
+      const invitee = args.email ? await getUserByEmail(ctx, args.email) : null;
       const { data, error } = await ctx.db.from('accountability_invitations').insert({
         inviter_id: ctx.userId,
-        invitee_email: args.email,
+        invitee_email: args.email ?? null,
         invitee_id: invitee?.id ?? null,
         message: args.message ?? null,
       }).select('*').single();
       if (error) throw new Error(error.message);
 
-      // TODO: Send email notification
       return {
         ...data,
         inviter: { id: toGlobalId('User', ctx.userId) },
