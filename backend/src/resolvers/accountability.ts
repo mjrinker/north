@@ -213,7 +213,7 @@ export const accountabilityResolvers = {
   },
 
   Mutation: {
-    sendAccountabilityInvitation: async (_: unknown, args: { email: string; message?: string }, ctx: GraphQLContext) => {
+    createAccountabilityInvitation: async (_: unknown, args: { email: string; message?: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       if (ctx.userId === args.email) throw new Error('Cannot invite yourself');
 

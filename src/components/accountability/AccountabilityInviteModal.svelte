@@ -25,11 +25,11 @@
 
     sending = true;
     try {
-      const result = await gql<{ sendAccountabilityInvitation: any }>(
-        `mutation ($email: String!, $message: String) { sendAccountabilityInvitation(email: $email, message: $message) { id } }`,
+      const result = await gql<{ createAccountabilityInvitation: any }>(
+        `mutation ($email: String!, $message: String) { createAccountabilityInvitation(email: $email, message: $message) { id } }`,
         { email: email.trim(), message: message.trim() || null }
       );
-      if (result?.sendAccountabilityInvitation?.id) {
+      if (result?.createAccountabilityInvitation?.id) {
         inviteLink = `${window.location.origin}/accountability/invite/${result.sendAccountabilityInvitation.id}`;
         showLink = true;
       }

@@ -367,7 +367,7 @@ input AddNoteInput {
       createApiKey(userId: ID!, name: String): ApiKey!
       revokeApiKey(id: ID!): Boolean!
       clientLogs(entries: [ClientLogInput!]!): Boolean!
-      sendAccountabilityInvitation(email: String!, message: String): AccountabilityInvitation!
+      createAccountabilityInvitation(email: String!, message: String): AccountabilityInvitation!
       acceptAccountabilityInvitation(invitationId: ID!): AccountabilityPartnership!
       declineAccountabilityInvitation(invitationId: ID!): Boolean!
       cancelAccountabilityInvitation(invitationId: ID!): Boolean!
