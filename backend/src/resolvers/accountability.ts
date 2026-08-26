@@ -1,6 +1,9 @@
 import type { GraphQLContext } from '../context.js';
 import { toGlobalId, requireGlobalId } from '../ids.js';
-import { getLocalDateString } from '../lib/dates.js';
+
+function getLocalDateString(date = new Date()): string {
+  return date.toISOString().split('T')[0];
+}
 
 async function getUserEmail(ctx: GraphQLContext, userId: string): Promise<string | null> {
   const { data, error } = await ctx.db.from('users').select('email').eq('id', userId).single();
@@ -262,8 +265,10 @@ export const accountabilityResolvers = {
       ]).select('*').single();
       if (pError) throw new Error(pError.message);
 
-      const { data: inviter } = await ctx.db.from('users').select('id, email, name, avatar').eq('id', invitation.inviter_id).single();
-      const { data: user } = await ctx.db.from('users').select('id, email, name, avatar').eq('id', ctx.userId).single();
+      const { data: inviter, error: inviterError } = await ctx.db.from('users').select('id, email, name, avatar').eq('id', invitation.inviter_id).single();
+      if (inviterError || !inviter) throw new Error('Inviter not found');
+      const { data: user, error: userError } = await ctx.db.from('users').select('id, email, name, avatar').eq('id', ctx.userId).single();
+      if (userError || !user) throw new Error('User not found');
 
       return {
         id: toGlobalId('AccountabilityPartnership', partnership.id),
@@ -343,15 +348,15 @@ export const accountabilityResolvers = {
         habit_id: habitId,
       }));
 
-      const { error } = await ctx.db.from('shared_habits').upsert(rows, { onConflict: 'partnership_id,habit_id' });
-      if (error) throw new Error(error.message);
+      const { error: upsertError } = await ctx.db.from('shared_habits').upsert(rows, { onConflict: 'partnership_id,habit_id' });
+      if (upsertError) throw new Error(upsertError.message);
 
-      const { data } = await ctx.db
+      const { data, error: selectError } = await ctx.db
         .from('shared_habits')
         .select('*, habits(*)')
         .eq('partnership_id', partnershipId)
         .in('habit_id', habitIds);
-      if (error) throw new Error(error.message);
+      if (selectError) throw new Error(selectError.message);
 
       return (data ?? []).map((d: any) => ({
         ...d,
