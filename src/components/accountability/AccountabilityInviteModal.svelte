@@ -13,16 +13,19 @@
     error = '';
     creating = true;
     try {
+      console.log('[InviteModal] Creating invitation...');
       const result = await gql<{ createAccountabilityInvitation: any }>(
-        `mutation { createAccountabilityInvitation(email: "", message: "") { id } }`,
+        `mutation { createAccountabilityInvitation { id } }`,
         {}
       );
+      console.log('[InviteModal] Result:', result);
       if (result?.createAccountabilityInvitation?.id) {
         inviteLink = `${window.location.origin}/accountability/invite/${result.createAccountabilityInvitation.id}`;
         showLink = true;
       }
       onInviteSent();
     } catch (e: any) {
+      console.error('[InviteModal] Error:', e);
       error = e.message ?? 'Failed to create invitation';
     }
   }
