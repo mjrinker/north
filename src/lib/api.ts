@@ -94,9 +94,10 @@ export async function gql<T = any>(
   const body = await res.json().catch(() => null);
   console.log('[gql] Response:', { status: res.status, body });
   if (body?.errors?.length) {
+    console.error('[gql] GraphQL errors:', JSON.stringify(body.errors, null, 2));
     const first = body.errors[0];
-    console.error('[gql] GraphQL errors:', body.errors);
-    throw new ApiError(first?.message ?? 'GraphQL error', body.errors, res.status);
+    const msg = first?.message || first?.extensions?.code || 'GraphQL error';
+    throw new ApiError(msg, body.errors, res.status);
   }
   if (!res.ok) {
     console.error('[gql] HTTP error:', res.status, body);

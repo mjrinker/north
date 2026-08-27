@@ -217,17 +217,34 @@ export const accountabilityResolvers = {
 
   Mutation: {
     createAccountabilityInvitation: async (_: unknown, args: { email?: string; message?: string }, ctx: GraphQLContext) => {
+      console.log('[createAccountabilityInvitation] args:', args, 'userId:', ctx.userId);
       if (!ctx.userId) throw new Error('Unauthorized');
       if (args.email && ctx.userId === args.email) throw new Error('Cannot invite yourself');
 
-      const invitee = args.email ? await getUserByEmail(ctx, args.email) : null;
-      const { data, error } = await ctx.db.from('accountability_invitations').insert({
+      let invitee = null;
+      if (args.email) {
+        try {
+          invitee = await getUserByEmail(ctx, args.email);
+          console.log('[createAccountabilityInvitation] invitee:', invitee);
+        } catch (e) {
+          console.error('[createAccountabilityInvitation] getUserByEmail error:', e);
+        }
+      }
+
+      const insertData = {
         inviter_id: ctx.userId,
         invitee_email: args.email ?? null,
         invitee_id: invitee?.id ?? null,
         message: args.message ?? null,
-      }).select('*').single();
-      if (error) throw new Error(error.message);
+      };
+      console.log('[createAccountabilityInvitation] inserting:', insertData);
+
+      const { data, error } = await ctx.db.from('accountability_invitations').insert(insertData).select('*').single();
+      console.log('[createAccountabilityInvitation] insert result:', { data, error });
+      if (error) {
+        console.error('[createAccountabilityInvitation] insert error:', error);
+        throw new Error(error.message);
+      }
 
       return {
         ...data,
