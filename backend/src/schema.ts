@@ -232,7 +232,7 @@ export const schema = createSchema<GraphQLContext>({
   type AccountabilityInvitation {
     id: ID!
     inviter: User!
-    inviteeEmail: String!
+    inviteeEmail: String
     invitee: User
     status: String!
     message: String
