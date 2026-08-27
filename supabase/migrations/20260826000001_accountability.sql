@@ -4,7 +4,7 @@
 create table if not exists accountability_invitations (
   id uuid primary key default gen_random_uuid(),
   inviter_id uuid not null references auth.users(id) on delete cascade,
-  invitee_email text not null,
+  invitee_email text,
   invitee_id uuid references auth.users(id) on delete cascade,
   status text not null default 'pending' check (status in ('pending', 'accepted', 'declined', 'expired')),
   message text,
