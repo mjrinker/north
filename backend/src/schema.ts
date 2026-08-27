@@ -338,6 +338,7 @@ input AddNoteInput {
       myApiKeys: [ApiKey!]!
       apiKeys(userId: String): [ApiKey!]!
       accountabilityInvitations: [AccountabilityInvitation!]!
+      accountabilityInvitation(id: ID!): AccountabilityInvitation
       accountabilityPartnerships: [AccountabilityPartnership!]!
       sharedHabits(partnershipId: ID!): [SharedHabit!]!
       partnerSharedHabits(partnerId: ID!): [PartnerSharedHabit!]!

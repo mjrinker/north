@@ -21,10 +21,11 @@ export const ssr = false;
   async function loadInvitation() {
     loading = true;
     try {
-      const data = await gql<{ accountabilityInvitations: any[] }>(
-        `query ($id: ID!) { accountabilityInvitations { id inviter { id email name avatar } inviteeEmail invitee { id email name avatar } status message createdAt expiresAt } }`
+      const data = await gql<{ accountabilityInvitation: any }>(
+        `query ($id: ID!) { accountabilityInvitation(id: $id) { id inviter { id email name avatar } inviteeEmail invitee { id email name avatar } status message createdAt expiresAt } }`,
+        { id: invitationId }
       );
-      invitation = data?.accountabilityInvitations?.find((inv: any) => inv.id === invitationId) ?? null;
+      invitation = data?.accountabilityInvitation ?? null;
       if (!invitation) error = 'Invitation not found';
       else if (invitation.status !== 'pending') error = 'This invitation has already been ' + invitation.status;
     } catch (e: any) {

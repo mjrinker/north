@@ -83,6 +83,18 @@ export const accountabilityResolvers = {
   },
 
   Query: {
+    accountabilityInvitation: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      const invitationId = requireGlobalId(args.id, 'AccountabilityInvitation');
+      const { data, error } = await ctx.db
+        .from('accountability_invitations')
+        .select('*')
+        .eq('id', invitationId)
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+
     accountabilityInvitations: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       const { data, error } = await ctx.db
