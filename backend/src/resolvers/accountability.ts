@@ -84,14 +84,26 @@ export const accountabilityResolvers = {
 
   Query: {
     accountabilityInvitation: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
+      console.log('[accountabilityInvitation] args:', args, 'userId:', ctx.userId);
       if (!ctx.userId) throw new Error('Unauthorized');
-      const invitationId = requireGlobalId(args.id, 'AccountabilityInvitation');
+      let invitationId: string;
+      try {
+        invitationId = requireGlobalId(args.id, 'AccountabilityInvitation');
+        console.log('[accountabilityInvitation] parsed ID:', invitationId);
+      } catch (e) {
+        console.error('[accountabilityInvitation] requireGlobalId error:', e);
+        throw new Error('Invalid invitation ID format');
+      }
       const { data, error } = await ctx.db
         .from('accountability_invitations')
         .select('*')
         .eq('id', invitationId)
         .single();
-      if (error) throw new Error(error.message);
+      console.log('[accountabilityInvitation] query result:', { data, error });
+      if (error) {
+        console.error('[accountabilityInvitation] query error:', error);
+        throw new Error(error.message);
+      }
       return data;
     },
 
