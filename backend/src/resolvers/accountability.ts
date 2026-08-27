@@ -88,11 +88,19 @@ export const accountabilityResolvers = {
       if (!ctx.userId) throw new Error('Unauthorized');
       let invitationId: string;
       try {
+        // Try to parse as global ID first, fallback to raw UUID
         invitationId = requireGlobalId(args.id, 'AccountabilityInvitation');
-        console.log('[accountabilityInvitation] parsed ID:', invitationId);
-      } catch (e) {
-        console.error('[accountabilityInvitation] requireGlobalId error:', e);
-        throw new Error('Invalid invitation ID format');
+        console.log('[accountabilityInvitation] parsed global ID:', invitationId);
+      } catch {
+        // Not a global ID, try as raw UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(args.id)) {
+          invitationId = args.id;
+          console.log('[accountabilityInvitation] using raw UUID:', invitationId);
+        } else {
+          console.error('[accountabilityInvitation] invalid ID format:', args.id);
+          throw new Error('Invalid invitation ID format');
+        }
       }
       const { data, error } = await ctx.db
         .from('accountability_invitations')
