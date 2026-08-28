@@ -30,6 +30,12 @@ export const accountabilityResolvers = {
       if (!data) return null;
       return { ...data, id: toGlobalId('User', data.id) };
     },
+    createdAt: (invitation: any) => invitation.created_at,
+    acceptedAt: (invitation: any) => invitation.accepted_at,
+    expiresAt: (invitation: any) => invitation.expires_at,
+    inviteeEmail: (invitation: any) => invitation.invitee_email,
+    status: (invitation: any) => invitation.status,
+    message: (invitation: any) => invitation.message,
   },
   AccountabilityPartnership: {
     user: async (partnership: any, _: unknown, ctx: GraphQLContext) => {
