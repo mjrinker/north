@@ -325,11 +325,18 @@ export const accountabilityResolvers = {
         .eq('id', invitationId);
 
       // Create partnership both ways
-      const { data: partnership, error: pError } = await ctx.db.from('accountability_partnerships').insert([
+      const { error: pError } = await ctx.db.from('accountability_partnerships').insert([
         { user_id: invitation.inviter_id, partner_id: ctx.userId },
         { user_id: ctx.userId, partner_id: invitation.inviter_id },
-      ]).select('*').single();
+      ]);
       if (pError) throw new Error(pError.message);
+
+      const { data: partnership } = await ctx.db
+        .from('accountability_partnerships')
+        .select('*')
+        .eq('user_id', invitation.inviter_id)
+        .eq('partner_id', ctx.userId)
+        .single();
 
       const { data: inviter, error: inviterError } = await ctx.db.from('users').select('id, email, name, avatar').eq('id', invitation.inviter_id).single();
       if (inviterError || !inviter) throw new Error('Inviter not found');
