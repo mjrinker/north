@@ -313,7 +313,9 @@ export const accountabilityResolvers = {
       if (invError || !invitation) throw new Error('Invitation not found');
 
       const inviteeEmail = await getUserEmail(ctx, ctx.userId);
-      if (invitation.invitee_email !== inviteeEmail && invitation.invitee_id !== ctx.userId) {
+      // For shareable links (invitee_email is null), allow any logged-in user to accept.
+      // For email invites, only the intended invitee can accept.
+      if (invitation.invitee_email && invitation.invitee_email !== inviteeEmail && invitation.invitee_id !== ctx.userId) {
         throw new Error('Forbidden');
       }
       if (invitation.status !== 'pending') throw new Error('Invitation already processed');
