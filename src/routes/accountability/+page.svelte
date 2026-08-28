@@ -30,7 +30,7 @@ export const ssr = false;
     loading = true;
     try {
       const [invData, partData] = await Promise.all([
-        gql<{ accountabilityInvitations: any[] }>(`query { accountabilityInvitations { id inviter { id email name avatar } inviteeEmail invitee { id email name avatar } status message createdAt acceptedAt expiresAt } }`),
+        gql<{ accountabilityInvitations: any[] }>(`query { accountabilityInvitations { id shortCode inviter { id email name avatar } inviteeEmail invitee { id email name avatar } status message createdAt acceptedAt expiresAt } }`),
         gql<{ accountabilityPartnerships: any[] }>(`query { accountabilityPartnerships { id user { id email name avatar } partner { id email name avatar } createdAt } }`)
       ]);
       invitations = invData?.accountabilityInvitations ?? [];
@@ -58,8 +58,8 @@ export const ssr = false;
     await loadData();
   }
 
-  function copyInviteLink(id: string) {
-    const url = `${window.location.origin}/accountability/invite/${id}`;
+  function copyInviteLink(invitation: any) {
+    const url = `${window.location.origin}/accountability/invite/${invitation.shortCode}`;
     navigator.clipboard.writeText(url);
     alert('Invitation link copied!');
   }
@@ -123,7 +123,7 @@ export const ssr = false;
                 </div>
                 <div class="inv-actions">
                   {#if inv.status === 'pending'}
-                    <button class="btn-small" onclick={() => copyInviteLink(inv.id)}>Copy Link</button>
+                    <button class="btn-small" onclick={() => copyInviteLink(inv)}>Copy Link</button>
                     <button class="btn-small btn-danger" onclick={() => cancelInvitation(inv.id)}>Cancel</button>
                   {/if}
                 </div>
@@ -210,9 +210,9 @@ export const ssr = false;
   .inv-info { display: flex; flex-direction: column; gap: 0.25rem; }
   .inv-email { font-weight: 500; color: var(--text-primary, #222); }
   .inv-status { font-size: 0.75rem; font-weight: 600; padding: 0.125rem 0.5rem; border-radius: 999px; width: fit-content; }
-  .inv-status.pending { background: #fef3c7; color: #92400e; }
-  .inv-status.accepted { background: #dcfce7; color: #166534; }
-  .inv-status.declined { background: #fee2e2; color: #991b1b; }
+  .inv-status.pending { background: var(--badge-pending-bg, #fef3c7); color: var(--badge-pending-text, #92400e); }
+  .inv-status.accepted { background: var(--badge-accepted-bg, #dcfce7); color: var(--badge-accepted-text, #166534); }
+  .inv-status.declined { background: var(--badge-declined-bg, #fee2e2); color: var(--badge-declined-text, #991b1b); }
   .inv-actions { display: flex; gap: 0.5rem; }
   .btn-small {
     padding: 0.35rem 0.75rem;

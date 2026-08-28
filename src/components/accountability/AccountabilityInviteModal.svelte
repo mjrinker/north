@@ -15,12 +15,12 @@
     try {
       console.log('[InviteModal] Creating invitation...');
       const result = await gql<{ createAccountabilityInvitation: any }>(
-        `mutation { createAccountabilityInvitation { id } }`,
+        `mutation { createAccountabilityInvitation { id shortCode } }`,
         {}
       );
       console.log('[InviteModal] Result:', result);
-      if (result?.createAccountabilityInvitation?.id) {
-        inviteLink = `${window.location.origin}/accountability/invite/${result.createAccountabilityInvitation.id}`;
+      if (result?.createAccountabilityInvitation?.shortCode) {
+        inviteLink = `${window.location.origin}/accountability/invite/${result.createAccountabilityInvitation.shortCode}`;
         showLink = true;
       }
       onInviteSent();
@@ -154,6 +154,7 @@
     border-radius: 8px;
     font-size: 0.85rem;
     background: var(--input-bg, #f5f5f5);
+    color: var(--text-primary, #222);
   }
   .hint { font-size: 0.8rem; color: var(--text-secondary, #888); margin-bottom: 1.5rem; }
   .error-banner {

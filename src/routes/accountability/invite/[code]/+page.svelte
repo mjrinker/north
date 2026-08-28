@@ -10,8 +10,8 @@ export const ssr = false;
   let currentUser = $state<any>(null);
   user.subscribe(v => currentUser = v);
 
-  let invitationId = $state('');
-  page.subscribe(p => { invitationId = p.params.invitationId; });
+  let shortCode = $state('');
+  page.subscribe(p => { shortCode = p.params.code; });
 
   let invitation = $state<any>(null);
   let loading = $state(true);
@@ -21,11 +21,11 @@ export const ssr = false;
   async function loadInvitation() {
     loading = true;
     try {
-      const data = await gql<{ accountabilityInvitation: any }>(
-        `query ($id: ID!) { accountabilityInvitation(id: $id) { id inviter { id email name avatar } inviteeEmail invitee { id email name avatar } status message createdAt expiresAt } }`,
-        { id: invitationId }
+      const data = await gql<{ accountabilityInvitationByCode: any }>(
+        `query ($code: String!) { accountabilityInvitationByCode(code: $code) { id inviter { id email name avatar } inviteeEmail invitee { id email name avatar } status message createdAt expiresAt } }`,
+        { code: shortCode }
       );
-      invitation = data?.accountabilityInvitation ?? null;
+      invitation = data?.accountabilityInvitationByCode ?? null;
       if (!invitation) error = 'Invitation not found';
       else if (invitation.status !== 'pending') error = 'This invitation has already been ' + invitation.status;
     } catch (e: any) {
@@ -43,7 +43,7 @@ export const ssr = false;
     }
     actionLoading = true;
     try {
-      await gql(`mutation ($invitationId: ID!) { acceptAccountabilityInvitation(invitationId: $invitationId) { id } }`, { invitationId });
+      await gql(`mutation ($invitationId: ID!) { acceptAccountabilityInvitation(invitationId: $invitationId) { id } }`, { invitationId: invitation.id });
       goto('/accountability');
     } catch (e: any) {
       alert(e.message ?? 'Failed to accept invitation');
@@ -58,7 +58,7 @@ export const ssr = false;
     }
     actionLoading = true;
     try {
-      await gql(`mutation ($invitationId: ID!) { declineAccountabilityInvitation(invitationId: $invitationId) }`, { invitationId });
+      await gql(`mutation ($invitationId: ID!) { declineAccountabilityInvitation(invitationId: $invitationId) }`, { invitationId: invitation.id });
       goto('/accountability');
     } catch (e: any) {
       alert(e.message ?? 'Failed to decline invitation');
@@ -160,8 +160,8 @@ export const ssr = false;
     border-radius: 999px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--badge-pending-bg, #fef3c7);
+    color: var(--badge-pending-text, #92400e);
   }
   .invite-message {
     display: flex;

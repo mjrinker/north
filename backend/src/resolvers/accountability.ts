@@ -17,6 +17,13 @@ async function getUserByEmail(ctx: GraphQLContext, email: string) {
   return data as { id: string; email: string; name: string | null; avatar: string | null };
 }
 
+function generateShortCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
 export const accountabilityResolvers = {
   AccountabilityInvitation: {
     inviter: async (invitation: any, _: unknown, ctx: GraphQLContext) => {
@@ -34,6 +41,7 @@ export const accountabilityResolvers = {
     acceptedAt: (invitation: any) => invitation.accepted_at,
     expiresAt: (invitation: any) => invitation.expires_at,
     inviteeEmail: (invitation: any) => invitation.invitee_email,
+    shortCode: (invitation: any) => invitation.short_code,
     status: (invitation: any) => invitation.status,
     message: (invitation: any) => invitation.message,
   },
@@ -118,6 +126,17 @@ export const accountabilityResolvers = {
         console.error('[accountabilityInvitation] query error:', error);
         throw new Error(error.message);
       }
+      return data;
+    },
+
+    accountabilityInvitationByCode: async (_: unknown, args: { code: string }, ctx: GraphQLContext) => {
+      if (!ctx.userId) throw new Error('Unauthorized');
+      const { data, error } = await ctx.db
+        .from('accountability_invitations')
+        .select('*')
+        .eq('short_code', args.code)
+        .single();
+      if (error || !data) throw new Error('Invitation not found');
       return data;
     },
 
@@ -274,6 +293,7 @@ export const accountabilityResolvers = {
         invitee_email: args.email ?? null,
         invitee_id: invitee?.id ?? null,
         message: args.message ?? null,
+        short_code: generateShortCode(),
       };
       console.log('[createAccountabilityInvitation] inserting:', insertData);
 

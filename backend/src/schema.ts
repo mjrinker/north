@@ -231,6 +231,7 @@ export const schema = createSchema<GraphQLContext>({
 
   type AccountabilityInvitation {
     id: ID!
+    shortCode: String!
     inviter: User!
     inviteeEmail: String
     invitee: User
@@ -339,6 +340,7 @@ input AddNoteInput {
       apiKeys(userId: String): [ApiKey!]!
       accountabilityInvitations: [AccountabilityInvitation!]!
       accountabilityInvitation(id: ID!): AccountabilityInvitation
+      accountabilityInvitationByCode(code: String!): AccountabilityInvitation
       accountabilityPartnerships: [AccountabilityPartnership!]!
       sharedHabits(partnershipId: ID!): [SharedHabit!]!
       partnerSharedHabits(partnerId: ID!): [PartnerSharedHabit!]!

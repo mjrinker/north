@@ -68,6 +68,12 @@ body.dark {
   --dep-popover-text: #e0e0e0;
   --dep-popover-border: #1a1a1a;
   --dep-popover-muted: #888;
+  --badge-pending-bg: #422006;
+  --badge-pending-text: #fcd34d;
+  --badge-accepted-bg: #052e16;
+  --badge-accepted-text: #86efac;
+  --badge-declined-bg: #450a0a;
+  --badge-declined-text: #fca5a5;
   background: var(--bg);
   color: var(--text);
 }
@@ -94,6 +100,12 @@ body.oled {
   --dep-popover-text: #e0e0e0;
   --dep-popover-border: #1a1a1a;
   --dep-popover-muted: #888;
+  --badge-pending-bg: #422006;
+  --badge-pending-text: #fcd34d;
+  --badge-accepted-bg: #052e16;
+  --badge-accepted-text: #86efac;
+  --badge-declined-bg: #450a0a;
+  --badge-declined-text: #fca5a5;
   background: var(--bg);
   color: var(--text);
 }
