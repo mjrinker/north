@@ -293,7 +293,17 @@ export const accountabilityResolvers = {
 
     acceptAccountabilityInvitation: async (_: unknown, args: { invitationId: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const invitationId = requireGlobalId(args.invitationId, 'AccountabilityInvitation');
+      let invitationId: string;
+      try {
+        invitationId = requireGlobalId(args.invitationId, 'AccountabilityInvitation');
+      } catch {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(args.invitationId)) {
+          invitationId = args.invitationId;
+        } else {
+          throw new Error('Invalid invitation ID format');
+        }
+      }
 
       const { data: invitation, error: invError } = await ctx.db
         .from('accountability_invitations')
@@ -334,7 +344,17 @@ export const accountabilityResolvers = {
 
     declineAccountabilityInvitation: async (_: unknown, args: { invitationId: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const invitationId = requireGlobalId(args.invitationId, 'AccountabilityInvitation');
+      let invitationId: string;
+      try {
+        invitationId = requireGlobalId(args.invitationId, 'AccountabilityInvitation');
+      } catch {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(args.invitationId)) {
+          invitationId = args.invitationId;
+        } else {
+          throw new Error('Invalid invitation ID format');
+        }
+      }
 
       const { data: invitation, error: invError } = await ctx.db
         .from('accountability_invitations')
@@ -368,7 +388,17 @@ export const accountabilityResolvers = {
 
     cancelAccountabilityInvitation: async (_: unknown, args: { invitationId: string }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
-      const invitationId = requireGlobalId(args.invitationId, 'AccountabilityInvitation');
+      let invitationId: string;
+      try {
+        invitationId = requireGlobalId(args.invitationId, 'AccountabilityInvitation');
+      } catch {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(args.invitationId)) {
+          invitationId = args.invitationId;
+        } else {
+          throw new Error('Invalid invitation ID format');
+        }
+      }
 
       const { data: invitation, error: invError } = await ctx.db
         .from('accountability_invitations')
