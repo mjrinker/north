@@ -43,7 +43,7 @@ export const ssr = false;
     }
     actionLoading = true;
     try {
-      await gql(`mutation ($invitationId: ID!) { acceptAccountabilityInvitation(invitationId: $invitationId) }`, { invitationId });
+      await gql(`mutation ($invitationId: ID!) { acceptAccountabilityInvitation(invitationId: $invitationId) { id } }`, { invitationId });
       goto('/accountability');
     } catch (e: any) {
       alert(e.message ?? 'Failed to accept invitation');
