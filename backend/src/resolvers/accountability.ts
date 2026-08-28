@@ -56,6 +56,7 @@ export const accountabilityResolvers = {
       if (!data) return null;
       return { ...data, id: toGlobalId('User', data.id) };
     },
+    createdAt: (partnership: any) => partnership.created_at,
   },
   SharedHabit: {
     partnership: async (shared: any, _: unknown, ctx: GraphQLContext) => {
@@ -68,6 +69,7 @@ export const accountabilityResolvers = {
       if (!data) return null;
       return { ...data, id: toGlobalId('Habit', data.id) };
     },
+    sharedAt: (shared: any) => shared.shared_at,
   },
   PartnerSharedHabit: {
     habit: async (psh: any, _: unknown, ctx: GraphQLContext) => {
@@ -75,6 +77,7 @@ export const accountabilityResolvers = {
       if (!data) return null;
       return { ...data, id: toGlobalId('Habit', data.id) };
     },
+    sharedAt: (psh: any) => psh.shared_at,
     todayEntry: async (psh: any, _: unknown, ctx: GraphQLContext) => {
       if (!ctx.userId) return null;
       const date = getLocalDateString();
