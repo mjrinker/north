@@ -25,6 +25,14 @@ export const ssr = false;
 
   let sentInvitations = $derived(invitations.filter(i => i.inviter_id === currentUser?.id));
   let receivedInvitations = $derived(invitations.filter(i => i.invitee_id === currentUser?.id || i.inviteeEmail === currentUser?.email));
+  let uniquePartnerships = $derived.by(() => {
+    const seen = new Map<string, any>();
+    for (const p of partnerships) {
+      const partnerId = p.partner?.id ?? p.partner_id;
+      if (partnerId && !seen.has(partnerId)) seen.set(partnerId, p);
+    }
+    return [...seen.values()];
+  });
 
   async function loadData() {
     loading = true;
@@ -93,11 +101,11 @@ export const ssr = false;
   {:else}
     <section class="section">
       <h2>Your Partnerships</h2>
-      {#if partnerships.length === 0}
+      {#if uniquePartnerships.length === 0}
         <p class="empty">No partnerships yet. Invite someone to get started!</p>
       {:else}
         <AccountabilityPartnershipList 
-          partnerships={partnerships} 
+          partnerships={uniquePartnerships} 
           currentUserId={currentUser?.id}
           onRemove={removePartnership}
         />
