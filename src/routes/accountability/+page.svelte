@@ -26,8 +26,16 @@ export const ssr = false;
   let sentInvitations = $derived(invitations.filter(i => i.inviter_id === currentUser?.id));
   let receivedInvitations = $derived(invitations.filter(i => i.invitee_id === currentUser?.id || i.inviteeEmail === currentUser?.email));
   let uniquePartnerships = $derived.by(() => {
-    if (!currentUser?.id) return [];
-    return partnerships.filter(p => p.user?.id === currentUser.id);
+    const seen = new Set<string>();
+    const result = [];
+    for (const p of partnerships) {
+      const partnerId = p.partner?.id;
+      if (partnerId && !seen.has(partnerId)) {
+        seen.add(partnerId);
+        result.push(p);
+      }
+    }
+    return result;
   });
 
   async function loadData() {
