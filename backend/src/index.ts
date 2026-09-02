@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { handle } from 'hono/vercel';
+import { cors } from 'hono/cors';
 import { createYoga } from 'graphql-yoga';
 import type { GraphQLContext } from './context.js';
 import { schema } from './schema.js';
@@ -16,12 +17,6 @@ const frontendOrigins = (process.env.FRONTEND_ORIGINS || 'https://north-mu.verce
 const yoga = createYoga<GraphQLContext>({
   schema,
   context: buildContext,
-  cors: {
-    origin: frontendOrigins,
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    methods: ['GET', 'POST', 'OPTIONS'],
-  },
   graphiql: !isProd,
   maskedErrors: isProd,
 });
@@ -48,6 +43,13 @@ app.get('/health', (c) => {
   }
   return c.json({ ok: true, db, ts: Date.now() });
 });
+
+app.use('/graphql', cors({
+  origin: frontendOrigins,
+  credentials: true,
+  allowHeaders: ['Content-Type', 'Authorization'],
+  allowMethods: ['GET', 'POST', 'OPTIONS'],
+}));
 
 app.all('/graphql', async (c) => {
   try {
