@@ -159,7 +159,7 @@ export const accountabilityResolvers = {
       const { data, error } = await ctx.db
         .from('accountability_partnerships')
         .select('*')
-        .or(`user_id.eq.${ctx.userId},partner_id.eq.${ctx.userId}`)
+        .eq('user_id', ctx.userId)
         .order('created_at', { ascending: false });
       if (error) throw new Error(error.message);
       return data ?? [];

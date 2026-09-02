@@ -6,9 +6,6 @@
   let { partnerships, currentUserId, onRemove }: { partnerships: any[]; currentUserId: string; onRemove: (partnerId: string) => void } = $props();
 
   function getPartner(partnership: any) {
-    if (!currentUserId) return partnership.partner;
-    if (partnership.user?.id && partnership.user.id.includes(currentUserId)) return partnership.partner;
-    if (partnership.partner?.id && partnership.partner.id.includes(currentUserId)) return partnership.user;
     return partnership.partner;
   }
 
