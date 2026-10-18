@@ -50,15 +50,6 @@ export function getRoleDefinitions(): RoleDefinition[] {
   return ROLE_DEFINITIONS
 }
 
-export function getFeaturesForRoles(roleNames: string[]): Feature[] {
-  const result = new Set<Feature>()
-  for (const r of roleNames) {
-    const def = ROLE_DEFINITIONS.find(d => d.name === r)
-    if (def) def.features.forEach(f => result.add(f))
-  }
-  return Array.from(result)
-}
-
 export function getPermissionsForRoles(roleNames: string[]): Permission[] {
   const result = new Set<Permission>()
   for (const r of roleNames) {

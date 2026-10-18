@@ -5,6 +5,8 @@ import { gql } from '../lib/api'
 import { encodeId, decodeId } from '../lib/globalId'
 
 export const userRoles = writable<string[]>([])
+// Features come from the DB role definitions (editable in /admin/roles).
+export const userFeatures = writable<string[]>([])
 
 let currentUserId: string | null = null
 
@@ -16,15 +18,18 @@ user.subscribe(async (u) => {
   } else if (!uid) {
     currentUserId = null
     userRoles.set([])
+    userFeatures.set([])
   }
 })
 
 async function fetchRoles() {
   try {
-    const data = await gql<{ myRoles: string[] }>(`query { myRoles }`)
+    const data = await gql<{ myRoles: string[]; myFeatures: string[] }>(`query { myRoles myFeatures }`)
     userRoles.set(data?.myRoles ?? [])
+    userFeatures.set(data?.myFeatures ?? [])
   } catch {
     userRoles.set([])
+    userFeatures.set([])
   }
 }
 

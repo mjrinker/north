@@ -24,8 +24,9 @@ export async function isAdmin(ctx: GraphQLContext): Promise<boolean> {
   return !!admins;
 }
 
-async function getRolesForUser(ctx: GraphQLContext, userId: string): Promise<string[]> {
-  const { data } = await ctx.db.from('app_user_roles').select('role_name').eq('user_id', userId);
+async function getMyRoles(ctx: GraphQLContext): Promise<string[]> {
+  if (!ctx.userId) return [];
+  const { data } = await ctx.db.from('app_user_roles').select('role_name').eq('user_id', ctx.userId);
   const roles = (data ?? []).map((r: { role_name: string }) => r.role_name);
 
   const email = await getUserEmail(ctx);
@@ -54,17 +55,15 @@ export const userResolvers = {
       }));
     },
 
-    myRoles: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
-      if (!ctx.userId) return [];
-      const { data } = await ctx.db.from('app_user_roles').select('role_name').eq('user_id', ctx.userId);
-      const roles = (data ?? []).map((r: { role_name: string }) => r.role_name);
+    myRoles: (_: unknown, __: unknown, ctx: GraphQLContext) => getMyRoles(ctx),
 
-      const email = await getUserEmail(ctx);
-      if (email) {
-        const { data: admins } = await ctx.db.from('admins').select('email').eq('email', email).maybeSingle();
-        if (admins && !roles.includes('admin')) roles.push('admin');
-      }
-      return roles;
+    // Features granted by the caller's roles, as configured in the admin UI.
+    myFeatures: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
+      const roles = await getMyRoles(ctx);
+      if (roles.length === 0) return [];
+      const { data, error } = await ctx.db.from('app_role_defs').select('features').in('name', roles);
+      if (error) throw new Error(error.message);
+      return [...new Set((data ?? []).flatMap((d: { features: string[] | null }) => d.features ?? []))];
     },
 
     usersWithRoles: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
