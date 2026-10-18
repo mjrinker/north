@@ -2,11 +2,7 @@
   import { page } from '$app/stores';
   import { user } from '../../../../stores/auth';
   import { gql } from '$lib/api';
-  import { getLocalDateString } from '$lib/dates';
-  import { HabitEngine } from '../../../../services/habitEngine';
-  import { getEntry } from '../../../../services/storage';
-  import { isStandardMet, isTargetMet } from '$lib/thresholds';
-  import { pluralizeUnit } from '$lib/units';
+  import { getLocalDateString, parseLocalDate, toDateStr } from '$lib/dates';
   import { goto } from '$app/navigation';
   import Icon from '@iconify/svelte';
   import PartnerHabitCard from '../../../../components/accountability/PartnerHabitCard.svelte';
@@ -17,7 +13,7 @@ export const ssr = false;
   user.subscribe(v => currentUser = v);
 
   let partnerId = $state('');
-  page.subscribe(p => { partnerId = p.params.partnerId; });
+  page.subscribe(p => { partnerId = p.params.partnerId ?? ''; });
 
   let partner = $state<any>(null);
   let sharedHabits = $state<any[]>([]);
@@ -25,24 +21,32 @@ export const ssr = false;
   let error = $state('');
   let viewDate = $state(getLocalDateString());
 
-  async function loadData() {
-    loading = true;
+  let loaded = false;
+
+  async function loadData(date: string) {
+    if (!loaded) loading = true;
     error = '';
     try {
       const [partnerData, habitsData] = await Promise.all([
-        gql<{ usersWithRoles: any[] }>(`query { usersWithRoles { id email name avatar roles } }`),
-        gql<{ partnerSharedHabits: any[] }>(`query ($partnerId: ID!) { partnerSharedHabits(partnerId: $partnerId) { habit { id title description standard target type unit schedule metadata } todayEntry { id value standardMet targetMet } standardMet targetMet sharedAt } }`, { partnerId })
+        gql<{ accountabilityPartnership: any }>(`query ($partnerId: ID!) { accountabilityPartnership(partnerId: $partnerId) { id partner { id email name avatar } } }`, { partnerId }),
+        gql<{ partnerSharedHabits: any[] }>(`query ($partnerId: ID!, $date: String) { partnerSharedHabits(partnerId: $partnerId, date: $date) { habit { id title description standard target type unit schedule metadata } todayEntry { id value standardMet targetMet } standardMet targetMet sharedAt } }`, { partnerId, date })
       ]);
-      const allUsers = partnerData?.usersWithRoles ?? [];
-      partner = allUsers.find((u: any) => u.id === partnerId) ?? null;
+      partner = partnerData?.accountabilityPartnership?.partner ?? null;
       sharedHabits = habitsData?.partnerSharedHabits ?? [];
     } catch (e: any) {
       error = e.message ?? 'Failed to load data';
     }
+    loaded = true;
     loading = false;
   }
 
-  $effect(() => { loadData(); });
+  $effect(() => { if (partnerId) loadData(viewDate); });
+
+  function shiftDate(days: number) {
+    const d = parseLocalDate(viewDate);
+    d.setDate(d.getDate() + days);
+    viewDate = toDateStr(d);
+  }
 
   function formatDate(dateStr: string) {
     const d = new Date(dateStr + 'T00:00:00');
@@ -51,10 +55,6 @@ export const ssr = false;
 
   function goToShare() {
     goto(`/accountability/partner/${partnerId}/share`);
-  }
-
-  async function logForPartner(habitId: string, value: number) {
-    // Partners can't log for the partner - this is view-only
   }
 </script>
 
@@ -86,18 +86,18 @@ export const ssr = false;
     </div>
   {:else}
     <div class="date-nav">
-      <button class="date-arrow" onclick={() => viewDate = getLocalDateString(new Date(viewDate).getTime() - 86400000)}>
+      <button class="date-arrow" onclick={() => shiftDate(-1)}>
         <Icon icon="mdi:chevron-left" />
       </button>
       <span class="date-display">{formatDate(viewDate)}</span>
-      <button class="date-arrow" onclick={() => viewDate = getLocalDateString(new Date(viewDate).getTime() + 86400000)}>
+      <button class="date-arrow" onclick={() => shiftDate(1)}>
         <Icon icon="mdi:chevron-right" />
       </button>
     </div>
 
     <div class="habits-grid">
       {#each sharedHabits as sh}
-        <PartnerHabitCard {sh} date={viewDate} />
+        <PartnerHabitCard {sh} />
       {/each}
     </div>
   {/if}

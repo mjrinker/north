@@ -13,12 +13,10 @@
     error = '';
     creating = true;
     try {
-      console.log('[InviteModal] Creating invitation...');
       const result = await gql<{ createAccountabilityInvitation: any }>(
         `mutation { createAccountabilityInvitation { id shortCode } }`,
         {}
       );
-      console.log('[InviteModal] Result:', result);
       if (result?.createAccountabilityInvitation?.shortCode) {
         inviteLink = `${window.location.origin}/accountability/invite/${result.createAccountabilityInvitation.shortCode}`;
         showLink = true;
@@ -28,6 +26,7 @@
       console.error('[InviteModal] Error:', e);
       error = e.message ?? 'Failed to create invitation';
     }
+    creating = false;
   }
 
   function copyLink() {

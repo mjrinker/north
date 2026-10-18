@@ -3,6 +3,7 @@
   import { userHasPermission } from '../../lib/featureFlags';
   import { goto } from '$app/navigation';
   import { gql } from '../../lib/api';
+  import { decodeId } from '../../lib/globalId';
   import { userRoles as userRolesStore } from '../../stores/roles';
   import { page } from '$app/stores';
   import Icon from '@iconify/svelte';
@@ -23,8 +24,8 @@ export const ssr = false;
   let showInviteModal = $state(false);
   let invitationTab = $state<'sent' | 'received'>('sent');
 
-  let sentInvitations = $derived(invitations.filter(i => i.inviter_id === currentUser?.id));
-  let receivedInvitations = $derived(invitations.filter(i => i.invitee_id === currentUser?.id || i.inviteeEmail === currentUser?.email));
+  let sentInvitations = $derived(invitations.filter(i => decodeId(i.inviter?.id) === currentUser?.id));
+  let receivedInvitations = $derived(invitations.filter(i => decodeId(i.inviter?.id) !== currentUser?.id));
   let uniquePartnerships = $derived(partnerships);
 
   async function loadData() {
@@ -45,12 +46,12 @@ export const ssr = false;
   $effect(() => { loadData(); });
 
   async function cancelInvitation(id: string) {
-    await gql(`mutation ($id: ID!) { deleteAccountabilityInvitation(id: $id) }`, { id });
+    await gql(`mutation ($invitationId: ID!) { cancelAccountabilityInvitation(invitationId: $invitationId) }`, { invitationId: id });
     await loadData();
   }
 
   async function acceptInvitation(id: string) {
-    await gql(`mutation ($invitationId: ID!) { acceptAccountabilityInvitation(invitationId: $invitationId) }`, { invitationId: id });
+    await gql(`mutation ($invitationId: ID!) { acceptAccountabilityInvitation(invitationId: $invitationId) { id } }`, { invitationId: id });
     await loadData();
   }
 
@@ -119,7 +120,7 @@ export const ssr = false;
             {#each sentInvitations as inv}
               <li class="invitation-item">
                 <div class="inv-info">
-                  <span class="inv-email">{inv.inviteeEmail}</span>
+                  <span class="inv-email">{inv.invitee?.name ?? inv.invitee?.email ?? inv.inviteeEmail ?? 'Shareable link'}</span>
                   <span class="inv-status" class:pending={inv.status === 'pending'} class:accepted={inv.status === 'accepted'} class:declined={inv.status === 'declined'}>{inv.status}</span>
                 </div>
                 <div class="inv-actions">

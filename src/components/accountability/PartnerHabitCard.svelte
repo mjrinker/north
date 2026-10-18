@@ -1,18 +1,17 @@
 <script lang="ts">
-  import type { Habit } from '../../../types';
-  import { getLocalDateString } from '$lib/dates';
-  import { isStandardMet, isTargetMet } from '$lib/thresholds';
+  import type { Habit } from '../../types';
   import { pluralizeUnit } from '$lib/units';
   import Icon from '@iconify/svelte';
 
-  let { sh, date = getLocalDateString() }: { sh: any; date?: string } = $props();
+  // `sh.todayEntry` is the partner's entry for the date the parent page is viewing.
+  let { sh }: { sh: any } = $props();
 
-  let habit = sh.habit as Habit;
-  let todayEntry = sh.todayEntry ?? null;
-  let standardMet = sh.standardMet ?? false;
-  let targetMet = sh.targetMet ?? false;
-  let isBreakHabit = habit.metadata?.category === 'break';
-  let unitLabel = habit.unit ? pluralizeUnit(habit.unit, Math.round(todayEntry?.value ?? 0)) : '';
+  let habit = $derived(sh.habit as Habit);
+  let todayEntry = $derived(sh.todayEntry ?? null);
+  let standardMet = $derived(sh.standardMet ?? false);
+  let targetMet = $derived(sh.targetMet ?? false);
+  let isBreakHabit = $derived(habit.metadata?.category === 'break');
+  let unitLabel = $derived(habit.unit ? pluralizeUnit(habit.unit, Math.round(todayEntry?.value ?? 0)) : '');
 
   function formatValue(value: number | undefined): string {
     if (value === undefined || value === null) return '—';

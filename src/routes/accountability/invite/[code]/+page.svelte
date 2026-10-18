@@ -11,7 +11,7 @@ export const ssr = false;
   user.subscribe(v => currentUser = v);
 
   let shortCode = $state('');
-  page.subscribe(p => { shortCode = p.params.code; });
+  page.subscribe(p => { shortCode = p.params.code ?? ''; });
 
   let invitation = $state<any>(null);
   let loading = $state(true);

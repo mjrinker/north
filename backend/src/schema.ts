@@ -118,6 +118,7 @@ export const schema = createSchema<GraphQLContext>({
       name: String!
       description: String
       goals: [String!]
+      createdAt: DateTime
     }
 
     type PageInfo {
@@ -322,6 +323,7 @@ input AddNoteInput {
     type Query {
       me: User
       myRoles: [String!]!
+      myFeatures: [String!]!
       roleDefs: [RoleDef!]!
       usersWithRoles: [UserWithRoles!]!
       habits(userId: String, status: String, tags: [String!], title: String, type: String, sortBy: HabitSortBy, sortDir: SortDirection): [Habit!]!
@@ -342,8 +344,9 @@ input AddNoteInput {
       accountabilityInvitation(id: ID!): AccountabilityInvitation
       accountabilityInvitationByCode(code: String!): AccountabilityInvitation
       accountabilityPartnerships: [AccountabilityPartnership!]!
+      accountabilityPartnership(partnerId: ID!): AccountabilityPartnership
       sharedHabits(partnershipId: ID!): [SharedHabit!]!
-      partnerSharedHabits(partnerId: ID!): [PartnerSharedHabit!]!
+      partnerSharedHabits(partnerId: ID!, date: String): [PartnerSharedHabit!]!
       partnerHistory(partnerId: ID!, habitId: ID!, dateFrom: String, dateTo: String): [PartnerHistoryEntry!]!
     }
 

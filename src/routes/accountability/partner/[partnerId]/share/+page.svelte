@@ -4,7 +4,6 @@
   import { gql } from '$lib/api';
   import { goto } from '$app/navigation';
   import Icon from '@iconify/svelte';
-  import { getAllRoleNames } from '../../../../../types/auth';
 
 export const ssr = false;
 
@@ -12,11 +11,13 @@ export const ssr = false;
   user.subscribe(v => currentUser = v);
 
   let partnerId = $state('');
-  page.subscribe(p => { partnerId = p.params.partnerId; });
+  page.subscribe(p => { partnerId = p.params.partnerId ?? ''; });
 
   let partner = $state<any>(null);
   let allHabits = $state<any[]>([]);
+  let partnershipId = $state('');
   let sharedHabitIds = $state<string[]>([]);
+  let savedHabitIds: string[] = [];
   let loading = $state(true);
   let error = $state('');
   let saving = $state(false);
@@ -25,15 +26,21 @@ export const ssr = false;
     loading = true;
     error = '';
     try {
-      const [partnerData, habitsData, sharedData] = await Promise.all([
-        gql<{ usersWithRoles: any[] }>(`query { usersWithRoles { id email name avatar roles } }`),
-        gql<{ habits: any[] }>(`query { habits { id title description standard target type unit schedule metadata } }`),
-        gql<{ partnerSharedHabits: any[] }>(`query ($partnerId: ID!) { partnerSharedHabits(partnerId: $partnerId) { habit { id } sharedAt } }`, { partnerId })
+      const [partnerData, habitsData] = await Promise.all([
+        gql<{ accountabilityPartnership: any }>(`query ($partnerId: ID!) { accountabilityPartnership(partnerId: $partnerId) { id partner { id email name avatar } } }`, { partnerId }),
+        gql<{ habits: any[] }>(`query { habits { id title description standard target type unit schedule metadata status } }`),
       ]);
-      const allUsers = partnerData?.usersWithRoles ?? [];
-      partner = allUsers.find((u: any) => u.id === partnerId) ?? null;
-      allHabits = habitsData?.habits ?? [];
-      sharedHabitIds = (sharedData?.partnerSharedHabits ?? []).map((sh: any) => sh.habit?.id).filter(Boolean);
+      const partnership = partnerData?.accountabilityPartnership ?? null;
+      partner = partnership?.partner ?? null;
+      partnershipId = partnership?.id ?? '';
+      allHabits = (habitsData?.habits ?? []).filter((h: any) => h.status !== 'deleted');
+      if (partnershipId) {
+        const sharedData = await gql<{ sharedHabits: any[] }>(`query ($partnershipId: ID!) { sharedHabits(partnershipId: $partnershipId) { habit { id } } }`, { partnershipId });
+        sharedHabitIds = (sharedData?.sharedHabits ?? []).map((sh: any) => sh.habit?.id).filter(Boolean);
+      } else {
+        sharedHabitIds = [];
+      }
+      savedHabitIds = [...sharedHabitIds];
     } catch (e: any) {
       error = e.message ?? 'Failed to load data';
     }
@@ -51,20 +58,21 @@ export const ssr = false;
   }
 
   async function saveSharing() {
-    if (!partnerId) return;
+    if (!partnershipId) return;
     saving = true;
     try {
-      // First get the partnership ID
-      const partData = await gql<{ accountabilityPartnerships: any[] }>(`query { accountabilityPartnerships { id user_id partner_id } }`);
-      const partnership = partData?.accountabilityPartnerships?.find((p: any) => 
-        (p.user_id === currentUser?.id && p.partner_id === partnerId) ||
-        (p.user_id === partnerId && p.partner_id === currentUser?.id)
-      );
-      
-      if (partnership) {
+      const added = sharedHabitIds.filter(id => !savedHabitIds.includes(id));
+      const removed = savedHabitIds.filter(id => !sharedHabitIds.includes(id));
+      if (added.length) {
         await gql(
-          `mutation ($partnershipId: ID!, $habitIds: [ID!]!) { shareHabitsWithPartner(partnershipId: $partnershipId, habitIds: $habitIds) }`,
-          { partnershipId: partnership.id, habitIds: sharedHabitIds }
+          `mutation ($partnershipId: ID!, $habitIds: [ID!]!) { shareHabitsWithPartner(partnershipId: $partnershipId, habitIds: $habitIds) { id } }`,
+          { partnershipId, habitIds: added }
+        );
+      }
+      if (removed.length) {
+        await gql(
+          `mutation ($partnershipId: ID!, $habitIds: [ID!]!) { unshareHabitsWithPartner(partnershipId: $partnershipId, habitIds: $habitIds) }`,
+          { partnershipId, habitIds: removed }
         );
       }
       await loadData();
