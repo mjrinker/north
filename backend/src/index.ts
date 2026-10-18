@@ -10,7 +10,7 @@ import { getDb } from './db.js';
 const isProd = process.env.NODE_ENV === 'production';
 
 const frontendOrigins = (process.env.FRONTEND_ORIGINS || 'https://north-mu.vercel.app,http://localhost:5173')
-  .split(',')
+  .split(/[\s,]+/)
   .map((s: string) => s.trim())
   .filter(Boolean);
 

@@ -17,7 +17,10 @@ export const logResolvers = {
       },
       ctx: GraphQLContext,
     ) => {
+      // Signed-in users only, so the endpoint can't be used to flood the table.
+      if (!ctx.userId) return false;
       const rows: LogRow[] = (args.entries ?? [])
+        .slice(0, 100)
         .filter((e) => e && typeof e.message === 'string' && e.message.length > 0)
         .map((e) => ({
           level: ['log', 'info', 'warn', 'error'].includes(e.level ?? '') ? (e.level as string) : 'log',

@@ -92,7 +92,6 @@ export async function gql<T = any>(
   }
 
   const body = await res.json().catch(() => null);
-  console.log('[gql] Response:', { status: res.status, body });
   if (body?.errors?.length) {
     console.error('[gql] GraphQL errors:', JSON.stringify(body.errors, null, 2));
     const first = body.errors[0];

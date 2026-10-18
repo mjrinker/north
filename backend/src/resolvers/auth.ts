@@ -1,5 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { createToken } from '../auth.js';
+import { escapeLike } from '../db.js';
 import type { GraphQLContext } from '../context.js';
 import { toGlobalId } from '../ids.js';
 
@@ -26,9 +27,12 @@ async function verifyGoogleToken(idToken: string): Promise<{ email: string; sub:
   if (!payload.email || typeof payload.email !== 'string') {
     throw new Error('Google token missing email');
   }
+  if (payload.email_verified !== true) {
+    throw new Error('Google account email is not verified');
+  }
 
   return {
-    email: payload.email,
+    email: payload.email.toLowerCase().trim(),
     sub: payload.sub as string,
     name: typeof payload.name === 'string' ? payload.name : null,
     avatar: typeof payload.picture === 'string' ? payload.picture : null,
@@ -36,7 +40,7 @@ async function verifyGoogleToken(idToken: string): Promise<{ email: string; sub:
 }
 
 async function findOrCreateGoogleUser(ctx: GraphQLContext, info: { email: string; name: string | null; avatar: string | null }): Promise<UserRow> {
-  const { data: existing } = await ctx.db.from('users').select('*').eq('email', info.email).maybeSingle();
+  const { data: existing } = await ctx.db.from('users').select('*').ilike('email', escapeLike(info.email)).maybeSingle();
   if (existing) {
     const row = existing as UserRow;
     const { data, error } = await ctx.db.from('users').update({
@@ -48,7 +52,7 @@ async function findOrCreateGoogleUser(ctx: GraphQLContext, info: { email: string
   }
 
   const { data, error } = await ctx.db.from('users').insert({
-    email: info.email.toLowerCase().trim(),
+    email: info.email,
     password_hash: '',
     name: info.name,
     avatar: info.avatar,

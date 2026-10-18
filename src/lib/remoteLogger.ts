@@ -17,6 +17,9 @@ const GRAPHQL_URL =
   (import.meta.env.PUBLIC_API_URL || 'https://north-api-rho.vercel.app').replace(/\/+$/, '') + '/graphql'
 
 function send(batch: LogEntry[]): void {
+  let token: string | null = null
+  try { token = localStorage.getItem('north_token') } catch {}
+  if (!token) return
   const entries = batch.map((e) => ({
     level: e.level,
     message: e.message,
@@ -26,7 +29,7 @@ function send(batch: LogEntry[]): void {
   }))
   fetch(GRAPHQL_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
     body: JSON.stringify({
       query: `mutation ($entries: [ClientLogInput!]!) { clientLogs(entries: $entries) }`,
       variables: { entries },
