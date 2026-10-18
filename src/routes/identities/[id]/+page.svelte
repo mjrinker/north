@@ -3,6 +3,7 @@
   import type { Identity } from '../../../types';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  import Icon from '@iconify/svelte';
 
   const id = $page.params.id;
   let identities = $state<Identity[]>([]);
@@ -44,32 +45,57 @@
   }
 </script>
 
-<div style="padding: 1rem; max-width: 600px;">
+<div class="page">
+  <a class="back" href="/identities"><Icon icon="mdi:chevron-left" />Identities</a>
   {#if identity}
-    <h1>{nameVal} - Identity</h1>
+    <h1 class="page-title">{nameVal || 'Identity'}</h1>
 
-    <form style="display: flex; flex-direction: column; gap: 1rem;" onsubmit={e => e.preventDefault()}>
-      <label>
-        Name:
-        <input type="text" bind:value={nameVal} required />
-      </label>
-
-      <label>
-        Description:
-        <textarea bind:value={descVal}></textarea>
-      </label>
-
-      <label>
-        Goals:
-        <input type="text" bind:value={goalsString} placeholder="Comma-separated goals" />
-      </label>
-
-      <div style="display: flex; gap: 1rem;">
-        <button type="button" onclick={handleSave}>Save</button>
-        <button type="button" onclick={handleDelete}>Delete</button>
+    <form class="form" onsubmit={e => { e.preventDefault(); handleSave(); }}>
+      <div class="field">
+        <label for="ident-name">Name</label>
+        <input id="ident-name" type="text" bind:value={nameVal} required />
+      </div>
+      <div class="field">
+        <label for="ident-desc">Description</label>
+        <textarea id="ident-desc" bind:value={descVal} placeholder="What this identity means to you"></textarea>
+      </div>
+      <div class="field">
+        <label for="ident-goals">Goals</label>
+        <input id="ident-goals" type="text" bind:value={goalsString} placeholder="Separate goals with commas" />
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-plain delete" onclick={handleDelete}>Delete</button>
+        <button type="submit" class="btn">Save</button>
       </div>
     </form>
   {:else}
-    <p>Identity not found.</p>
+    <p class="empty">This identity doesn’t exist anymore.</p>
   {/if}
 </div>
+
+<style>
+  .back {
+    display: inline-flex;
+    align-items: center;
+    margin-left: -6px;
+  }
+
+  .back :global(svg) { font-size: 22px; }
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: var(--space-2);
+  }
+
+  .delete {
+    color: var(--danger);
+    padding-left: 0;
+  }
+</style>

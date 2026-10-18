@@ -1,8 +1,7 @@
 // src/types/auth.ts
 
 export type Feature =
-  | 'STATS'
-  | 'IOS_NATIVE_UI';
+  | 'STATS';
 
 export type Permission =
   | 'access_admin'

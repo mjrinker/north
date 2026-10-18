@@ -29,13 +29,22 @@
 </script>
 
 <div class="error-page">
-  <h1>Something went wrong</h1>
-  <p>The app encountered an unexpected error (status {status}).</p>
+  {#if status === 404}
+    <h1>Page not found</h1>
+    <p>That page doesn’t exist.</p>
+  {:else}
+    <h1>Something went wrong</h1>
+    <p>North hit an unexpected error ({status}).</p>
+  {/if}
   {#if typeof window !== 'undefined'}
     <div class="error-links">
-      <button onclick={() => window.location.reload()}>Reload</button>
-      {#if errorInfo}
-        <button class="debug-link" onclick={copyError}>{copied ? 'Copied!' : 'Copy error stack'}</button>
+      {#if status === 404}
+        <a class="btn" href="/today">Go to Today</a>
+      {:else}
+        <button class="btn" onclick={() => window.location.reload()}>Reload</button>
+      {/if}
+      {#if errorInfo && status !== 404}
+        <button class="btn btn-plain" onclick={copyError}>{copied ? 'Copied' : 'Copy error details'}</button>
       {/if}
     </div>
   {/if}
@@ -48,26 +57,24 @@
     align-items: center;
     justify-content: center;
     min-height: 60vh;
-    padding: 2rem;
+    padding: var(--space-6) var(--gutter);
     text-align: center;
-    color: var(--text-primary, #222);
   }
-  h1 { margin-bottom: 0.5rem; }
-  p { margin-bottom: 1.5rem; color: var(--text-secondary, #555); }
-  .error-links { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; justify-content: center; }
-  button, .debug-link {
-    padding: 0.5rem 1.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    background: var(--accent, #0066cc);
-    color: var(--accent-text, white);
-    cursor: pointer;
-    font-size: 1rem;
-    text-decoration: none;
+
+  h1 {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-2);
   }
-  .debug-link {
-    background: transparent;
-    color: var(--text-primary, #222);
+
+  p {
+    margin-bottom: var(--space-5);
+    color: var(--text-2);
   }
-  .debug-link:hover { background: var(--btn-secondary-bg, #eee); }
+
+  .error-links {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+  }
 </style>

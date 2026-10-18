@@ -1095,7 +1095,8 @@ setRoles(userId: ID!, roles: [String!]!): Boolean!`,
 </script>
 
 <div class="page">
-  <h1>North API</h1>
+  <a class="back" href="/settings">‹ Settings</a>
+  <h1 class="page-title">North API</h1>
   <p class="intro">
     The API lives at <code>https://north-api-rho.vercel.app/graphql</code>. Send a POST with a JSON body
     containing your GraphQL <code>query</code> and optional <code>variables</code>, and authenticate with
@@ -1156,30 +1157,29 @@ base64("Habit:23d82b83-f52a-40a6-8ebe-05126ebc2f55")
 </div>
 
 <style>
-  .page {
-    padding: 1.5rem;
-    max-width: 720px;
-    margin: 0 auto;
+  .back {
+    display: inline-block;
+    margin-bottom: var(--space-1);
   }
-  h1 {
-    color: var(--text-primary, #222);
-    margin-bottom: 0.5rem;
+
+  .page {
+    max-width: 720px;
   }
   .intro {
-    color: var(--text-secondary, #555);
+    color: var(--text-2);
     font-size: 0.9rem;
     line-height: 1.5;
     margin: 0 0 0.75rem;
   }
   .intro code {
     font-size: 0.82em;
-    background: var(--btn-secondary-bg, #eee);
+    background: var(--surface-2);
     padding: 1px 5px;
     border-radius: 4px;
-    font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
+    font-family: var(--font-mono);
   }
   .intro a {
-    color: var(--accent, #0066cc);
+    color: var(--accent);
   }
   .examples {
     display: flex;
@@ -1189,10 +1189,8 @@ base64("Habit:23d82b83-f52a-40a6-8ebe-05126ebc2f55")
   }
   .group-title {
     margin: 1.5rem 0 0.25rem;
-    font-size: 1rem;
-    color: var(--text-primary, #222);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-size: var(--text-md);
+    color: var(--text);
   }
   .group-title:first-child {
     margin-top: 0;
@@ -1200,17 +1198,15 @@ base64("Habit:23d82b83-f52a-40a6-8ebe-05126ebc2f55")
   .admin-badge {
     font-size: 0.7rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
     color: #fff;
-    background: var(--accent, #0066cc);
+    background: var(--accent);
     border-radius: 4px;
     padding: 1px 6px;
     vertical-align: middle;
   }
   .section-title {
     margin: 2rem 0 0.25rem;
-    color: var(--text-primary, #222);
+    color: var(--text);
   }
   .types {
     display: flex;
@@ -1221,23 +1217,21 @@ base64("Habit:23d82b83-f52a-40a6-8ebe-05126ebc2f55")
   .type-section h3 {
     margin: 0 0 0.5rem;
     font-size: 0.95rem;
-    color: var(--text-secondary, #555);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    color: var(--text-2);
   }
   .type-section .gql {
-    border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 8px;
+    border: none;
+    border-radius: var(--radius);
   }
   .gql {
     margin: 0;
     padding: 0.9rem 1rem 1rem;
-    background: var(--input-bg, #f5f5f5);
-    border-radius: 8px;
+    background: var(--surface-2);
+    border-radius: var(--radius);
     overflow-x: auto;
     font-size: 0.8rem;
     line-height: 1.55;
-    color: var(--text-primary, #222);
-    font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
+    color: var(--text);
+    font-family: var(--font-mono);
   }
 </style>

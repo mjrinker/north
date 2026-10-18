@@ -27,10 +27,10 @@
 {#if visible.length > 0}
   <div class="dropdown-picker">
     <label class="dropdown-label">
-      Depends on
+      Done automatically when
       <select bind:value={selectedMode} class="mode-select" onchange={(e) => setMode((e.target as HTMLSelectElement).value as 'and' | 'or')}>
-        <option value="and">AND (all must be done)</option>
-        <option value="or">OR (any can be done)</option>
+        <option value="and">All of these</option>
+        <option value="or">Any of these</option>
       </select>
     </label>
 
@@ -41,7 +41,7 @@
 
     {#if open}
       <div class="dropdown-menu" onclick={(e) => e.stopPropagation()}>
-        <input type="text" class="dropdown-search" placeholder="Search habits..." bind:value={search} onkeydown={(e) => e.stopPropagation()} />
+        <input type="text" class="dropdown-search" placeholder="Search habits" bind:value={search} onkeydown={(e) => e.stopPropagation()} />
 
         <div class="dropdown-list">
           {#each filtered as h (h.id)}
@@ -61,108 +61,114 @@
 
 <style>
   .dropdown-picker {
-    margin-bottom: 0.75rem;
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
+
   .dropdown-label {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.5rem;
+    justify-content: space-between;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
     font-weight: 500;
-    color: var(--text-primary, #222);
+    color: var(--text-2);
   }
-  .mode-select {
-    flex: 1;
-    padding: 0.4rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
-    font-size: 0.85rem;
+
+  .dropdown-picker .mode-select {
+    width: auto;
+    min-height: 30px;
+    padding: 2px 30px 2px var(--space-2);
+    font-size: var(--text-sm);
+    background-position: right 10px center;
   }
+
   .dropdown-trigger {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    background: var(--input-bg, #fff);
+    min-height: var(--tap);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius);
+    background: var(--surface);
     cursor: pointer;
-    color: var(--text-primary, #222);
-    font-size: 0.9rem;
   }
-  .dropdown-trigger:hover {
-    background: var(--btn-secondary-bg, #f5f5f5);
+
+  .dropdown-trigger.open {
+    border-radius: var(--radius) var(--radius) 0 0;
   }
+
   .selected-count {
-    font-weight: 500;
+    color: var(--text);
   }
+
   .dropdown-trigger :global(svg) {
-    transition: transform 0.2s;
-    font-size: 1.2rem;
+    font-size: 20px;
+    color: var(--text-3);
+    transition: transform 0.2s var(--ease);
   }
-  .dropdown-trigger :global(svg).rotated {
+
+  .dropdown-trigger .rotated :global(svg) {
     transform: rotate(180deg);
   }
+
   .dropdown-menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    margin-top: 0.25rem;
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 100;
-    max-height: 300px;
-    display: flex;
-    flex-direction: column;
+    margin-top: -6px;
+    padding: 0 var(--space-2) var(--space-2);
+    border-top: 0.5px solid var(--separator);
+    border-radius: 0 0 var(--radius) var(--radius);
+    background: var(--surface);
   }
-  .dropdown-search {
-    padding: 0.5rem;
-    border: none;
-    border-bottom: 1px solid var(--card-border, #ccc);
-    border-radius: 8px 8px 0 0;
-    background: var(--input-bg, #f5f5f5);
-    font-size: 0.9rem;
-    width: 100%;
-    box-sizing: border-box;
+
+  .dropdown-picker .dropdown-search {
+    min-height: 36px;
+    margin: var(--space-2) 0;
+    background-color: var(--surface-2);
+    border-radius: 10px;
   }
+
+  .dropdown-hint {
+    margin: 0 var(--space-1) var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--text-2);
+  }
+
   .dropdown-list {
-    overflow-y: auto;
     max-height: 220px;
+    overflow-y: auto;
   }
+
   .dropdown-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
+    gap: var(--space-3);
+    min-height: 40px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: background 0.15s;
+    color: var(--text);
+    font-size: var(--text-base);
   }
-  .dropdown-item:hover {
-    background: var(--btn-secondary-bg, #f5f5f5);
+
+  .dropdown-item:active {
+    background: var(--surface-2);
   }
-  .dropdown-item.selected {
-    background: rgba(0, 102, 204, 0.1);
+
+  .dropdown-item input[type='checkbox'] {
+    accent-color: var(--accent);
+    width: 18px;
+    height: 18px;
   }
-  .dropdown-item input[type="checkbox"] {
-    width: 1rem;
-    height: 1rem;
-    accent-color: var(--accent, #0066cc);
-  }
+
   .habit-title {
     flex: 1;
-    font-size: 0.9rem;
-    color: var(--text-primary, #222);
   }
+
   .dropdown-empty {
-    padding: 1rem;
+    padding: var(--space-3);
     text-align: center;
-    color: var(--text-secondary, #888);
-    font-size: 0.85rem;
+    color: var(--text-3);
+    font-size: var(--text-sm);
   }
 </style>

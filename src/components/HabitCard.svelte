@@ -4,7 +4,8 @@
   import { getEntry } from '../services/storage';
   import { habitsStore } from '../stores/habits';
   import { getLocalDateString } from '../lib/dates';
-  import { isStandardMet as metStandard, isTargetMet as metTarget } from '../lib/thresholds';
+  import { isStandardMet as metStandard, isTargetMet as metTarget, progressPercentage } from '../lib/thresholds';
+  import { formatDurationLabel } from '../lib/duration';
   import { timerStates, setTimerState, clearTimerState, defaultTimer, type TimerState, type AllTimers } from '../lib/timerStore';
   import { recordAutoCompletedDep } from '../lib/autoDeps';
   import { autoCompleteDependencies, uncheckDependencies } from '../lib/dependencyEngine';
@@ -31,15 +32,6 @@
   entriesStore.subscribe(() => trigger++);
   let _gen = 0;
 
-  // Deterministic pseudo-random twinkle timing per sparkle so the glitter
-  // looks organic but stays stable across renders.
-  function sparkleTime(i: number): { delay: number; dur: number } {
-    const frac = (seed: number) => {
-      const v = Math.abs(Math.sin(i * seed + 78.233) % 1) * 43758.5453;
-      return v - Math.floor(v);
-    };
-    return { delay: frac(12.9898) * 2, dur: 0.55 + frac(39.3467) * 1.6 };
-  }
   let autoCompleted = $state(new Set<string>());
   let isAutoCompleted = $derived(habit.dependsOn ? autoCompleted.has(habit.id + '|' + date) : false);
   let isStandardMet = $derived(todayEntry ? metStandard(habit, todayEntry.value) : false);
@@ -47,6 +39,7 @@
   let isBreakHabit = $derived(habit.metadata?.category === 'break');
   let unitLabel = $derived(habit.unit ? pluralizeUnit(habit.unit, Math.round(todayEntry?.value ?? 0)) : '');
   let depResults = $state<{ hid: string; met: boolean }[]>([]);
+
 
   function openDepPopover(e: Event) {
     e.stopPropagation();
@@ -128,6 +121,24 @@
   let timerSecs = $derived(timerState.elapsed % 60);
   let timerInterval: ReturnType<typeof setInterval> | null = null;
   let manualSeconds = $state('');
+
+  // Ring fill: share of the standard reached (binary = done or not).
+  let liveValue = $derived(habit.type === 'duration' && timerState.running ? timerState.elapsed : (todayEntry?.value ?? 0));
+  let progress = $derived.by(() => {
+    if (habit.type === 'binary') return todayEntry?.value === 1 && !isBreakHabit ? 1 : 0;
+    if (isBreakHabit) return todayEntry ? Math.min(1, progressPercentage(habit, liveValue)) : 0;
+    return Math.min(1, progressPercentage(habit, liveValue));
+  });
+  let slipped = $derived(isBreakHabit && todayEntry != null && !metStandard(habit, todayEntry.value) && (habit.type !== 'binary' || todayEntry.value === 1));
+  const RING_C = 2 * Math.PI * 17;
+
+  let progressText = $derived.by(() => {
+    if (habit.type === 'binary') return '';
+    const fmt = (v: number) => habit.type === 'duration' ? formatDurationLabel(v) : String(Math.round(v));
+    if (isBreakHabit) return `Under ${fmt(habit.standard)}`;
+    const unit = habit.type === 'quantity' && habit.unit ? ` ${pluralizeUnit(habit.unit, habit.standard)}` : '';
+    return `Goal ${fmt(habit.standard)}${unit}`;
+  });
 
   $effect(() => {
     if (timerState.running && !timerState.paused && timerState.startedAt > 0) {
@@ -320,515 +331,451 @@
   }
 </script>
 
-<div class="habit-card" class:first={isFirst} class:last={isLast} role="button" tabindex="0"
-  style="--habit-color: {habit.metadata?.color || 'transparent'}; --habit-ink: {habit.metadata?.color || 'var(--text-primary)'};"
+<div class="habit-row" role="button" tabindex="0"
+  style="--habit: {habit.metadata?.color || 'var(--accent)'};"
   use:useLongPressStart
   onclick={() => { if (!longPressFired) onEdit?.(); }}
   onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit?.(); } }}>
-  <div class="card-top">
-    <div class="card-left">
-      <div class="title-row">
-        {#if habit.metadata?.emoji}
-          <span class="habit-glyph">{habit.metadata.emoji}</span>
-        {:else if habit.metadata?.icon}
-          <span class="habit-glyph"><Icon icon={habit.metadata.icon} style="color: inherit" /></span>
-        {/if}
-        <h3>{habit.title}</h3>
-        {#if habit.metadata?.category}
-          <span class="category-badge" class:build={habit.metadata.category === 'build'}>{habit.metadata.category === 'build' ? 'Build' : 'Break'}</span>
-        {/if}
-        {#if habit.dependsOn && habit.dependsOn.habitIds.length > 0}
-          <div class="dep-wrap">
-            <button class="dep-badge" onclick={openDepPopover} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDepPopover(e); }}}>
-              <span class="dep-badge-label">conditional</span>
-              <span class="dep-badge-sep">|</span>
-              <span class="dep-badge-count">✓ {depResults.filter(r => r.met).length}/{depResults.length}</span>
-            </button>
-          </div>
-        {/if}
-      </div>
-      <p class="streak">Streak: {streak} {habit.schedule.daysPerWeek ? 'weeks' : 'days'}</p>
-      {#if notesCount && notesCount > 0}
-        <button class="note-pill" use:useNoteClick aria-label="Notes">
-          <Icon icon="mdi:note-text-outline" style="color: inherit; font-size: 0.8rem;" />
-          <span>{notesCount}</span>
+  <div class="glyph" class:slipped aria-hidden="true">
+    <svg class="ring" viewBox="0 0 40 40">
+      <circle class="ring-track" cx="20" cy="20" r="17" />
+      <circle class="ring-fill" cx="20" cy="20" r="17"
+        stroke-dasharray={RING_C}
+        stroke-dashoffset={RING_C * (1 - (slipped ? 1 : progress))} />
+    </svg>
+    {#if habit.metadata?.emoji}
+      <span class="glyph-inner emoji">{habit.metadata.emoji}</span>
+    {:else if habit.metadata?.icon}
+      <span class="glyph-inner"><Icon icon={habit.metadata.icon} /></span>
+    {:else}
+      <span class="glyph-inner initial">{habit.title.slice(0, 1).toUpperCase()}</span>
+    {/if}
+  </div>
+
+  <div class="body">
+    <div class="title-line">
+      <span class="title">{habit.title}</span>
+      {#if habit.dependsOn && habit.dependsOn.habitIds.length > 0}
+        <button class="dep-chip tabular" onclick={openDepPopover} aria-label="Show conditions">
+          <Icon icon="mdi:link-variant" />{depResults.filter(r => r.met).length}/{depResults.length}
         </button>
       {/if}
     </div>
-    <div class="card-right">
-      {#if habit.type === 'binary'}
-      <div class="action-control">
-        <label class="binary-input-wrap" class:checked={todayEntry?.value === 1} onclick={(e) => e.stopPropagation()}>
-          <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} disabled={isAutoCompleted} onmousedown={(e) => e.preventDefault()} />
-          {#if isBreakHabit}
-            {#if todayEntry?.value === 1}
-              <Icon icon="mdi:close" class="check-icon break" />
-            {:else}
-              <Icon icon="mdi:check" class="check-icon" />
-            {/if}
-          {:else if todayEntry?.value === 1}
-            <Icon icon="mdi:check" class="check-icon" />
-          {/if}
-        </label>
-      </div>
-    {:else if habit.type === 'quantity'}
-      <div class="action-control">
-        <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(-1); }} class="btn small">−</button>
-        <div class="qty-input-wrap" class:target-met={isTargetMet} onclick={(e) => e.stopPropagation()}>
-          {#each [0,1,2,3,4,5,6,7,8,9,10,11,12,13] as i (i)}
-            <span class="sparkle" style:--tw-delay={`${sparkleTime(i).delay}s`} style:--tw-dur={`${sparkleTime(i).dur}s`}></span>
-          {/each}
-          <input
-            type="number"
-            value={todayEntry?.value ?? 0}
-            min="0"
-            class="qty-input"
-            class:standard-met={isStandardMet}
-            onfocus={(e) => {
-              const target = e.currentTarget as HTMLInputElement;
-              const len = target.value.length;
-              target.setSelectionRange(len, len);
-            }}
-            onkeydown={(e) => {
-              if (e.key === 'Enter') {
-                const target = e.currentTarget as HTMLInputElement;
-                const val = parseInt(target.value);
-                if (!isNaN(val) && val >= 0) {
-                  handleQuantitySet(val);
-                }
-                target.blur();
-              }
-            }}
-            onblur={(e) => {
-              const target = e.currentTarget as HTMLInputElement;
-              const val = parseInt(target.value);
-              if (!isNaN(val) && val >= 0) {
-                handleQuantitySet(val);
-              }
-            }}
-          />
-        </div>
-        <button onclick={(e) => { e.stopPropagation(); handleQuantityDelta(1); }} class="btn small">+</button>
-        {#if habit.unit}
-          <span class="qty-unit">{unitLabel}</span>
+    <div class="meta">
+      {#if progressText}<span>{progressText}</span>{/if}
+      {#if streak > 0}
+        <span class="meta-streak tabular" title="{streak} {habit.schedule.daysPerWeek ? 'week' : 'day'} streak"><Icon icon="mdi:fire" />{streak}{habit.schedule.daysPerWeek ? 'w' : ''}</span>
+      {/if}
+      {#if notesCount && notesCount > 0}
+        <button class="meta-notes" use:useNoteClick aria-label="{notesCount} notes">
+          <Icon icon="mdi:note-text-outline" />{notesCount}
+        </button>
+      {/if}
+    </div>
+    {#if habit.description}
+      <div class="desc">{@html marked.parse(habit.description)}</div>
+    {/if}
+  </div>
+
+  <div class="control" onclick={(e) => e.stopPropagation()} role="presentation">
+    {#if habit.type === 'binary'}
+      <label class="check" class:on={todayEntry?.value === 1} class:break={isBreakHabit} aria-label={todayEntry?.value === 1 ? 'Mark not done' : 'Mark done'}>
+        <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} disabled={isAutoCompleted} onmousedown={(e) => e.preventDefault()} />
+        {#if todayEntry?.value === 1}
+          <Icon icon={isBreakHabit ? 'mdi:close' : 'mdi:check'} />
         {/if}
+      </label>
+    {:else if habit.type === 'quantity'}
+      <div class="stepper">
+        <button onclick={() => handleQuantityDelta(-1)} aria-label="Decrease" disabled={(todayEntry?.value ?? 0) <= 0}><Icon icon="mdi:minus" /></button>
+        <input
+          type="number"
+          inputmode="numeric"
+          value={todayEntry?.value ?? 0}
+          min="0"
+          class="stepper-value tabular"
+          class:met={isStandardMet && !isBreakHabit}
+          class:target={isTargetMet}
+          class:over={slipped}
+          aria-label="{habit.title} count"
+          onfocus={(e) => {
+            const target = e.currentTarget as HTMLInputElement;
+            target.select();
+          }}
+          onkeydown={(e) => {
+            if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
+          }}
+          onblur={(e) => {
+            const val = parseInt((e.currentTarget as HTMLInputElement).value);
+            if (!isNaN(val) && val >= 0 && val !== (todayEntry?.value ?? 0)) handleQuantitySet(val);
+          }}
+        />
+        <button onclick={() => handleQuantityDelta(1)} aria-label="Increase"><Icon icon="mdi:plus" /></button>
       </div>
     {:else if habit.type === 'duration'}
-      <div class="action-control">
-        {#if timerState.running}
-          {#if timerState.paused}
-            <button onclick={(e) => { e.stopPropagation(); resumeTimer(); }} class="btn-icon play" aria-label="Resume"><Icon icon="mdi:play" style="color: inherit" /></button>
-          {:else}
-            <button onclick={(e) => { e.stopPropagation(); pauseTimer(); }} class="btn-icon pause" aria-label="Pause"><Icon icon="mdi:pause" style="color: inherit" /></button>
-          {/if}
-          <button onclick={(e) => { e.stopPropagation(); doneTimer(); }} class="btn-icon done" aria-label="Done"><Icon icon="mdi:check" style="color: inherit" /></button>
-          <button onclick={(e) => { e.stopPropagation(); cancelTimer(); }} class="btn-icon cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: inherit" /></button>
-        {:else}
-          <button onclick={(e) => { e.stopPropagation(); startTimer(); }} class="btn-icon play" aria-label="Start"><Icon icon="mdi:play" style="color: inherit" /></button>
-        {/if}
-        {#if todayEntry && todayEntry.value > 0 && !timerState.running}
-          <button onclick={(e) => { e.stopPropagation(); handleReset(); }} class="btn-icon restart" aria-label="Reset"><Icon icon="mdi:restart" style="color: inherit" /></button>
-        {/if}
-        <div class="dur-input-wrap" class:running={timerState.running} class:standard-met={isStandardMet} class:target-met={isTargetMet} style:--sep-color={timerState.running ? '#888' : undefined} onclick={(e) => e.stopPropagation()}>
-          {#each [0,1,2,3,4,5,6,7,8,9,10,11,12,13] as i (i)}
-            <span class="sparkle" style:--tw-delay={`${sparkleTime(i).delay}s`} style:--tw-dur={`${sparkleTime(i).dur}s`}></span>
-          {/each}
+      <div class="timer">
+        <div class="dur-input-wrap tabular" class:running={timerState.running} class:met={isStandardMet && !isBreakHabit} class:target={isTargetMet} class:over={slipped}>
           {#if (timerState.running ? timerHrs : durHours) > 0}
-            <input
-              type="text"
-              inputmode="numeric"
-              value={timerState.running ? timerHrs : durHours}
-              class="dur-input"
-              disabled={timerState.running}
-              onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
+            <input type="text" inputmode="numeric" value={timerState.running ? timerHrs : durHours} class="dur-input" disabled={timerState.running} aria-label="Hours"
+              onfocus={(e) => (e.currentTarget as HTMLInputElement).select()}
               onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
-              onblur={saveDurInputs}
-            />
+              onblur={saveDurInputs} />
             <span class="dur-sep">:</span>
           {/if}
-          <input
-            type="text"
-            inputmode="numeric"
-            value={String(timerState.running ? timerMins : durMinutes).padStart(2, '0')}
-            class="dur-input"
-            disabled={timerState.running}
-            onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
+          <input type="text" inputmode="numeric" value={String(timerState.running ? timerMins : durMinutes).padStart(2, '0')} class="dur-input" disabled={timerState.running} aria-label="Minutes"
+            onfocus={(e) => (e.currentTarget as HTMLInputElement).select()}
             onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
-            onblur={saveDurInputs}
-          />
+            onblur={saveDurInputs} />
           <span class="dur-sep">:</span>
-          <input
-            type="text"
-            inputmode="numeric"
-            value={String(timerState.running ? timerSecs : durSeconds).padStart(2, '0')}
-            class="dur-input"
-            disabled={timerState.running}
-            onfocus={(e) => { (e.currentTarget as HTMLInputElement).setSelectionRange(99, 99); }}
+          <input type="text" inputmode="numeric" value={String(timerState.running ? timerSecs : durSeconds).padStart(2, '0')} class="dur-input" disabled={timerState.running} aria-label="Seconds"
+            onfocus={(e) => (e.currentTarget as HTMLInputElement).select()}
             onkeydown={(e) => { if (e.key === 'Enter') saveDurInputs(e); }}
-            onblur={saveDurInputs}
-          />
+            onblur={saveDurInputs} />
         </div>
+        {#if timerState.running}
+          <button onclick={() => doneTimer()} class="round done" aria-label="Done"><Icon icon="mdi:check" /></button>
+          {#if timerState.paused}
+            <button onclick={() => resumeTimer()} class="round primary" aria-label="Resume"><Icon icon="mdi:play" /></button>
+          {:else}
+            <button onclick={() => pauseTimer()} class="round primary" aria-label="Pause"><Icon icon="mdi:pause" /></button>
+          {/if}
+        {:else}
+          {#if todayEntry && todayEntry.value > 0}
+            <button onclick={() => handleReset()} class="round subtle" aria-label="Reset to zero"><Icon icon="mdi:restore" /></button>
+          {/if}
+          <button onclick={() => startTimer()} class="round primary" aria-label="Start timer"><Icon icon="mdi:play" /></button>
+        {/if}
       </div>
     {/if}
   </div>
 </div>
-{#if habit.description}
-  <div class="desc">{@html marked.parse(habit.description)}</div>
-{/if}
-</div>
 
 <style>
-.habit-card {
-    position: relative;
-    background: var(--card-bg);
-    border: 1px solid var(--bg);
-    border-left: 4px solid var(--habit-color, transparent);
-    border-top-color: var(--bg);
-    border-bottom-color: var(--bg);
-    padding: 1.25rem 1rem;
+  .habit-row {
     display: flex;
-    flex-direction: column;
-    gap: 0;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 64px;
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface);
+    cursor: pointer;
+    -webkit-touch-callout: none;
+    transition: background 0.15s;
+  }
+
+  .habit-row:active {
+    background: var(--surface-2);
+  }
+
+  /* Icon inside a progress ring drawn in the habit's color. */
+  .glyph {
+    position: relative;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    color: var(--habit);
+  }
+
+  .ring {
+    position: absolute;
+    inset: 0;
+    transform: rotate(-90deg);
+  }
+
+  .ring circle {
+    fill: none;
+    stroke-width: 3;
+  }
+
+  .ring-track {
+    stroke: color-mix(in srgb, var(--habit) 16%, transparent);
+  }
+
+  .ring-fill {
+    stroke: var(--habit);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.4s var(--ease);
+  }
+
+  .glyph.slipped {
+    color: var(--danger);
+  }
+
+  .glyph.slipped .ring-fill {
+    stroke: var(--danger);
+  }
+
+  .glyph-inner {
+    display: grid;
+    place-items: center;
+    font-size: 19px;
+    line-height: 1;
+  }
+
+  .glyph-inner.emoji {
+    font-size: 17px;
+  }
+
+  .glyph-inner.initial {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .body {
     flex: 1;
     min-width: 0;
   }
-  .habit-card.first {
-    border-top-color: var(--card-border, #e0e0e0);
-  }
-  .habit-card.last {
-    border-bottom-color: var(--card-border, #e0e0e0);
-  }
-  .card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-  .card-left { flex: 1; min-width: 0; }
-  .card-right { flex-shrink: 0; }
-  .title-row {
+
+  .title-line {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+    gap: var(--space-2);
   }
-  .title-row h3 {
-    margin: 0;
-    font-size: 1rem;
-    color: var(--text-primary, #222);
-  }
-  .habit-glyph {
-    display: inline-flex;
-    align-items: center;
-    font-size: 1.15rem;
-    line-height: 1;
-    color: var(--habit-ink, var(--text-primary, #222));
-  }
-  .habit-glyph :global(svg), .habit-glyph :global(.iconify) { font-size: 1.15rem; color: inherit; }
-  .category-badge {
-    font-size: 0.6rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 1px 7px;
-    border-radius: 999px;
+
+  .title {
+    font-size: var(--text-md);
+    font-weight: 500;
+    color: var(--text);
     white-space: nowrap;
-  }
-  .category-badge.build { background: rgba(46, 125, 50, 0.14); color: #2e7d32; }
-  .category-badge.break { background: rgba(230, 81, 0, 0.14); color: #e65100; }
-  .desc {
-    font-size: 0.8rem;
-    color: var(--text-secondary, #666);
-    line-height: 1.5;
-    max-height: 6.75em;
-    overflow-y: auto;
-    margin-top: 0.35rem;
-    word-wrap: break-word;
-  }
-  .desc :global(p) { margin: 0 0 0.4em; }
-  .desc :global(p:last-child) { margin-bottom: 0; }
-  .desc :global(ul), .desc :global(ol) { margin: 0.3em 0; padding-left: 1.2em; }
-  .desc :global(li) { margin: 0.1em 0; }
-  .desc :global(code) { font-size: 0.75em; background: var(--btn-secondary-bg, #eee); padding: 1px 4px; border-radius: 3px; }
-  .desc :global(pre) { font-size: 0.75em; background: var(--btn-secondary-bg, #eee); padding: 0.5rem; border-radius: 4px; overflow-x: auto; margin: 0.4em 0; }
-  .desc :global(blockquote) { margin: 0.4em 0; padding-left: 0.6em; border-left: 3px solid var(--card-border, #ccc); color: var(--text-secondary, #888); }
-  .desc :global(a) { color: var(--text-secondary, #666); text-decoration: underline; }
-  .desc :global(img) { max-width: 100%; height: auto; border-radius: 4px; }
-  .dep-wrap {
-    position: relative;
-    display: inline-flex;
-  }
-  .dep-badge {
-    font-size: 0.65rem;
-    padding: 2px 10px;
-    border-radius: 999px;
-    white-space: nowrap;
-    background: var(--accent, #0066cc);
-    color: var(--accent-text, #fff);
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    line-height: 1.4;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
-  .dep-badge-label { white-space: nowrap; }
-  .dep-badge-sep { opacity: 0.5; }
-  .dep-badge-count {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.1rem;
-    white-space: nowrap;
-  }
-  .dep-badge:hover {
-    opacity: 0.85;
-  }
-  .streak {
-    margin: 2px 0 0 0;
-    font-size: 0.75rem;
-    color: var(--text-secondary, #666);
-  }
-  .action-control {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    position: relative;
-  }
-  .btn {
-    border: none;
-    border-radius: 0;
-    cursor: pointer;
-    font-weight: 600;
-    height: 2.4rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-  }
-  .btn.small {
-    width: 2.4rem;
-    font-size: 0.9rem;
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-primary, #222);
-  }
-  .btn:hover { opacity: 0.85; }
-  .btn-icon {
-    width: 2.4rem;
-    height: 2.4rem;
-    border-radius: 50%;
-    border: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-sizing: border-box;
-    flex-shrink: 0;
-  }
-  .btn-icon:hover { opacity: 0.85; }
-  .btn-icon :global(svg), .btn-icon :global(.iconify) { font-size: 1.3rem; color: inherit; }
-  .btn-icon.play { background: #0066cc; color: white; }
-  .btn-icon.pause { background: #f59e0b; color: white; }
-  .btn-icon.done { background: #2e7d32; color: white; }
-  .btn-icon.cancel { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
-  .note-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--text-secondary, #888);
-    background: transparent;
-    border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 999px;
-    padding: 1px 8px 1px 4px;
-    cursor: pointer;
-    margin-top: 0.25rem;
-    line-height: 1.4;
-  }
-  .note-pill:hover {
-    color: var(--accent, #0066cc);
-    border-color: var(--accent, #0066cc);
-  }
-  .btn-icon.restart { background: transparent; color: var(--text-primary, #333); border: 1px solid var(--card-border, #ccc); }
-  .qty-input-wrap {
-    display: flex;
-    align-items: center;
-    background: var(--input-bg, #f5f5f5);
-    border-radius: 0;
-    padding: 0 0.4rem;
-    height: 2.4rem;
-    box-sizing: border-box;
-  }
-  .qty-input {
-    width: 3rem;
-    padding: 0;
-    border: none;
-    font-size: 0.9rem;
-    font-weight: bold;
-    text-align: center;
-    background: transparent;
-    color: var(--text-primary, #222);
-    outline: none;
-    -moz-appearance: textfield;
-    height: 2.4rem;
-    box-sizing: border-box;
-  }
-  .qty-input::-webkit-outer-spin-button,
-  .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .qty-num-wrap { display: none; }
-  .qty-unit {
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.6rem;
-    line-height: 1;
-    color: var(--text-secondary, #888);
-    max-width: 4rem;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    pointer-events: none;
+  }
+
+  .dep-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: var(--surface-2);
+    color: var(--text-2);
+    font-size: var(--text-xs);
+    font-weight: 600;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--space-3);
     margin-top: 1px;
+    font-size: var(--text-sm);
+    color: var(--text-2);
   }
-  .qty-input.standard-met { color: #2e7d32; }
-  .qty-input-wrap.target-met,
-  .dur-input-wrap.target-met:not(.running) {
-    position: relative;
+
+  .meta-streak {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    color: var(--text-2);
+  }
+
+  .meta-streak :global(svg) {
+    color: var(--warning);
+    font-size: 14px;
+  }
+
+  .meta-notes {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    color: var(--text-2);
+    font-size: inherit;
+  }
+
+  .desc {
+    margin-top: 2px;
+    font-size: var(--text-sm);
+    color: var(--text-3);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    background: linear-gradient(145deg, #c9a227 0%, #f5d778 28%, #e8c64a 52%, #f7e18c 74%, #c9a227 100%);
   }
-  .qty-input-wrap.target-met .qty-input,
-  .dur-input-wrap.target-met:not(.running) .dur-input {
+
+  .desc :global(p) {
+    display: inline;
+  }
+
+  .desc :global(a) {
+    color: var(--accent);
+  }
+
+  .control {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    cursor: default;
+  }
+
+  /* Binary: a round check that fills with the habit color. */
+  .check {
     position: relative;
-    z-index: 1;
-    color: #000;
-    -webkit-text-fill-color: #000;
-  }
-  .sparkle {
-    position: absolute;
-    z-index: 0;
-    width: 1px;
-    height: 1px;
+    width: 30px;
+    height: 30px;
+    margin: 7px;
     border-radius: 50%;
-    background: radial-gradient(circle, #fff 0%, rgba(255, 255, 255, 0.9) 45%, rgba(255, 255, 255, 0) 72%);
+    border: 2px solid var(--separator-strong);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 19px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s var(--ease);
+  }
+
+  .check:active {
+    transform: scale(0.9);
+  }
+
+  .check input {
+    position: absolute;
+    inset: -7px;
     opacity: 0;
-    pointer-events: none;
-    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.9));
+    cursor: pointer;
   }
-  .sparkle:nth-of-type(3n) {
-    width: 2px;
-    height: 2px;
+
+  .check.on {
+    background: var(--habit);
+    border-color: var(--habit);
   }
-  .qty-input-wrap.target-met .sparkle,
-  .dur-input-wrap.target-met:not(.running) .sparkle {
-    animation: twinkle var(--tw-dur, 1.8s) ease-in-out infinite;
-    animation-delay: var(--tw-delay, 0s);
+
+  .check.on.break {
+    background: var(--danger);
+    border-color: var(--danger);
   }
-  .qty-input-wrap .sparkle:nth-child(1),
-  .dur-input-wrap .sparkle:nth-child(1) { top: 12%; left: 6%; }
-  .qty-input-wrap .sparkle:nth-child(2),
-  .dur-input-wrap .sparkle:nth-child(2) { top: 74%; left: 16%; }
-  .qty-input-wrap .sparkle:nth-child(3),
-  .dur-input-wrap .sparkle:nth-child(3) { top: 30%; left: 26%; }
-  .qty-input-wrap .sparkle:nth-child(4),
-  .dur-input-wrap .sparkle:nth-child(4) { top: 82%; left: 34%; }
-  .qty-input-wrap .sparkle:nth-child(5),
-  .dur-input-wrap .sparkle:nth-child(5) { top: 18%; left: 44%; }
-  .qty-input-wrap .sparkle:nth-child(6),
-  .dur-input-wrap .sparkle:nth-child(6) { top: 64%; left: 52%; }
-  .qty-input-wrap .sparkle:nth-child(7),
-  .dur-input-wrap .sparkle:nth-child(7) { top: 34%; left: 62%; }
-  .qty-input-wrap .sparkle:nth-child(8),
-  .dur-input-wrap .sparkle:nth-child(8) { top: 80%; left: 70%; }
-  .qty-input-wrap .sparkle:nth-child(9),
-  .dur-input-wrap .sparkle:nth-child(9) { top: 22%; left: 80%; }
-  .qty-input-wrap .sparkle:nth-child(10),
-  .dur-input-wrap .sparkle:nth-child(10) { top: 66%; left: 88%; }
-  .qty-input-wrap .sparkle:nth-child(11),
-  .dur-input-wrap .sparkle:nth-child(11) { top: 44%; left: 12%; }
-  .qty-input-wrap .sparkle:nth-child(12),
-  .dur-input-wrap .sparkle:nth-child(12) { top: 26%; left: 36%; }
-  .qty-input-wrap .sparkle:nth-child(13),
-  .dur-input-wrap .sparkle:nth-child(13) { top: 56%; left: 94%; }
-  .qty-input-wrap .sparkle:nth-child(14),
-  .dur-input-wrap .sparkle:nth-child(14) { top: 50%; left: 76%; }
+
+  /* Quantity stepper */
+  .stepper {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    border-radius: 999px;
+    background: var(--surface-2);
+  }
+
+  .stepper button {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--text);
+    font-size: 18px;
+  }
+
+  .stepper button:active:not(:disabled) {
+    background: var(--surface-3);
+  }
+
+  .stepper button:disabled {
+    color: var(--text-3);
+  }
+
+  .stepper-value {
+    width: 2.6em;
+    border: none;
+    background: none;
+    text-align: center;
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--text);
+    -moz-appearance: textfield;
+    appearance: textfield;
+    padding: 0;
+  }
+
+  .stepper-value::-webkit-outer-spin-button,
+  .stepper-value::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .stepper-value:focus {
+    outline: none;
+  }
+
+  .met { color: var(--habit) !important; }
+  .target { color: var(--success) !important; }
+  .over { color: var(--danger) !important; }
+
+  /* Duration timer */
+  .timer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
   .dur-input-wrap {
     display: flex;
-    align-items: center;
-    gap: 0;
-    background: var(--input-bg, #f5f5f5);
-    border-radius: 0;
-    padding: 0 0.4rem;
-    height: 2.4rem;
-    box-sizing: border-box;
+    align-items: baseline;
+    padding: 0 var(--space-1);
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--text);
   }
+
+  .dur-input-wrap.running {
+    color: var(--accent);
+  }
+
   .dur-input {
-    width: 1.2rem;
-    padding: 0;
+    width: 1.35em;
     border: none;
-    font-size: 0.9rem;
-    font-weight: bold;
-    text-align: right;
-    background: transparent;
-    color: var(--text-primary, #222);
+    background: none;
+    padding: 0;
+    text-align: center;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    color: inherit;
+  }
+
+  .dur-input:disabled {
+    opacity: 1;
+    -webkit-text-fill-color: currentColor;
+  }
+
+  .dur-input:focus {
     outline: none;
-    -moz-appearance: textfield;
-    height: 2.4rem;
-    box-sizing: border-box;
+    background: var(--accent-soft);
+    border-radius: 4px;
   }
-  .dur-input:disabled { color: #888; -webkit-text-fill-color: #888; opacity: 1; }
-  .dur-input:last-child { text-align: left; }
-  .dur-input-wrap.running { border: 1px solid var(--card-border, #ccc); padding: 0 0.4rem; background: transparent; }
-  .dur-input-wrap.running .dur-input:disabled { background: transparent; }
-  .dur-input-wrap.standard-met:not(.running) .dur-input { color: #2e7d32; }
-  .dur-input-wrap.standard-met:not(.running) .dur-input::placeholder { color: #2e7d32; }
-  .dur-input-wrap.standard-met:not(.running) .dur-sep { color: #2e7d32; }
-  .dur-input-wrap.target-met:not(.running) .dur-sep { color: #000; }
 
-
-  .dur-input::-webkit-outer-spin-button,
-  .dur-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .dur-sep {
-    font-size: 0.9rem;
-    font-weight: bold;
-    color: var(--sep-color, var(--text-primary, #222));
-    line-height: 1;
-    pointer-events: none;
-  }
-  .binary-input-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--input-bg, #f5f5f5);
-    border-radius: 0;
-    height: 2.4rem;
-    width: 2.4rem;
-    box-sizing: border-box;
-    cursor: pointer;
-    position: relative;
-  }
-  .binary-input-wrap input {
-    position: absolute;
-    opacity: 0;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-  }
-  :global(.check-icon) {
-    font-size: 2.2rem;
-    color: #2e7d32;
-    pointer-events: none;
-  }
-  :global(.check-icon.break) {
-    color: #d32f2f;
+    color: var(--text-3);
   }
 
-  @keyframes twinkle {
-    0%, 100% { opacity: 0; transform: scale(0.5); }
-    50% { opacity: 1; transform: scale(1.2); }
+  .round {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 20px;
+    transition: transform 0.1s var(--ease);
+  }
+
+  .round:active {
+    transform: scale(0.9);
+  }
+
+  .round.primary {
+    background: var(--habit);
+    color: #fff;
+  }
+
+  .round.done {
+    background: var(--success-soft);
+    color: var(--success);
+  }
+
+  .round.subtle {
+    color: var(--text-3);
+    font-size: 18px;
   }
 </style>

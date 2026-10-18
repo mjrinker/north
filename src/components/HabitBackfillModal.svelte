@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '@iconify/svelte';
   import type { Habit } from '../types';
   import { getLocalDateString, parseLocalDate, toDateStr } from '../lib/dates';
   import { formatHms } from '../lib/duration';
@@ -145,13 +146,13 @@
 
 <Modal onClose={handleClose}>
   <div class="modal-head">
-    <h2>Backfill</h2>
-    <button class="modal-close" onclick={handleClose} aria-label="Close">×</button>
+    <h2>Fill in days</h2>
+    <button class="icon-btn" onclick={handleClose} aria-label="Close"><Icon icon="mdi:close" /></button>
   </div>
 
   {#if done}
     <div class="done-box">
-      <p class="done-title">Backfill complete</p>
+      <p class="done-title">Done</p>
       <p>Applied <strong>{done.appliedDays}</strong> of {done.totalDays} days{done.skippedDays > 0 ? ` (skipped ${done.skippedDays})` : ''}.</p>
     </div>
   {:else}
@@ -193,9 +194,9 @@
     {:else}
       <span class="field-label">Value</span>
       <div class="mode-chips">
-        <button type="button" class:active={valueMode === 'STANDARD'} onclick={() => valueMode = 'STANDARD'}>Standard</button>
+        <button type="button" class:active={valueMode === 'STANDARD'} onclick={() => valueMode = 'STANDARD'}>Minimum</button>
         {#if hasTarget}
-          <button type="button" class:active={valueMode === 'TARGET'} onclick={() => valueMode = 'TARGET'}>Target</button>
+          <button type="button" class:active={valueMode === 'TARGET'} onclick={() => valueMode = 'TARGET'}>Stretch goal</button>
         {/if}
         <button type="button" class:active={valueMode === 'VALUE'} onclick={() => valueMode = 'VALUE'}>Custom value</button>
         {#if linkedHabits.length > 0}
@@ -231,15 +232,15 @@
       <div class="section">
         <span class="field-label">Only on days when</span>
         <div class="cond-mode">
-          <button type="button" class:active={condMode === 'and'} onclick={() => condMode = 'and'}>All selected complete</button>
-          <button type="button" class:active={condMode === 'or'} onclick={() => condMode = 'or'}>Any selected complete</button>
+          <button type="button" class:active={condMode === 'and'} onclick={() => condMode = 'and'}>All of them</button>
+          <button type="button" class:active={condMode === 'or'} onclick={() => condMode = 'or'}>Any of them</button>
         </div>
         <div class="chip-row">
           {#each otherHabits as h (h.id)}
             <button type="button" class="chip" class:selected={condIds.includes(h.id)} onclick={() => toggleCond(h.id)}>{h.title}</button>
           {/each}
         </div>
-        <p class="hint">Skip a day unless the chosen habits met their Standard that day.</p>
+        <p class="hint">Skip a day unless the chosen habits reached their minimum that day.</p>
       </div>
     {/if}
 
@@ -269,19 +270,13 @@
 
       <div class="toggle-row">
         <span>Days already logged</span>
-        <label class="toggle">
-          <input type="checkbox" bind:checked={skipLogged} />
-          <span class="toggle-slider"></span>
-        </label>
+        <input type="checkbox" class="switch" bind:checked={skipLogged} aria-label="Skip days already logged" />
       </div>
       <p class="hint">Skip days that already have a logged value, even if below the backfill value.</p>
 
       <div class="toggle-row">
         <span>Days already at or above the value</span>
-        <label class="toggle">
-          <input type="checkbox" bind:checked={skipAtOrAbove} />
-          <span class="toggle-slider"></span>
-        </label>
+        <input type="checkbox" class="switch" bind:checked={skipAtOrAbove} aria-label="Skip days already at or above the value" />
       </div>
       <p class="hint">Skip days whose existing value already meets the backfill value.</p>
     </div>
@@ -291,9 +286,9 @@
     {/if}
 
     <div class="actions">
-      <button type="button" class="btn-cancel" onclick={handleClose}>Cancel</button>
-      <button type="button" class="btn-backfill" onclick={submit} disabled={busy}>
-        {busy ? 'Backfilling…' : `Backfill ${dayCount} day${dayCount === 1 ? '' : 's'}`}
+      <button type="button" class="btn btn-secondary" onclick={handleClose}>Cancel</button>
+      <button type="button" class="btn" onclick={submit} disabled={busy}>
+        {busy ? 'Filling in…' : `Fill in ${dayCount} day${dayCount === 1 ? '' : 's'}`}
       </button>
     </div>
   {/if}
@@ -304,202 +299,192 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    margin-right: calc(-1 * var(--space-2));
   }
-  h2 { margin: 0; color: var(--text-primary, #222); font-size: 1.1rem; }
-  .modal-close {
-    border: none;
-    background: transparent;
-    color: var(--text-secondary, #888);
-    font-size: 1.4rem;
-    line-height: 1;
-    cursor: pointer;
-    padding: 0.25rem 0.5rem;
+
+  .modal-head h2 {
+    margin: 0;
   }
+
   .habit-line {
-    color: var(--text-secondary, #555);
-    font-size: 0.9rem;
-    margin-bottom: 0.9rem;
+    margin: 2px 0 var(--space-4);
+    font-size: var(--text-sm);
+    color: var(--text-2);
   }
-  .habit-line strong { color: var(--text-primary, #222); }
+
+  .habit-line strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
   .field-label {
     display: block;
-    font-weight: 500;
-    color: var(--text-primary, #222);
-    margin-bottom: 0.3rem;
+    margin: var(--space-4) 0 6px;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text);
   }
+
   .mini {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--text-2);
+  }
+
+  .mini.block {
     display: block;
-    font-size: 0.72rem;
-    color: var(--text-secondary, #666);
-    margin-bottom: 0.2rem;
+    margin: var(--space-3) 0 6px;
   }
-  .mini.block { margin-top: 0.75rem; }
+
   .range-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+
+  .range-row label,
+  .value-field {
     display: flex;
-    gap: 0.6rem;
+    flex-direction: column;
+    gap: 4px;
   }
-  .range-row label { flex: 1; }
-  input[type='date'],
-  input[type='number'] {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    font-size: 0.95rem;
-    box-sizing: border-box;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
+
+  .value-field {
+    margin-top: var(--space-3);
   }
+
   .hint {
-    font-size: 0.78rem;
-    color: var(--text-secondary, #666);
-    margin: 0.3rem 0 0.9rem;
+    margin-top: 6px;
+    font-size: var(--text-sm);
+    color: var(--text-2);
   }
-  .section { margin-top: 0.25rem; }
+
   .mode-chips,
   .cond-mode {
     display: flex;
-    gap: 4px;
-    margin: 0 0 0.5rem;
+    flex-wrap: wrap;
+    padding: 2px;
+    border-radius: 10px;
+    background: var(--surface-3);
+    margin-bottom: var(--space-2);
   }
+
   .mode-chips button,
   .cond-mode button {
     flex: 1;
-    padding: 0.35rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    background: var(--card-bg, #f5f5f5);
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.8rem;
-    color: var(--text-primary, #222);
-    font-family: inherit;
+    min-height: 32px;
+    padding: 0 var(--space-2);
+    border-radius: 8px;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-2);
+    white-space: nowrap;
   }
+
   .mode-chips button.active,
   .cond-mode button.active {
-    background: #0066cc;
-    color: #fff;
-    border-color: #0066cc;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
   }
-  .value-field { display: block; margin-bottom: 0.4rem; }
+
   .chip-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    margin-bottom: 0.25rem;
+    gap: 6px;
   }
+
   .chip {
-    padding: 0.3rem 0.6rem;
-    border: 1px solid var(--card-border, #ccc);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 32px;
+    padding: 0 var(--space-3);
     border-radius: 999px;
-    background: var(--card-bg, #f5f5f5);
-    cursor: pointer;
-    font-size: 0.8rem;
-    color: var(--text-primary, #222);
-    font-family: inherit;
+    background: var(--surface);
+    color: var(--text);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    box-shadow: inset 0 0 0 1px var(--separator);
   }
+
   .chip.selected {
-    background: #0066cc;
-    color: #fff;
-    border-color: #0066cc;
+    background: var(--accent-soft);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1.5px var(--accent);
   }
-  .chip-x { margin-left: 0.25rem; opacity: 0.75; }
+
+  .chip-x {
+    color: var(--text-3);
+  }
+
+  .section {
+    margin-top: var(--space-2);
+    padding-top: var(--space-2);
+    border-top: 0.5px solid var(--separator-strong);
+  }
+
   .date-add-row {
     display: flex;
-    gap: 0.4rem;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
   }
-  .date-add-row input { flex: 1; }
+
   .add-btn {
-    padding: 0.5rem 0.8rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    background: var(--card-bg, #f5f5f5);
-    cursor: pointer;
-    font-family: inherit;
-    color: var(--text-primary, #222);
+    flex-shrink: 0;
+    min-height: var(--tap);
+    padding: 0 var(--space-4);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--accent);
+    font-weight: 600;
   }
-  .add-btn:disabled { opacity: 0.5; cursor: default; }
+
+  .add-btn:disabled {
+    color: var(--text-3);
+  }
+
   .toggle-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 0.75rem;
-    font-weight: 500;
-    color: var(--text-primary, #222);
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius);
+    background: var(--surface);
   }
-  .toggle {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-    cursor: pointer;
+
+  .toggle-row + .hint {
+    margin: 6px var(--space-4) 0;
   }
-  .toggle input { display: none; }
-  .toggle-slider {
-    position: absolute;
-    inset: 0;
-    background: var(--card-border, #ccc);
-    border-radius: 999px;
-    transition: background 0.2s;
-  }
-  .toggle-slider::before {
-    content: '';
-    position: absolute;
-    left: 3px;
-    top: 3px;
-    width: 18px;
-    height: 18px;
-    background: #fff;
-    border-radius: 50%;
-    transition: transform 0.2s;
-  }
-  .toggle input:checked + .toggle-slider { background: #0066cc; }
-  .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
   .form-error {
-    margin: 0.5rem 0;
-    padding: 0.5rem;
-    border: 1px solid #c62828;
-    background: rgba(198, 40, 40, 0.1);
-    color: #c62828;
-    font-size: 0.85rem;
+    margin-top: var(--space-4);
+    padding: var(--space-3);
+    border-radius: var(--radius);
+    background: var(--danger-soft);
+    color: var(--danger);
+    font-size: var(--text-sm);
   }
+
+  .done-box {
+    padding: var(--space-5) var(--space-4);
+    border-radius: var(--radius);
+    background: var(--success-soft);
+    text-align: center;
+  }
+
+  .done-title {
+    font-weight: 600;
+    color: var(--success);
+    margin-bottom: 4px;
+  }
+
   .actions {
     display: flex;
     justify-content: flex-end;
-    gap: 0.6rem;
-    margin-top: 1rem;
+    gap: var(--space-2);
+    margin-top: var(--space-5);
   }
-  .btn-cancel,
-  .btn-backfill {
-    padding: 0.55rem 1rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 600;
-    font-family: inherit;
-  }
-  .btn-cancel {
-    background: transparent;
-    color: var(--text-primary, #333);
-  }
-  .btn-backfill {
-    background: #0066cc;
-    color: #fff;
-    border-color: #0066cc;
-  }
-  .btn-backfill:disabled { opacity: 0.6; cursor: default; }
-  .done-box {
-    text-align: center;
-    padding: 1rem 0;
-  }
-  .done-title {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--text-primary, #222);
-    margin: 0 0 0.35rem;
-  }
-  .done-box p { margin: 0 0 0.25rem; color: var(--text-secondary, #555); }
 </style>

@@ -62,11 +62,11 @@
   function handleSave() {
     if (type !== 'binary') {
       if (category === 'break' && standard < (target ?? 0)) {
-        errorMsg = 'For a Break habit, Standard must be higher than Target.';
+        errorMsg = 'For a habit you’re breaking, the limit must be higher than the stricter limit.';
         return;
       }
       if (category === 'build' && standard > (target ?? 0)) {
-        errorMsg = 'For a Build habit, Standard must be lower than Target.';
+        errorMsg = 'The minimum must be lower than the stretch goal.';
         return;
       }
     }
@@ -116,109 +116,153 @@
 <Modal {onClose}>
   <div class="modal-head">
     <h2>{habit.title}</h2>
-    <button class="modal-close" onclick={onClose} aria-label="Close">×</button>
+    <button class="icon-btn" onclick={onClose} aria-label="Close"><Icon icon="mdi:close" /></button>
   </div>
-  <div class="tabs" role="tablist">
-    <button class:active={tab === 'log'} onclick={() => tab = 'log'} role="tab">Log</button>
-    <button class:active={tab === 'settings'} onclick={() => tab = 'settings'} role="tab">Settings</button>
+  <div class="segmented tabs" role="tablist">
+    <button class:active={tab === 'log'} onclick={() => tab = 'log'} role="tab" aria-selected={tab === 'log'}>Log</button>
+    <button class:active={tab === 'settings'} onclick={() => tab = 'settings'} role="tab" aria-selected={tab === 'settings'}>Edit</button>
   </div>
 
   {#if tab === 'log'}
     <HabitLogTab {habit} />
   {:else}
-  <div class="form-grid">
-    <label>Title <input bind:value={title} /></label>
-
-    <label>Description (supports Markdown)
-      <textarea bind:value={description} class="desc-input" placeholder="Add details about this habit..."></textarea>
-    </label>
-
-    <div class="form-row">
-      <label>Color
-        <HabitColorPicker bind:color />
-      </label>
-      <label>Icon
-        <HabitIconPicker bind:icon bind:emoji />
-      </label>
+  <div class="habit-form">
+    <div class="field">
+      <label for="edit-title">Name</label>
+      <input id="edit-title" bind:value={title} autocomplete="off" />
     </div>
 
-    <div class="form-row">
-      <label>Category
-        <select bind:value={category}>
-          <option value="build">Build</option>
-          <option value="break">Break</option>
-        </select>
-      </label>
-      <label>Type
-        <select bind:value={type}>
-          <option value="binary">Binary (Done / Not Done)</option>
-          <option value="quantity">Quantity (Count)</option>
-          <option value="duration">Duration (Time)</option>
-        </select>
-      </label>
+    <div class="field">
+      <label for="edit-desc">Notes <span class="hint">Markdown supported</span></label>
+      <textarea id="edit-desc" bind:value={description} placeholder="Why it matters, how you’ll do it"></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <span class="field-label">Color</span>
+        <HabitColorPicker bind:color />
+      </div>
+      <div class="field">
+        <span class="field-label">Icon</span>
+        <HabitIconPicker bind:icon bind:emoji />
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="field-label">I want to</span>
+      <div class="segmented" role="radiogroup" aria-label="Category">
+        <button type="button" role="radio" aria-checked={category === 'build'} class:active={category === 'build'} onclick={() => category = 'build'}>Build a habit</button>
+        <button type="button" role="radio" aria-checked={category === 'break'} class:active={category === 'break'} onclick={() => category = 'break'}>Break a habit</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="field-label">Track it by</span>
+      <div class="segmented" role="radiogroup" aria-label="Type">
+        <button type="button" role="radio" aria-checked={type === 'binary'} class:active={type === 'binary'} onclick={() => type = 'binary'}>Check off</button>
+        <button type="button" role="radio" aria-checked={type === 'quantity'} class:active={type === 'quantity'} onclick={() => type = 'quantity'}>Count</button>
+        <button type="button" role="radio" aria-checked={type === 'duration'} class:active={type === 'duration'} onclick={() => type = 'duration'}>Time</button>
+      </div>
     </div>
 
     {#if showStandard}
-      <div class="section-header">Goals</div>
-      <div class="form-row">
-        <label>Minimum
+      <div class="field-row">
+        <div class="field">
+          <label for="edit-standard">{category === 'break' ? 'Limit' : 'Minimum'}</label>
           {#if type === 'duration'}
-            <DurationField bind:value={standard} placeholder="e.g. 5:00" />
+            <DurationField id="edit-standard" bind:value={standard} placeholder="5:00" />
           {:else}
-            <input type="number" bind:value={standard} min="1" />
+            <input id="edit-standard" type="number" inputmode="numeric" bind:value={standard} min="1" />
           {/if}
-        </label>
-        <label>Stretch goal
+        </div>
+        <div class="field">
+          <label for="edit-target">{category === 'break' ? 'Stricter limit' : 'Stretch goal'}</label>
           {#if type === 'duration'}
-            <DurationField bind:value={target} placeholder="e.g. 1:00:00" />
+            <DurationField id="edit-target" bind:value={target} placeholder="1:00:00" />
           {:else}
-            <input type="number" bind:value={target} min="1" />
+            <input id="edit-target" type="number" inputmode="numeric" bind:value={target} placeholder="Optional" min="1" />
           {/if}
-        </label>
+        </div>
       </div>
-      <label>Unit <input type="text" bind:value={unit} placeholder={type === 'duration' ? 'seconds' : 'singular, e.g. cup'} /></label>
+      {#if type === 'quantity'}
+        <div class="field">
+          <label for="edit-unit">Unit</label>
+          <input id="edit-unit" type="text" bind:value={unit} placeholder="singular, e.g. cup" />
+        </div>
+      {/if}
     {/if}
 
-    <div class="form-row">
-      <label>Frequency
-        <select bind:value={frequency}>
-          <option value="daily">Daily</option>
-          <option value="days_per_week">X Days/Week</option>
+    <div class="field-row">
+      <div class="field">
+        <label for="edit-frequency">Repeat</label>
+        <select id="edit-frequency" bind:value={frequency}>
+          <option value="daily">Every day</option>
+          <option value="days_per_week">Days per week</option>
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
-          <option value="custom">Every X Days</option>
+          <option value="custom">Every few days</option>
         </select>
-      </label>
-      <label>Interval
-        {#if frequency === 'days_per_week'}
-          <input type="number" bind:value={interval} min="1" max="7" />
-        {:else}
-          <input type="number" bind:value={interval} min="1" />
-        {/if}
-      </label>
+      </div>
+      {#if frequency !== 'daily'}
+        <div class="field">
+          <label for="edit-interval">{frequency === 'days_per_week' ? 'Days per week' : frequency === 'weekly' ? 'Every … weeks' : frequency === 'monthly' ? 'Every … months' : 'Every … days'}</label>
+          <input id="edit-interval" type="number" inputmode="numeric" bind:value={interval} min="1" max={frequency === 'days_per_week' ? 7 : undefined} />
+        </div>
+      {/if}
     </div>
 
     {#if showStartOfWeek}
-      <label>Start of week
-        <select bind:value={startOfWeek}>
-          <option value="0">Sunday</option>
-          <option value="1">Monday</option>
-          <option value="2">Tuesday</option>
-          <option value="3">Wednesday</option>
-          <option value="4">Thursday</option>
-          <option value="5">Friday</option>
-          <option value="6">Saturday</option>
+      <div class="field">
+        <label for="edit-sow">Week starts on</label>
+        <select id="edit-sow" bind:value={startOfWeek}>
+          <option value={0}>Sunday</option>
+          <option value={1}>Monday</option>
+          <option value={2}>Tuesday</option>
+          <option value={3}>Wednesday</option>
+          <option value={4}>Thursday</option>
+          <option value={5}>Friday</option>
+          <option value={6}>Saturday</option>
         </select>
-      </label>
+      </div>
     {/if}
 
-    <span class="field-label">Tags</span>
-    <TagInput bind:tags={habitTags} allTags={existingTags} />
+    <div class="field">
+      <span class="field-label">Tags</span>
+      <TagInput bind:tags={habitTags} allTags={existingTags} />
+    </div>
 
-    <div class="advanced-section">
-      <button class="advanced-toggle" onclick={() => advancedOpen = !advancedOpen} aria-expanded={advancedOpen}>
-        <span>Advanced</span>
-        <span class:rotated={advancedOpen}><Icon icon="mdi:chevron-down" /></span>
+    <div class="group toggles">
+      <label class="row">
+        <span class="row-label">Paused</span>
+        <input type="checkbox" class="switch" bind:checked={paused} />
+      </label>
+      {#if paused}
+        <div class="row">
+          <span class="row-label">Pause</span>
+          <select bind:value={pauseMode} class="inline-select" aria-label="Pause length">
+            <option value="until">Until a date</option>
+            <option value="indefinite">Indefinitely</option>
+          </select>
+        </div>
+        {#if pauseMode === 'until'}
+          <div class="row">
+            <span class="row-label">Resume on</span>
+            <input type="date" bind:value={pauseUntilDate} class="inline-select" aria-label="Resume on" />
+          </div>
+        {/if}
+      {/if}
+      <label class="row">
+        <span class="row-label">Hidden</span>
+        <input type="checkbox" class="switch" bind:checked={hidden} />
+      </label>
+    </div>
+    <p class="section-footnote">Hidden habits keep running but stay off Today until you choose “Show hidden”.</p>
+
+    <div class="advanced">
+      <button type="button" class="advanced-toggle" onclick={() => advancedOpen = !advancedOpen} aria-expanded={advancedOpen}>
+        <span>More options</span>
+        <span class="hint">Conditions, linked habits, webhooks, Shortcuts</span>
+        <Icon icon="mdi:chevron-down" class="chev {advancedOpen ? 'open' : ''}" />
       </button>
 
       {#if advancedOpen}
@@ -226,46 +270,15 @@
           {#if showDeps}
             <DependencyDropdownPicker habits={allHabits} bind:depIds bind:depMode excludeId={habit.id} />
           {/if}
-
           <LinkedDropdownPicker habits={linkCandidates} bind:linkedIds={linkIds} excludeId={habit.id} />
-
-          <label class="pause-row">
-            <span class="pause-label">Paused</span>
-            <label class="toggle">
-              <input type="checkbox" bind:checked={paused} />
-              <span class="toggle-slider"></span>
-            </label>
-          </label>
-          {#if paused}
-            <label>Pause
-              <select bind:value={pauseMode}>
-                <option value="until">Until a date</option>
-                <option value="indefinite">Indefinitely</option>
-              </select>
-            </label>
-            {#if pauseMode === 'until'}
-              <label>Pause until <input type="date" bind:value={pauseUntilDate} /></label>
-            {/if}
-          {/if}
-
-          <label class="pause-row">
-            <span class="pause-label">Hidden</span>
-            <label class="toggle toggle-hidden">
-              <input type="checkbox" bind:checked={hidden} />
-              <span class="toggle-slider"></span>
-            </label>
-          </label>
-          <p class="hidden-hint">Hidden habits stay active but are hidden from the Today view until you reveal them.</p>
-
           <HabitWebhookSection bind:webhooks {type} />
-
           <HabitShortcutSection bind:shortcuts {type} />
         </div>
       {/if}
     </div>
 
     {#if errorMsg}
-      <p class="form-error">{errorMsg}</p>
+      <p class="form-error" role="alert">{errorMsg}</p>
     {/if}
     <ModalActions onSave={handleSave} onCancel={onClose} onDelete={handleDelete} />
   </div>
@@ -273,169 +286,116 @@
 </Modal>
 
 <style>
-  h2 { margin: 0; color: var(--text-primary, #222); font-size: 1.1rem; }
   .modal-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    gap: var(--space-2);
+    margin: 0 calc(-1 * var(--space-2)) var(--space-3) 0;
   }
-  .modal-close {
-    border: none;
-    background: transparent;
-    color: var(--text-secondary, #888);
-    font-size: 1.4rem;
-    line-height: 1;
-    cursor: pointer;
-    padding: 0.25rem 0.5rem;
+
+  .modal-head h2 {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
+
   .tabs {
+    margin-bottom: var(--space-4);
+    background: var(--surface-3);
+  }
+
+  .habit-form {
     display: flex;
-    gap: 0.25rem;
-    background: var(--input-bg, #f5f5f5);
-    border-radius: 8px;
-    padding: 0.25rem;
-    margin-bottom: 1rem;
+    flex-direction: column;
+    gap: var(--space-4);
   }
-  .tabs button {
-    flex: 1;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary, #666);
-    font-weight: 600;
-    font-size: 0.9rem;
-    padding: 0.5rem;
-    border-radius: 0;
-    cursor: pointer;
-    font-family: inherit;
+
+  .hint {
+    font-weight: 400;
+    color: var(--text-3);
   }
-  .tabs button.active {
-    background: var(--card-bg, #fff);
-    color: var(--text-primary, #222);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+
+  .segmented {
+    background: var(--surface-3);
   }
-  .form-grid { display: flex; flex-direction: column; gap: 0.75rem; }
-  .form-error {
-    margin: 0.5rem 0 0.75rem;
-    padding: 0.5rem;
-    border: 1px solid #c62828;
-    background: rgba(198, 40, 40, 0.1);
-    color: #c62828;
-    font-size: 0.85rem;
+
+  .segmented > button {
+    font-size: var(--text-sm);
+    min-height: 34px;
   }
-  label {
-    font-weight: 500;
-    color: var(--text-primary, #222);
-    display: block;
+
+  .toggles {
+    margin-top: var(--space-2);
   }
-  input, select, .desc-input {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    font-size: 1rem;
-    box-sizing: border-box;
-    margin-top: 0.25rem;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
-  }
-  .desc-input {
-    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
-    font-size: 0.85rem;
-    min-height: 4rem;
-    resize: vertical;
-  }
-  .field-label {
-    display: block;
-    font-weight: 500;
-    color: var(--text-primary, #222);
-  }
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-  }
-  .form-row > * { margin-bottom: 0; }
-  .form-row > label { display: flex; flex-direction: column; gap: 0.25rem; }
-  .pause-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .pause-label { font-weight: 500; color: var(--text-primary, #222); }
-  .hidden-hint { font-size: 0.75rem; color: var(--text-secondary, #888); margin: -0.4rem 0 0; }
-  .toggle {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
+
+  .toggles .row {
     cursor: pointer;
   }
-  .toggle input { display: none; }
-  .toggle-slider {
-    position: absolute;
-    inset: 0;
-    background: var(--card-border, #ccc);
-    border-radius: 999px;
-    transition: background 0.2s;
+
+  .toggles .row-label {
+    font-size: var(--text-base);
+    color: var(--text);
   }
-  .toggle-slider::before {
-    content: '';
-    position: absolute;
-    left: 3px;
-    top: 3px;
-    width: 18px;
-    height: 18px;
-    background: #fff;
-    border-radius: 50%;
-    transition: transform 0.2s;
+
+  .habit-form .inline-select {
+    width: auto;
+    min-height: 32px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    background-color: var(--surface-2);
   }
-  .toggle input:checked + .toggle-slider { background: #f59e0b; }
-  .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
-  .toggle-hidden input:checked + .toggle-slider { background: var(--accent, #0066cc); }
-  .advanced-section {
-    margin-top: 0.5rem;
-    border-top: 1px solid var(--card-border, #ccc);
-    padding-top: 0.75rem;
+
+  .section-footnote {
+    margin-top: calc(-1 * var(--space-3));
   }
+
+  .advanced {
+    border-top: 0.5px solid var(--separator-strong);
+    padding-top: var(--space-2);
+  }
+
   .advanced-toggle {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto;
     align-items: center;
-    justify-content: space-between;
     width: 100%;
-    padding: 0.5rem 0;
-    border: none;
-    background: none;
-    color: var(--accent, #0066cc);
+    padding: var(--space-2) 0;
+    text-align: left;
     font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
-    font-family: inherit;
+    color: var(--text);
   }
-  .advanced-toggle:hover { color: var(--accent-hover, #0052a3); }
-  .advanced-toggle :global(svg) {
-    transition: transform 0.2s;
-    font-size: 1.2rem;
+
+  .advanced-toggle .hint {
+    grid-column: 1;
+    font-size: var(--text-sm);
   }
-  .advanced-toggle :global(svg).rotated { transform: rotate(180deg); }
-  .section-header {
-    margin: 1rem 0 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--text-secondary, #888);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+
+  .advanced-toggle :global(.chev) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    font-size: 20px;
+    color: var(--text-3);
+    transition: transform 0.2s var(--ease);
   }
+
+  .advanced-toggle :global(.chev.open) {
+    transform: rotate(180deg);
+  }
+
   .advanced-content {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    padding-top: 0.5rem;
-    animation: slideDown 0.2s ease;
+    gap: var(--space-4);
+    padding-top: var(--space-3);
   }
-  @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
+
+  .form-error {
+    padding: var(--space-3);
+    border-radius: var(--radius);
+    background: var(--danger-soft);
+    color: var(--danger);
+    font-size: var(--text-sm);
   }
 </style>

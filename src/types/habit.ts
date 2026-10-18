@@ -84,6 +84,7 @@ export interface HabitMetadata {
 	streakFreezeDays: number;
 	allowBackdating: boolean;
 	// quick log-step amounts: count for quantity habits, seconds for duration habits
-	quickSteps?: number[];
+	// (older entries are bare numbers; newer ones can carry a label)
+	quickSteps?: (number | { value: number; label?: string })[];
 	externalIds?: Record<string, string>;
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '@iconify/svelte';
   import type { HabitWebhooks, HabitType } from '../types';
 
   let { webhooks = $bindable<HabitWebhooks>({}), type = 'binary' as HabitType } = $props();
@@ -12,7 +13,7 @@
 <div class="webhook-section">
   <button type="button" class="webhook-toggle" onclick={() => open = !open} aria-expanded={open}>
     <span class="webhook-title">Webhooks</span>
-    <span class="webhook-chevron">{open ? '▲' : '▼'}</span>
+    <span class="webhook-chevron" class:open><Icon icon="mdi:chevron-down" /></span>
   </button>
 
   {#if open}
@@ -39,40 +40,68 @@
 
 <style>
   .webhook-section {
-    margin: 0.25rem 0 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
+
   .webhook-toggle {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 100%;
-    padding: 0.55rem 0.6rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-primary, #222);
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
+    min-height: var(--tap);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
   }
-  .webhook-toggle:hover { background: var(--card-border, #ddd); }
-  .webhook-chevron { font-size: 0.7rem; color: var(--text-secondary, #888); }
-  .webhook-hint { font-size: 0.78rem; color: var(--text-secondary, #888); margin: 0.5rem 0 0.6rem; }
+
+  .webhook-chevron {
+    display: inline-flex;
+    color: var(--text-3);
+    font-size: 20px;
+    transition: transform 0.2s var(--ease);
+  }
+
+  .webhook-chevron.open {
+    transform: rotate(180deg);
+  }
+
+  .webhook-hint {
+    margin: var(--space-1) var(--space-1) var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--text-2);
+    line-height: 1.45;
+  }
+
+  .webhook-hint code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: var(--surface-2);
+    word-break: break-all;
+  }
+
   label {
-    display: block;
-    margin: 0.5rem 0 0.25rem;
+    margin: var(--space-2) var(--space-1) 0;
+    font-size: var(--text-sm);
     font-weight: 500;
-    font-size: 0.9rem;
-    color: var(--text-primary, #222);
+    color: var(--text-2);
   }
+
   input {
     width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    font-size: 0.9rem;
-    box-sizing: border-box;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
+    min-height: var(--tap);
+    padding: 10px var(--space-3);
+    border: none;
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent);
   }
 </style>

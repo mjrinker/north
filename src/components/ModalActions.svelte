@@ -1,58 +1,68 @@
 <script lang="ts">
-  import Icon from '@iconify/svelte';
-
   let {
     onSave,
     onCancel,
     onDelete,
     saveType = 'button',
     saveLabel = 'Save',
+    deleteLabel = 'Delete',
   }: {
     onSave?: () => void;
     onCancel: () => void;
     onDelete?: () => void;
     saveType?: 'button' | 'submit';
     saveLabel?: string;
+    deleteLabel?: string;
   } = $props();
 </script>
 
 <div class="actions">
   {#if onDelete}
-    <button onclick={onDelete} class="icon-btn danger" aria-label="Delete"><Icon icon="mdi:delete" style="color: inherit" /></button>
-  {:else}
-    <div></div>
+    <button type="button" onclick={onDelete} class="btn btn-plain delete">{deleteLabel}</button>
   {/if}
   <div class="actions-right">
-    <button type={saveType} onclick={onSave} class="icon-btn save" aria-label={saveLabel}><Icon icon="mdi:check" style="color: inherit" /></button>
-    <button onclick={onCancel} class="icon-btn cancel" aria-label="Cancel"><Icon icon="mdi:close" style="color: inherit" /></button>
+    <button type="button" onclick={onCancel} class="btn btn-secondary">Cancel</button>
+    <button type={saveType} onclick={onSave} class="btn">{saveLabel}</button>
   </div>
 </div>
 
 <style>
+  /* Sticks to the bottom of the sheet while the form scrolls. */
   .actions {
+    position: sticky;
+    bottom: calc(-1 * (var(--space-4) + env(safe-area-inset-bottom)));
+    z-index: 2;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-top: 0.75rem;
+    gap: var(--space-2);
+    margin: var(--space-5) calc(-1 * var(--space-4)) calc(-1 * (var(--space-4) + env(safe-area-inset-bottom)));
+    padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 0.5px solid var(--separator);
   }
+
   .actions-right {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-2);
+    margin-left: auto;
   }
-  .icon-btn {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    border: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-sizing: border-box;
+
+  .actions-right .btn {
+    min-width: 96px;
   }
-  .icon-btn :global(svg), .icon-btn :global(.iconify) { font-size: 1.6rem; color: inherit; }
-  .icon-btn.save { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
-  .icon-btn.danger { background: #d32f2f; color: white; }
-  .icon-btn.cancel { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
-  .icon-btn:hover { opacity: 0.85; }
+
+  .delete {
+    color: var(--danger);
+    padding-left: 0;
+  }
+
+  @media (min-width: 640px) {
+    .actions {
+      bottom: calc(-1 * var(--space-5));
+      margin: var(--space-5) calc(-1 * var(--space-5)) calc(-1 * var(--space-5));
+      padding: var(--space-3) var(--space-5);
+    }
+  }
 </style>

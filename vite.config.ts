@@ -14,7 +14,7 @@ export default defineConfig({
 			name: 'fix-request-url',
 			configureServer(vite) {
 				vite.middlewares.use((req, _res, next) => {
-					const normalize = (url) => {
+					const normalize = (url: string | undefined) => {
 						if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
 							try { return new URL(url).pathname + new URL(url).search; } catch {}
 						}

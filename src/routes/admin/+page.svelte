@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '@iconify/svelte';
   import { user } from '../../stores/auth';
   import { userHasPermission } from '../../lib/featureFlags';
   import { goto } from '$app/navigation';
@@ -12,46 +13,37 @@
   userRoles.subscribe(v => { roles = v; if (!userHasPermission(roles, 'access_admin')) goto('/'); });
 </script>
 
-<div class="admin-page">
-  <h1>Admin Console</h1>
-  <p class="subtitle">Welcome{currentUser ? ', ' + (currentUser.user_metadata?.name ?? currentUser.email) : ''}</p>
-
-  <div class="card-grid">
-    <a href="/admin/users" class="card">
-      <h2>Users</h2>
-      <p>Manage user roles and permissions</p>
+<div class="page">
+  <a class="back" href="/settings"><Icon icon="mdi:chevron-left" />Settings</a>
+  <h1 class="page-title">Admin</h1>
+  <div class="group">
+    <a href="/admin/users" class="row link">
+      <div class="row-label"><div class="t">Users</div><div class="s">Assign roles</div></div>
+      <Icon icon="mdi:chevron-right" class="chev" />
     </a>
-    <a href="/admin/roles" class="card">
-      <h2>Roles & Features</h2>
-      <p>Create roles, assign features and permissions</p>
+    <a href="/admin/roles" class="row link">
+      <div class="row-label"><div class="t">Roles and features</div><div class="s">Which roles get which features and permissions</div></div>
+      <Icon icon="mdi:chevron-right" class="chev" />
     </a>
-    <a href="/admin/api-keys" class="card">
-      <h2>API Keys</h2>
-      <p>Mint and revoke API keys for users</p>
+    <a href="/admin/api-keys" class="row link">
+      <div class="row-label"><div class="t">API keys</div><div class="s">Create and revoke keys for any user</div></div>
+      <Icon icon="mdi:chevron-right" class="chev" />
     </a>
   </div>
 </div>
 
 <style>
-  .admin-page {
-    padding: 1.5rem;
-    max-width: 700px;
-    margin: 0 auto;
+  .back {
+    display: inline-flex;
+    align-items: center;
+    margin-left: -6px;
   }
-  h1 { color: var(--text-primary, #222); margin-bottom: 0.25rem; }
-  .subtitle { color: var(--text-secondary, #666); margin-bottom: 1.5rem; }
-  .card-grid { display: grid; gap: 1rem; }
-  .card {
-    display: block;
-    padding: 1.25rem;
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 10px;
-    text-decoration: none;
-    color: inherit;
-    transition: box-shadow 0.15s;
-  }
-  .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-  .card h2 { margin: 0 0 0.25rem; font-size: 1.1rem; color: var(--text-primary, #222); }
-  .card p { margin: 0; font-size: 0.85rem; color: var(--text-secondary, #666); }
+
+  .back :global(svg) { font-size: 22px; }
+
+  .link { color: var(--text); min-height: 60px; }
+  .link:active { background: var(--surface-2); }
+  .t { font-weight: 500; }
+  .s { font-size: var(--text-sm); color: var(--text-2); }
+  .link :global(.chev) { color: var(--text-3); font-size: 20px; }
 </style>

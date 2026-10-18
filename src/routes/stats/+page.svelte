@@ -2,147 +2,327 @@
   import { habitsStore } from '../../stores/habits';
   import { entriesStore } from '../../stores/entries';
   import type { Habit, HabitEntry } from '../../types';
-  import { computeHabitStats, computeGlobalStats, getLastNDays, buildHeatmapData, type HabitStats } from '../../services/analytics';
-  import StatCard from '../../components/StatCard.svelte';
+  import { computeHabitStats, computeGlobalStats, getLastNDays, buildHeatmapData, RATE_WINDOW_DAYS, type DailyRate } from '../../services/analytics';
   import Heatmap from '../../components/Heatmap.svelte';
+  import Icon from '@iconify/svelte';
 
-  let habits = $state<Habit[]>([]);
-  let entries = $state<HabitEntry[]>([]);
-  habitsStore.subscribe(v => habits = v);
-  entriesStore.subscribe(v => entries = v);
+  let allHabits = $state<Habit[]>([]);
+  let allEntries = $state<HabitEntry[]>([]);
+  habitsStore.subscribe(v => allHabits = v);
+  entriesStore.subscribe(v => allEntries = v);
+
+  // Archived and deleted habits don't count towards stats.
+  let habits = $derived(allHabits.filter(h => h.status === 'active' || h.status === 'paused'));
+  let habitIds = $derived(new Set(habits.map(h => h.id)));
+  let entries = $derived(allEntries.filter(e => habitIds.has(e.habitId)));
 
   let selectedHabitId = $state<string>('all');
 
-  let days = $derived(getLastNDays(91));
-
+  let days = $derived(getLastNDays(7 * 15));
   let globalStats = $derived(computeGlobalStats(habits, entries));
-  let habitStatsList = $derived(habits.map(h => computeHabitStats(h, entries)));
+  let habitStatsList = $derived(habits.map(h => computeHabitStats(h, entries)).sort((a, b) => b.completionRate - a.completionRate));
 
-  let selectedHabitStats = $derived<HabitStats | undefined>(
-    selectedHabitId === 'all' ? undefined : habitStatsList.find(s => s.habit.id === selectedHabitId)
-  );
+  let heatmapData = $derived(buildHeatmapData(entries, days, selectedHabitId === 'all' ? undefined : selectedHabitId));
+  let heatmapMax = $derived(selectedHabitId === 'all' ? Math.max(habits.length, 1) : 1);
 
-  let heatmapData = $derived(
-    selectedHabitId === 'all'
-      ? buildHeatmapData(entries, days)
-      : buildHeatmapData(entries, days, selectedHabitId)
-  );
+  function pct(v: number): string {
+    return Math.round(v * 100) + '%';
+  }
 
-  function formatPct(v: number): string {
-    return (v * 100).toFixed(1) + '%';
+  function fmtDay(date: string) {
+    return new Date(date + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  let activeBar = $state<DailyRate | null>(null);
+
+  function streakUnit(h: Habit, n: number) {
+    const unit = h.schedule.daysPerWeek ? 'week' : 'day';
+    return `${n} ${unit}${n === 1 ? '' : 's'}`;
   }
 </script>
 
-<div class="stats-page">
-  <h1>Statistics</h1>
+<div class="page stats">
+  <h1 class="page-title">Stats</h1>
 
-  <!-- Global stats -->
-  <div class="stat-row">
-    <StatCard label="Completion Rate" value={formatPct(globalStats.averageCompletionRate)} />
-    <StatCard label="Total Completions" value={globalStats.totalCompletions} />
-    <StatCard
-      label="Strongest"
-      value={globalStats.strongestHabit?.title ?? '-'}
-      sub={globalStats.strongestHabit ? formatPct(globalStats.strongestHabit.rate) : ''}
-    />
-    <StatCard
-      label="Weakest"
-      value={globalStats.weakestHabit?.title ?? '-'}
-      sub={globalStats.weakestHabit ? formatPct(globalStats.weakestHabit.rate) : ''}
-    />
-  </div>
+  {#if habits.length === 0}
+    <div class="empty">
+      <p>Stats show up once you’ve added a habit and logged a few days.</p>
+      <a class="btn" href="/today">Go to Today</a>
+    </div>
+  {:else}
+    <section class="group hero">
+      <div class="hero-label">Last {RATE_WINDOW_DAYS} days</div>
+      <div class="hero-row">
+        <span class="hero-num tabular">{pct(globalStats.averageCompletionRate)}</span>
+        <span class="hero-caption">
+          {#if activeBar}
+            <strong>{fmtDay(activeBar.date)}</strong> · {activeBar.met} of {activeBar.total} habits
+          {:else}
+            of habits done, day by day
+          {/if}
+        </span>
+      </div>
+      <div class="bars" role="img" aria-label="Share of habits done each day for the last {RATE_WINDOW_DAYS} days" onpointerleave={() => activeBar = null}>
+        {#each globalStats.daily as d (d.date)}
+          {@const r = d.total ? d.met / d.total : 0}
+          <button
+            type="button"
+            class="bar-hit"
+            class:active={activeBar?.date === d.date}
+            onpointerenter={() => activeBar = d}
+            onclick={() => activeBar = d}
+            aria-label="{fmtDay(d.date)}: {d.met} of {d.total}"
+          >
+            <span class="bar" style="height: {Math.max(r * 100, r > 0 ? 4 : 0)}%"></span>
+          </button>
+        {/each}
+      </div>
+      <div class="bars-axis">
+        <span>{fmtDay(globalStats.daily[0]?.date ?? '')}</span>
+        <span>Today</span>
+      </div>
+    </section>
 
-  <!-- Heatmap section -->
-  <div class="section">
-    <div class="section-header">
-      <h2>Activity</h2>
-      <select bind:value={selectedHabitId}>
-        <option value="all">All Habits</option>
+    {#if habits.length > 1 && globalStats.strongestHabit && globalStats.weakestHabit}
+      <div class="group facts">
+        <div class="row">
+          <span class="row-label">Most consistent</span>
+          <span class="fact-value">{globalStats.strongestHabit.title}</span>
+          <span class="fact-pct tabular">{pct(globalStats.strongestHabit.rate)}</span>
+        </div>
+        <div class="row">
+          <span class="row-label">Needs attention</span>
+          <span class="fact-value">{globalStats.weakestHabit.title}</span>
+          <span class="fact-pct tabular">{pct(globalStats.weakestHabit.rate)}</span>
+        </div>
+      </div>
+    {/if}
+
+    <div class="section-head">
+      <h2 class="section-label">Activity</h2>
+      <select class="input inline-select" bind:value={selectedHabitId} aria-label="Habit">
+        <option value="all">All habits</option>
         {#each habits as habit (habit.id)}
           <option value={habit.id}>{habit.title}</option>
         {/each}
       </select>
     </div>
-    {#if days.length > 0}
-      <Heatmap data={heatmapData} {days} />
-    {/if}
-  </div>
+    <section class="group heat">
+      <Heatmap data={heatmapData} max={heatmapMax} unitLabel={selectedHabitId === 'all' ? 'habits done' : 'done'} />
+    </section>
 
-  <!-- Per-habit stats -->
-  <div class="section">
-    <h2>Habit Breakdown</h2>
-    {#each habitStatsList as stats (stats.habit.id)}
-      <div class="habit-row">
-        <h3>{stats.habit.title}</h3>
-        <div class="habit-stats">
-          <StatCard label="Rate" value={formatPct(stats.completionRate)} sub="{stats.standardMetCount}/{stats.totalEntries}" />
-          <StatCard label="Current Streak" value={stats.currentStreak} sub="days" />
-          <StatCard label="Longest Streak" value={stats.longestStreak} sub="days" />
-          <StatCard label="Best Day" value={stats.bestDay?.value ?? '-'} sub={stats.bestDay?.date ?? ''} />
+    <h2 class="section-label">By habit</h2>
+    <div class="group">
+      {#each habitStatsList as stats (stats.habit.id)}
+        {@const h = stats.habit}
+        <div class="row habit" style="--habit: {h.metadata?.color || 'var(--accent)'}">
+          <span class="glyph" aria-hidden="true">
+            {#if h.metadata?.emoji}{h.metadata.emoji}{:else if h.metadata?.icon}<Icon icon={h.metadata.icon} />{:else}{h.title.slice(0, 1)}{/if}
+          </span>
+          <div class="row-label">
+            <div class="habit-title">{h.title}</div>
+            <div class="habit-sub">
+              {#if stats.currentStreak > 0}Streak {streakUnit(h, stats.currentStreak)}{:else}No current streak{/if}
+              {#if stats.longestStreak > 0} · best {streakUnit(h, stats.longestStreak)}{/if}
+            </div>
+          </div>
+          <div class="rate">
+            <span class="rate-num tabular">{pct(stats.completionRate)}</span>
+            <span class="rate-track"><span class="rate-fill" style="width: {stats.completionRate * 100}%"></span></span>
+          </div>
         </div>
-      </div>
-    {/each}
-    {#if habits.length === 0}
-      <p class="empty">No habits yet. <a href="/history">Create one</a> to see stats.</p>
-    {/if}
-  </div>
+      {/each}
+    </div>
+    <p class="section-footnote">Rates cover the last {RATE_WINDOW_DAYS} days, counted from when each habit started. Habits you’re breaking count a day as done unless you went over the limit.</p>
+  {/if}
 </div>
 
 <style>
-  .stats-page {
-    padding: 1rem;
-    max-width: 900px;
-    margin: 0 auto;
+  .hero {
+    padding: var(--space-4);
   }
-  h1 {
-    margin-bottom: 1rem;
-    color: var(--text-primary, #222);
+
+  .hero-label {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-2);
   }
-  h2 {
-    margin: 0;
-    color: var(--text-primary, #222);
-  }
-  .stat-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-  }
-  .section {
-    margin-bottom: 2rem;
-  }
-  .section-header {
+
+  .hero-row {
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 0.75rem;
+    align-items: baseline;
+    gap: var(--space-3);
+    margin: 2px 0 var(--space-4);
   }
-  .section-header select {
-    margin-left: auto;
-    padding: 0.3rem 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    background: var(--card-bg, #fff);
-    color: var(--text-primary, #222);
+
+  .hero-num {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
   }
-  .habit-row {
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 10px;
-    padding: 1rem;
-    margin-bottom: 0.75rem;
+
+  .hero-caption {
+    font-size: var(--text-sm);
+    color: var(--text-2);
   }
-  .habit-row h3 {
-    margin: 0 0 0.5rem;
-    font-size: 1rem;
-    color: var(--text-primary, #222);
+
+  .hero-caption strong {
+    color: var(--text);
+    font-weight: 600;
   }
-  .habit-stats {
+
+  /* 30 thin bars, rounded tops, 2px gaps, anchored to a baseline */
+  .bars {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 0.5rem;
+    grid-template-columns: repeat(30, 1fr);
+    height: 88px;
+    border-bottom: 1px solid var(--separator-strong);
   }
-  .empty {
-    color: var(--text-secondary, #888);
+
+  .bar-hit {
+    display: flex;
+    align-items: flex-end;
+    height: 100%;
+    padding: 0 1px;
+  }
+
+  .bar {
+    display: block;
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    background: var(--accent);
+    opacity: 0.9;
+    transition: opacity 0.15s;
+  }
+
+  .bars:hover .bar,
+  .bars:has(.active) .bar {
+    opacity: 0.35;
+  }
+
+  .bar-hit.active .bar,
+  .bars:hover .bar-hit:hover .bar {
+    opacity: 1;
+  }
+
+  .bars-axis {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: var(--text-xs);
+    color: var(--text-3);
+  }
+
+  .facts {
+    margin-top: var(--space-3);
+  }
+
+  .facts .row-label {
+    flex: 0 0 auto;
+    color: var(--text-2);
+  }
+
+  .fact-value {
+    flex: 1;
+    min-width: 0;
+    text-align: right;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .fact-pct {
+    width: 3em;
+    text-align: right;
+    color: var(--text-2);
+  }
+
+  .section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin: var(--space-5) 0 var(--space-2);
+  }
+
+  .section-head .section-label {
+    margin: 0;
+  }
+
+  .inline-select {
+    width: auto;
+    max-width: 55%;
+    min-height: 32px;
+    padding: 4px 32px 4px var(--space-3);
+    border: none;
+    border-radius: var(--radius-sm);
+    background-color: var(--surface);
+    font-size: var(--text-sm);
+    background-position: right 12px center;
+  }
+
+  .heat {
+    padding: var(--space-4);
+  }
+
+  .habit {
+    min-height: 60px;
+  }
+
+  .glyph {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--habit) 14%, transparent);
+    color: var(--habit);
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  .habit-title {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .habit-sub {
+    font-size: var(--text-sm);
+    color: var(--text-2);
+  }
+
+  .rate {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    width: 56px;
+  }
+
+  .rate-num {
+    font-weight: 600;
+  }
+
+  .rate-track {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+
+  .rate-fill {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--habit);
+  }
+
+  .empty .btn {
+    margin-top: var(--space-4);
   }
 </style>

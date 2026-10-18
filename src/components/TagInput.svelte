@@ -32,7 +32,7 @@
         <button type="button" class="tag-remove" onclick={() => remove(tag)}>×</button>
       </span>
     {/each}
-    <input type="text" bind:value={input} onkeydown={handleKeydown} placeholder="Type tag, press Enter" />
+    <input type="text" bind:value={input} onkeydown={handleKeydown} placeholder={tags.length ? "Add another" : "Add a tag and press return"} />
   </div>
   {#if input && suggestions.length > 0}
     <div class="tag-dropdown">
@@ -47,72 +47,74 @@
   .tags-input-wrap {
     position: relative;
   }
+
   .tags-input {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
     align-items: center;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    padding: 0.25rem;
-    background: var(--input-bg, #fff);
+    gap: 6px;
+    min-height: var(--tap);
+    padding: 6px var(--space-2);
+    border-radius: var(--radius);
+    background: var(--surface);
   }
+
+  .tags-input:focus-within {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+
   .tags-input input {
-    border: none;
-    outline: none;
     flex: 1;
-    min-width: 80px;
-    padding: 0.25rem;
-    font-size: 0.85rem;
-    background: transparent;
-    color: var(--text-primary, #222);
+    min-width: 120px;
+    min-height: 30px;
+    padding: 0 var(--space-1);
+    border: none;
+    background: none;
+    color: var(--text);
+    outline: none;
   }
+
   .tag-chip {
     display: inline-flex;
     align-items: center;
     gap: 2px;
-    background: var(--accent, #0066cc);
-    color: var(--accent-text, white);
-    font-size: 0.75rem;
-    padding: 2px 6px;
-    border-radius: 4px;
+    height: 28px;
+    padding: 0 4px 0 10px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    font-size: var(--text-sm);
+    font-weight: 500;
   }
+
   .tag-remove {
-    background: none;
-    border: none;
-    color: inherit;
-    cursor: pointer;
-    font-size: 0.85rem;
-    padding: 0 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    color: var(--text-3);
+    font-size: 15px;
     line-height: 1;
   }
+
   .tag-dropdown {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 4px);
     left: 0;
     right: 0;
-    z-index: 10;
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #ccc);
-    border-top: none;
-    border-radius: 0 0 4px 4px;
-    max-height: 150px;
-    overflow-y: auto;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    z-index: 20;
+    padding: var(--space-1) 0;
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow-pop);
   }
+
   .tag-option {
     display: block;
     width: 100%;
-    padding: 0.35rem 0.5rem;
-    border: none;
-    background: none;
+    padding: 10px var(--space-4);
     text-align: left;
-    cursor: pointer;
-    font-size: 0.85rem;
-    color: var(--text-primary, #222);
   }
-  .tag-option:hover {
-    background: var(--accent, #0066cc);
-    color: var(--accent-text, white);
+
+  .tag-option:active {
+    background: var(--surface-2);
   }
 </style>

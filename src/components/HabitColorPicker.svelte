@@ -1,13 +1,14 @@
 <script lang="ts">
+  import Icon from '@iconify/svelte';
   let { color = $bindable('') } = $props();
 
   let open = $state(false);
   let draft = $state('');
 
+  // Mid-tone hues that read on both light and dark surfaces.
   const PRESETS = [
-    '#e53935', '#d81b60', '#8e24aa', '#5e35b1', '#3949ab', '#1e88e5',
-    '#039be5', '#00acc1', '#00897b', '#43a047', '#7cb342', '#c0ca33',
-    '#fdd835', '#ffb300', '#fb8c00', '#f4511e', '#6d4c41', '#546e7a',
+    '#d9534f', '#e0773c', '#d39a2a', '#8fa83a', '#3f9b62', '#2f9690',
+    '#3a8fc7', '#4a6fd1', '#7660c9', '#b45bb0', '#8a7a6b', '#6b7785',
   ];
 
   function openPicker() {
@@ -23,10 +24,10 @@
   }
 </script>
 
-<button type="button" class="color-trigger" onclick={openPicker}>
-  <span class="swatch-mini" style="background: {color || 'transparent'};"></span>
-  <span class="trigger-label">{color || 'No color'}</span>
-  <span class="trigger-edit">Edit</span>
+<button type="button" class="trigger" onclick={openPicker}>
+  <span class="swatch-mini" class:empty={!color} style="background: {color || 'transparent'};"></span>
+  <span class="trigger-label">{color ? 'Custom' : 'Default'}</span>
+  <Icon icon="mdi:chevron-right" class="trigger-chev" />
 </button>
 
 {#if open}
@@ -52,138 +53,168 @@
         {/each}
       </div>
       <div class="custom-row">
-        <input type="color" value={draft || '#0066cc'} oninput={(e) => draft = (e.currentTarget as HTMLInputElement).value} />
+        <input type="color" value={draft || '#4a6fd1'} oninput={(e) => draft = (e.currentTarget as HTMLInputElement).value} />
         <span class="custom-label">Custom</span>
         <span class="hex">{draft ? draft.toUpperCase() : 'None'}</span>
       </div>
       <div class="sub-actions">
-        <button type="button" class="btn btn-cancel" onclick={cancel}>Cancel</button>
-        <button type="button" class="btn btn-ok" onclick={confirm}>OK</button>
+        <button type="button" class="btn btn-secondary" onclick={cancel}>Cancel</button>
+        <button type="button" class="btn" onclick={confirm}>Done</button>
       </div>
     </div>
   </div>
 {/if}
 
 <style>
-  .color-trigger {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.35rem 0.6rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
-    font-size: 0.85rem;
-    cursor: pointer;
-    margin-bottom: 0.75rem;
-  }
-  .color-trigger:hover { background: var(--btn-secondary-bg, #eee); }
-  .swatch-mini {
-    width: 1.2rem;
-    height: 1.2rem;
-    border-radius: 50%;
-    border: 1px solid var(--card-border, #ccc);
-  }
-  .trigger-label { font-weight: 500; }
-  .trigger-edit { font-size: 0.75rem; color: var(--text-secondary, #888); }
-
   .sub-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.45);
+    z-index: 1100;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
-    z-index: 1200;
+    background: var(--scrim);
   }
+
   .sub-picker {
-    background: var(--card-bg, #fff);
-    border-radius: 10px;
-    width: 90vw;
-    max-width: 360px;
-    padding: 1.1rem;
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-height: 80dvh;
+    overflow-y: auto;
+    padding: var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    background: var(--bg);
+    box-shadow: var(--shadow-sheet);
+    animation: rise 0.25s var(--ease);
   }
+
+  @keyframes rise { from { transform: translateY(30%); opacity: 0.5; } }
+
+  @media (min-width: 640px) {
+    .sub-overlay { align-items: center; }
+    .sub-picker { max-width: 420px; border-radius: var(--radius-lg); }
+  }
+
   .sub-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--space-4);
   }
-  .sub-header h3 { margin: 0; font-size: 1.05rem; color: var(--text-primary, #222); }
+
+  .sub-header h3 {
+    font-size: var(--text-md);
+    font-weight: 650;
+  }
+
   .sub-close {
-    background: none;
-    border: none;
-    font-size: 1.4rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--text-2);
+    font-size: 20px;
     line-height: 1;
-    color: var(--text-secondary, #999);
-    cursor: pointer;
-    padding: 0.25rem;
   }
-  .swatches {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(2rem, 1fr));
-    gap: 0.4rem;
-    margin-bottom: 0.75rem;
-  }
-  .swatch {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    cursor: pointer;
-    padding: 0;
-    box-sizing: border-box;
-    justify-self: center;
-  }
-  .swatch.selected { border-color: var(--text-primary, #222); box-shadow: 0 0 0 2px var(--card-bg, #fff) inset; }
-  .swatch.none {
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-secondary, #888);
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .custom-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.9rem;
-  }
-  .custom-row input[type="color"] {
-    width: 2rem;
-    height: 2rem;
-    border: 2px solid transparent;
-    border-radius: 50%;
-    padding: 0;
-    background: none;
-    cursor: pointer;
-  }
-  .custom-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-  .custom-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
-  .custom-label { font-size: 0.85rem; color: var(--text-primary, #222); }
-  .hex {
-    margin-left: auto;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-primary, #222);
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-  }
+
   .sub-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 0.5rem;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
   }
-  .btn {
-    padding: 0.45rem 1.1rem;
-    border-radius: 0;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
+
+  .sub-actions .btn { min-width: 96px; }
+
+  .trigger {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    min-height: var(--tap);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    text-align: left;
+  }
+
+  .trigger-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .trigger :global(.trigger-chev) {
+    color: var(--text-3);
+    font-size: 18px;
+  }
+
+  .swatch-mini {
+    display: block;
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+  }
+
+  .swatch-mini.empty {
+    border: 1.5px dashed var(--separator-strong);
+  }
+
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: var(--space-3);
+  }
+
+  .swatch {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    transition: transform 0.1s var(--ease);
+  }
+
+  .swatch:active { transform: scale(0.92); }
+
+  .swatch.selected {
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text);
+  }
+
+  .swatch.none {
+    border: 1.5px dashed var(--separator-strong);
+    color: var(--text-3);
+    font-size: 14px;
+  }
+
+  .custom-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+
+  .custom-row input[type='color'] {
+    width: 32px;
+    height: 32px;
+    padding: 0;
     border: none;
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
   }
-  .btn-cancel { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
-  .btn-ok { background: var(--accent, #0066cc); color: var(--accent-text, #fff); }
+
+  .custom-row input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
+  .custom-row input[type='color']::-webkit-color-swatch { border: none; border-radius: 50%; }
+
+  .custom-label { flex: 1; }
+
+  .hex {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--text-2);
+  }
 </style>

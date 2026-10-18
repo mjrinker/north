@@ -206,7 +206,7 @@
   function pad(n: number): string { return String(n).padStart(2, '0'); }
 </script>
 
-<div class="log-tab">
+<div class="log-tab" style="--habit: {habit.metadata?.color || 'var(--accent)'}">
   {#if habit.type === 'binary'}
     <button
       class="dial binary"
@@ -264,7 +264,7 @@
           {/if}
         </div>
       {/if}
-      <div class="dial-hint">{habit.type === 'quantity' ? 'swipe to change' : 'swipe to adjust'}</div>
+      <div class="dial-hint">Drag the ring to adjust</div>
     </div>
   {/if}
 
@@ -330,7 +330,7 @@
 
   <div class="status">
     <span class="status-dot" class:met={standardMet}></span>
-    <span>{standardMet ? 'Standard met' : 'Not at standard'} · standard {habit.type === 'duration' ? formatHms(habit.standard) : habit.standard + (habit.unit ? ' ' + pluralizeUnit(habit.unit, habit.standard) : '')}</span>
+    <span>{standardMet ? 'Minimum reached' : 'Below minimum'} · minimum {habit.type === 'duration' ? formatHms(habit.standard) : habit.standard + (habit.unit ? ' ' + pluralizeUnit(habit.unit, habit.standard) : '')}</span>
   </div>
 </div>
 
@@ -339,279 +339,260 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.25rem;
-    padding: 0.5rem 0 0.25rem;
+    gap: var(--space-5);
+    padding: var(--space-2) 0;
   }
+
   .dial {
     position: relative;
-    width: 230px;
-    height: 230px;
+    width: 232px;
+    height: 232px;
     border-radius: 50%;
-    background: var(--input-bg, #f5f5f5);
+    background: var(--surface);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.2rem;
+    gap: var(--space-1);
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
-    box-sizing: border-box;
-    color: var(--text-primary, #222);
+    color: var(--text);
   }
+
   .dial.met {
-    background: rgba(46, 125, 50, 0.08);
-    color: #2e7d32;
+    color: var(--habit);
   }
+
   .dial-num {
-    font-size: 4rem;
-    font-weight: 800;
+    font-size: 56px;
+    font-weight: 700;
     line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
   }
+
   .dial-unit {
-    font-size: 0.9rem;
-    color: var(--text-secondary, #888);
-    max-width: 90%;
+    font-size: var(--text-sm);
+    color: var(--text-2);
+    max-width: 70%;
     text-align: center;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
   .dial-time {
-    font-size: 2.1rem;
-    font-weight: 700;
+    font-size: 36px;
+    font-weight: 650;
     line-height: 1;
+    letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
   }
+
   .dial-hint {
     position: absolute;
-    bottom: 10px;
-    font-size: 0.6rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--text-secondary, #999);
+    bottom: -28px;
+    font-size: var(--text-xs);
+    color: var(--text-3);
   }
+
   .dial.binary {
     cursor: pointer;
-    border: none;
-    background: var(--input-bg, #f5f5f5);
+    border: 3px solid var(--separator-strong);
+    transition: background 0.2s, border-color 0.2s, transform 0.1s var(--ease);
   }
-  .dial.binary :global(svg), .dial.binary :global(.iconify) {
-    font-size: 7rem;
-    color: #2e7d32;
+
+  .dial.binary:active {
+    transform: scale(0.97);
   }
-  .dial.binary.checked.met { background: rgba(46, 125, 50, 0.15); }
+
+  .dial.binary.checked {
+    background: var(--habit);
+    border-color: var(--habit);
+  }
+
+  .dial.binary :global(svg) {
+    font-size: 96px;
+    color: #fff;
+  }
+
   .dial-actions {
     position: relative;
     z-index: 3;
     display: flex;
-    gap: 0.5rem;
-    margin-top: 0.15rem;
+    gap: var(--space-2);
+    margin-top: var(--space-1);
     touch-action: none;
   }
+
   .dial-actions .act {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    border: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    color: white;
-    box-sizing: border-box;
+    font-size: 20px;
+    background: var(--surface-2);
+    color: var(--text);
   }
-  .dial-actions .act :global(svg), .dial-actions .act :global(.iconify) { font-size: 1.3rem; }
-  .dial-actions .act.play { background: #0066cc; }
-  .dial-actions .act.pause { background: #f59e0b; }
-  .dial-actions .act.done { background: #2e7d32; }
-  .dial-actions .act.cancel { background: #d32f2f; }
-  .dial-actions .act.reset { background: #757575; }
+
+  .dial-actions .act.play,
+  .dial-actions .act.pause { background: var(--habit); color: #fff; }
+  .dial-actions .act.done { background: var(--success-soft); color: var(--success); }
+  .dial-actions .act.cancel { color: var(--danger); }
+  .dial-actions .act.reset { color: var(--text-2); }
+
   .stepper {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.75rem;
+    gap: var(--space-4);
     width: 100%;
   }
+
   .stepper-default {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: var(--space-4);
   }
+
   .stepper-custom {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: var(--space-2);
     flex-wrap: wrap;
+    width: 100%;
   }
-  .step-btn {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    border: 1px solid var(--card-border, #ccc);
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-primary, #222);
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    font-weight: 700;
-  }
-  .step-btn:disabled { opacity: 0.4; }
-  .step-default { width: 3.75rem; height: 3.75rem; }
-  .step-default :global(svg), .step-default :global(.iconify) { font-size: 1.8rem; }
-  .step-btn.custom { width: auto; min-width: 2.6rem; height: 2.6rem; padding: 0 0.6rem; border-radius: 999px; font-size: 0.9rem; }
-  .step-btn :global(svg), .step-btn :global(.iconify) { font-size: 1.4rem; }
-  .step-fab {
-    width: 2.6rem;
-    height: 2.6rem;
-    border-radius: 50%;
-    border: 1px dashed var(--card-border, #ccc);
-    background: transparent;
-    color: var(--text-secondary, #888);
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-  }
-  .step-fab :global(svg), .step-fab :global(.iconify) { font-size: 1.3rem; }
-  .step-wrap { position: relative; }
-  .step-del {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    width: 1.15rem;
-    height: 1.15rem;
-    border-radius: 50%;
-    border: none;
-    background: #d32f2f;
-    color: #fff;
-    font-size: 0.7rem;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-  }
-  .add-step {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
-  .add-step input, .add-step select {
-    width: 4.5rem;
-    padding: 0.35rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    font-size: 0.9rem;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
-    box-sizing: border-box;
-  }
-  .add-step select { width: 3.6rem; }
-  .sign-toggle {
-    width: 2.2rem;
-    height: 2.2rem;
-    border-radius: 50%;
-    border: 1px solid var(--card-border, #ccc);
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-primary, #222);
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  .add-ok { width: auto; padding: 0 0.7rem; height: 2.2rem; border-radius: 999px; background: var(--accent, #0066cc); color: var(--accent-text, #fff); border: none; font-weight: 600; cursor: pointer; }
-  .step-btn.add-close { width: 1.9rem; height: 1.9rem; background: transparent; border: none; }
-  .status {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    color: var(--text-secondary, #666);
-  }
-  .status-dot {
-    width: 0.7rem;
-    height: 0.7rem;
-    border-radius: 50%;
-    background: var(--card-border, #ccc);
-  }
-  .status-dot.met { background: #2e7d32; }
+
   .stepper-custom-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    max-width: 400px;
-    margin-bottom: 0.5rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-secondary, #666);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-2);
   }
-  .edit-toggle {
-    width: 2rem;
-    height: 2rem;
+
+  .step-btn {
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    border: 1px solid var(--card-border, #ccc);
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-primary, #222);
-    cursor: pointer;
+    background: var(--surface);
+    color: var(--text);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    box-sizing: border-box;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
   }
-  .edit-toggle:hover {
-    background: var(--accent, #0066cc);
-    color: var(--accent-text, #fff);
-    border-color: var(--accent, #0066cc);
+
+  .step-btn:active:not(:disabled) { background: var(--surface-2); }
+  .step-btn:disabled { opacity: 0.4; }
+  .step-default { width: 56px; height: 56px; font-size: 26px; }
+  .step-btn.custom { width: auto; min-width: 48px; height: 36px; padding: 0 var(--space-3); border-radius: 999px; font-size: var(--text-sm); }
+  .step-btn :global(svg) { font-size: 22px; }
+
+  .step-fab {
+    height: 36px;
+    padding: 0 var(--space-3);
+    border-radius: 999px;
+    border: 1px dashed var(--separator-strong);
+    color: var(--text-2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
   }
-  .edit-toggle :global(svg), .edit-toggle :global(.iconify) { font-size: 1.1rem; }
-  .step-edit {
+
+  .step-wrap { position: relative; }
+
+  .step-del {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--danger);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1;
+    display: grid;
+    place-items: center;
+  }
+
+  .add-step {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
-    width: 100%;
-    max-width: 200px;
+    gap: var(--space-1);
+    flex-wrap: wrap;
+    justify-content: center;
   }
-  .step-edit input {
-    flex: 1;
-    padding: 0.35rem 0.5rem;
-    border: 1px solid var(--accent, #0066cc);
-    border-radius: 0;
-    font-size: 0.9rem;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
-    box-sizing: border-box;
+
+  .log-tab .add-step input,
+  .log-tab .add-step select {
+    width: 76px;
+    min-height: 36px;
+    padding: 6px var(--space-2);
+    font-size: 15px;
   }
-  .edit-save, .edit-cancel {
-    width: 2rem;
-    height: 2rem;
+
+  .log-tab .add-step input[type='text'] { width: 132px; }
+  .log-tab .add-step select { width: 72px; padding-right: 24px; background-position: right 8px center; }
+
+  .sign-toggle {
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    border: none;
-    cursor: pointer;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    box-sizing: border-box;
+    flex-shrink: 0;
   }
-  .edit-save {
-    background: var(--accent, #0066cc);
-    color: var(--accent-text, #fff);
+
+  .add-ok {
+    height: 36px;
+    padding: 0 var(--space-3);
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-weight: 600;
   }
-  .edit-cancel {
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-primary, #222);
+
+  .step-btn.add-close { width: 32px; height: 32px; background: transparent; color: var(--text-2); }
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--text-2);
   }
-  .edit-save:hover { opacity: 0.85; }
-  .edit-cancel:hover { background: var(--btn-secondary-hover, #ddd); }
-  .edit-save :global(svg), .edit-cancel :global(svg), .edit-save :global(.iconify), .edit-cancel :global(.iconify) { font-size: 1rem; }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--surface-3);
+  }
+
+  .status-dot.met { background: var(--success); }
+
+  .edit-toggle {
+    height: 30px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-sm);
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    font-size: 18px;
+  }
 </style>

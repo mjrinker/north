@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { user } from '../../../../stores/auth';
+  import { user, isLoading as authLoading } from '../../../../stores/auth';
   import { gql } from '../../../../lib/api';
   import { goto } from '$app/navigation';
   import Icon from '@iconify/svelte';
@@ -34,7 +34,15 @@ export const ssr = false;
     loading = false;
   }
 
-  $effect(() => { loadInvitation(); });
+  let authPending = $state(true);
+  authLoading.subscribe(v => authPending = v);
+
+  // The invitation can only be read when signed in.
+  $effect(() => {
+    if (authPending) return;
+    if (currentUser && shortCode) loadInvitation();
+    else loading = false;
+  });
 
   async function acceptInvitation() {
     if (!currentUser) {
@@ -67,139 +75,92 @@ export const ssr = false;
   }
 </script>
 
-<div class="page">
-  {#if loading}
-    <div class="loading">Loading invitation...</div>
+<div class="page invite">
+  {#if loading || authPending}
+    <p class="empty">Loading invitation…</p>
+  {:else if !currentUser}
+    <div class="centered">
+      <h1 class="page-title">You’ve been invited</h1>
+      <p class="lede">Sign in to see who invited you and accept. North is free and works offline.</p>
+      <a class="btn" href="/settings">Sign in</a>
+    </div>
   {:else if error}
-    <div class="error-state">
-      <Icon icon="mdi:alert-circle-outline" size="64" />
-      <h2>Unable to Load Invitation</h2>
-      <p>{error}</p>
-      <a href="/accountability" class="btn" onclick={() => goto('/accountability')}>Back to Accountability</a>
+    <div class="centered">
+      <h1 class="page-title">Can’t open this invitation</h1>
+      <p class="lede">{error}</p>
+      <a href="/accountability" class="btn btn-secondary">Go to Partners</a>
     </div>
   {:else if invitation}
-    <div class="invite-card">
-      <div class="invite-header">
-        <div class="inviter-info">
-          <div class="avatar">
-            {#if invitation.inviter?.avatar}
-              <img src={invitation.inviter.avatar} alt="" />
-            {:else}
-              <Icon icon="mdi:account-circle" size="64" />
-            {/if}
-          </div>
-          <div>
-            <h1>{invitation.inviter?.name ?? invitation.inviter?.email}</h1>
-            <p class="inviter-email">{invitation.inviter?.email}</p>
-          </div>
-        </div>
-        <div class="invite-badge pending">Pending</div>
-      </div>
-
-      {#if invitation.message}
-        <div class="invite-message">
-          <Icon icon="mdi:message-text-outline" />
-          <p>{invitation.message}</p>
-        </div>
-      {/if}
-
-      <div class="invite-details">
-        <p>This link was created to invite you as an accountability partner.</p>
-        <p>By accepting, you'll be able to see each other's shared habit progress.</p>
-      </div>
-
-      {#if !currentUser}
-        <div class="auth-prompt">
-          <p>You need to be signed in to accept this invitation.</p>
-          <button class="btn btn-primary" onclick={() => goto('/settings')}>
-            <Icon icon="mdi:login" /> Sign In / Create Account
-          </button>
-        </div>
+    <div class="centered">
+      {#if invitation.inviter?.avatar}
+        <img class="avatar" src={invitation.inviter.avatar} alt="" referrerpolicy="no-referrer" />
       {:else}
-        <div class="invite-actions">
-          <button class="btn btn-danger" onclick={declineInvitation} disabled={actionLoading}>
-            Decline
-          </button>
-          <button class="btn btn-primary" onclick={acceptInvitation} disabled={actionLoading}>
-            {actionLoading ? 'Accepting...' : 'Accept Invitation'}
-          </button>
-        </div>
+        <span class="avatar placeholder"><Icon icon="mdi:account" /></span>
       {/if}
+      <h1 class="page-title">{invitation.inviter?.name ?? invitation.inviter?.email} wants to be accountability partners</h1>
+      {#if invitation.message}
+        <blockquote class="message">{invitation.message}</blockquote>
+      {/if}
+      <p class="lede">You’ll each choose which habits to share. You can stop sharing or remove the partnership any time.</p>
+      <div class="actions">
+        <button class="btn btn-secondary" onclick={declineInvitation} disabled={actionLoading}>Decline</button>
+        <button class="btn" onclick={acceptInvitation} disabled={actionLoading}>{actionLoading ? 'Accepting…' : 'Accept'}</button>
+      </div>
     </div>
   {/if}
 </div>
 
 <style>
-  .page { padding: 2rem 1rem; max-width: 500px; margin: 0 auto; min-height: 60vh; display: flex; align-items: center; justify-content: center; }
-  .loading { text-align: center; color: var(--text-secondary, #666); }
-  .invite-card {
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 16px;
-    padding: 2rem;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.1);
-    width: 100%;
-  }
-  .invite-header {
+  .centered {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-  .inviter-info { display: flex; align-items: center; gap: 1rem; flex: 1; }
-  .avatar { width: 64px; height: 64px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: var(--btn-secondary-bg, #eee); display: flex; align-items: center; justify-content: center; }
-  .avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .avatar :global(svg) { color: var(--accent, #0066cc); }
-  .inviter-info h1 { margin: 0; font-size: 1.2rem; color: var(--text-primary, #222); }
-  .inviter-email { margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--text-secondary, #666); }
-  .invite-badge {
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 0.25rem 0.75rem;
-    border-radius: 999px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: var(--badge-pending-bg, #fef3c7);
-    color: var(--badge-pending-text, #92400e);
-  }
-  .invite-message {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    padding: 1rem;
-    background: var(--btn-secondary-bg, #f5f5f5);
-    border-radius: 12px;
-    margin-bottom: 1.5rem;
-    color: var(--text-secondary, #666);
-    font-size: 0.9rem;
-    line-height: 1.5;
-  }
-  .invite-message :global(svg) { flex-shrink: 0; margin-top: 0.125rem; }
-  .invite-details {
-    color: var(--text-secondary, #666);
-    font-size: 0.9rem;
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-  }
-  .invite-details p { margin: 0 0 0.5rem; }
-  .auth-prompt {
+    flex-direction: column;
+    align-items: center;
     text-align: center;
-    padding: 1.5rem;
-    background: var(--btn-secondary-bg, #f5f5f5);
-    border-radius: 12px;
-    margin-bottom: 1rem;
+    padding-top: 56px;
   }
-  .auth-prompt p { margin: 0 0 1rem; color: var(--text-secondary, #666); }
-  .invite-actions {
+
+  .centered .page-title {
+    font-size: var(--text-lg);
+    max-width: 22em;
+    margin-bottom: var(--space-3);
+  }
+
+  .lede {
+    color: var(--text-2);
+    max-width: 26em;
+    margin-bottom: var(--space-5);
+  }
+
+  .avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: var(--space-4);
+  }
+
+  .avatar.placeholder {
+    display: grid;
+    place-items: center;
+    background: var(--surface-2);
+    color: var(--text-3);
+    font-size: 40px;
+  }
+
+  .message {
+    max-width: 26em;
+    margin: 0 0 var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font-style: italic;
+  }
+
+  .actions {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-2);
   }
-  .invite-actions .btn { flex: 1; }
-  .error-state {
-    text-align: center;
-    padding: 2rem;
-  }
-  .error-state h2 { margin: 1rem 0 0.5rem; color: var(--text-primary, #222); }
-  .error-state p { color: var(--text-secondary, #666); margin-bottom: 1.5rem; }
+
+  .actions .btn { min-width: 120px; }
 </style>

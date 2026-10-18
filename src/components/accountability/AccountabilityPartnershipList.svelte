@@ -22,76 +22,76 @@
   }
 </script>
 
-<ul class="partnership-list">
+<div class="group">
   {#each partnerships as p}
-    <li class="partnership-item">
-      <div class="partner-info">
-        <div class="partner-avatar">
-          {#if getPartner(p).avatar}
-            <img src={getPartner(p).avatar} alt="" />
-          {:else}
-            <Icon icon="mdi:account-circle" size="40" />
-          {/if}
-        </div>
-        <div class="partner-details">
-          <span class="partner-name">{getPartner(p).name ?? getPartner(p).email}</span>
-          <span class="partner-email">{getPartner(p).email}</span>
-        </div>
-      </div>
-      <div class="partner-actions">
-        <button class="btn-icon" onclick={() => viewPartner(getPartner(p).id)} aria-label="View progress">
-          <Icon icon="mdi:eye" size="20" />
-        </button>
-        <button class="btn-icon" onclick={() => manageSharing(getPartner(p).id)} aria-label="Manage sharing">
-          <Icon icon="mdi:share-variant" size="20" />
-        </button>
-        <button class="btn-icon btn-danger" onclick={() => onRemove(getPartner(p).id)} aria-label="Remove partnership">
-          <Icon icon="mdi:account-minus" size="20" />
-        </button>
-      </div>
-    </li>
+    {@const partner = getPartner(p)}
+    <div class="row partner">
+      <button class="partner-main" onclick={() => viewPartner(partner.id)}>
+        {#if partner.avatar}
+          <img class="avatar" src={partner.avatar} alt="" referrerpolicy="no-referrer" />
+        {:else}
+          <span class="avatar placeholder"><Icon icon="mdi:account" /></span>
+        {/if}
+        <span class="row-label">
+          <span class="partner-name">{partner.name ?? partner.email}</span>
+          {#if partner.name}<span class="partner-email">{partner.email}</span>{/if}
+        </span>
+      </button>
+      <button class="btn btn-sm btn-secondary" onclick={() => manageSharing(partner.id)}>Share habits</button>
+      <button class="icon-btn" onclick={() => onRemove(partner.id)} aria-label="Remove {partner.name ?? partner.email}"><Icon icon="mdi:account-remove-outline" /></button>
+    </div>
   {/each}
-</ul>
+</div>
 
 <style>
-  .partnership-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  .partnership-item {
+  .partner-main {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 1rem;
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 8px;
+    gap: var(--space-3);
+    min-height: 52px;
+    text-align: left;
   }
-  .partner-info { display: flex; align-items: center; gap: 0.75rem; }
-  .partner-avatar { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
-  .partner-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .partner-avatar :global(svg) { color: var(--text-secondary, #888); }
-  .partner-details { display: flex; flex-direction: column; gap: 2px; }
-  .partner-name { font-weight: 500; color: var(--text-primary, #222); }
-  .partner-email { font-size: 0.75rem; color: var(--text-secondary, #888); }
-  .partner-actions { display: flex; gap: 0.5rem; }
-  .btn-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+
+  .avatar {
     width: 36px;
     height: 36px;
-    border: none;
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-secondary, #666);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
   }
-  .btn-icon:hover { background: var(--accent, #0066cc); color: white; }
-  .btn-icon.btn-danger:hover { background: #fee2e2; color: #dc2626; }
+
+  .avatar.placeholder {
+    display: grid;
+    place-items: center;
+    background: var(--surface-2);
+    color: var(--text-3);
+    font-size: 20px;
+  }
+
+  .row-label {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .partner-name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .partner-email {
+    font-size: var(--text-sm);
+    color: var(--text-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .icon-btn {
+    color: var(--text-3);
+    font-size: 20px;
+  }
 </style>

@@ -1,7 +1,7 @@
 <script lang="ts">
   let {
     title = 'Color',
-    currentHex = '#0066cc',
+    currentHex = '#2b62c9',
     themeMode = 'light',
     pickerType = 'main',
     onConfirm,
@@ -306,9 +306,9 @@
       <button class="close-btn" onclick={onClose} aria-label="Close">&times;</button>
     </div>
 
-    <div class="tabs">
-      <button class="tab" class:active={tab === 'circles'} onclick={() => tab = 'circles'}>Circles</button>
-      <button class="tab" class:active={tab === 'spectrum'} onclick={() => tab = 'spectrum'}>Spectrum</button>
+    <div class="segmented tabs">
+      <button class:active={tab === 'circles'} onclick={() => tab = 'circles'}>Suggested</button>
+      <button class:active={tab === 'spectrum'} onclick={() => tab = 'spectrum'}>Custom</button>
     </div>
 
     {#if tab === 'circles'}
@@ -369,13 +369,13 @@
       <div class="preview-swatch" style="background: {selectedHex};"></div>
       <span class="preview-hex">{selectedHex.toUpperCase()}</span>
       {#if pickerType === 'main'}
-        <span class="mode-tag" class:light={detectedMode === 'light'}>{detectedMode === 'light' ? 'Light mode' : 'Dark mode'}</span>
+        <span class="mode-tag" class:light={detectedMode === 'light'}>{detectedMode === 'light' ? 'Switches to light' : 'Switches to dark'}</span>
       {/if}
     </div>
 
     <div class="actions">
-      <button class="btn btn-cancel" onclick={onClose}>Cancel</button>
-      <button class="btn btn-ok" onclick={handleConfirm}>OK</button>
+      <button class="btn btn-secondary" onclick={onClose}>Cancel</button>
+      <button class="btn" onclick={handleConfirm}>Done</button>
     </div>
   </div>
 </div>
@@ -384,67 +384,51 @@
   .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    z-index: 1100;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
-    z-index: 200;
+    background: var(--scrim);
   }
 
   .picker {
-    background: var(--card-bg, #fff);
-    border-radius: 14px;
-    width: 88vw;
-    max-width: 380px;
-    overflow: hidden;
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+    width: 100%;
+    max-height: 90dvh;
+    overflow-y: auto;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    background: var(--bg);
+    box-shadow: var(--shadow-sheet);
   }
 
   .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.25rem 0;
+    padding: var(--space-4) var(--space-4) 0;
   }
 
   .header h2 {
-    font-size: 1.1rem;
-    color: var(--text-primary, #222);
+    font-size: var(--text-md);
+    font-weight: 650;
     margin: 0;
   }
 
   .close-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: var(--text-secondary, #999);
-    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--text-2);
+    font-size: 20px;
     line-height: 1;
-    padding: 0.25rem;
   }
 
   .tabs {
-    display: flex;
-    gap: 0;
-    padding: 0.75rem 1.25rem 0;
+    margin: var(--space-3) var(--space-4) 0;
   }
 
-  .tab {
-    flex: 1;
-    padding: 0.4rem 0;
-    border: none;
-    background: none;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-secondary, #888);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-  }
 
-  .tab.active {
-    color: var(--accent, #0066cc);
-    border-bottom-color: var(--accent, #0066cc);
-  }
 
   .circles-area {
     padding: 1.5rem 0;
@@ -486,21 +470,21 @@
     border-radius: 50%;
     flex-shrink: 0;
     will-change: transform;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 0 2px var(--bg);
   }
 
   .spectrum-area {
-    padding: 1rem 1.25rem;
+    padding: var(--space-4);
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--space-3);
   }
 
   .color-field {
     position: relative;
     width: 100%;
-    aspect-ratio: 1;
-    border-radius: 8px;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius);
     overflow: hidden;
     cursor: crosshair;
   }
@@ -571,66 +555,51 @@
   .preview-row {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1.25rem;
+    gap: var(--space-3);
+    margin: 0 var(--space-4);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius);
+    background: var(--surface);
   }
 
   .preview-swatch {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    border: 1px solid var(--card-border, #ddd);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
     flex-shrink: 0;
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
   }
 
   .preview-hex {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary, #222);
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: var(--text-base);
+    font-weight: 500;
+    font-family: var(--font-mono);
   }
 
   .mode-tag {
     margin-left: auto;
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 0.2rem 0.5rem;
-    border-radius: 999px;
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--text-2);
   }
 
-  .mode-tag.light {
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-primary, #222);
-  }
 
-  .mode-tag:not(.light) {
-    background: #333;
-    color: #ddd;
-  }
 
   .actions {
     display: flex;
-    gap: 0.5rem;
-    padding: 0.75rem 1.25rem 1.25rem;
+    gap: var(--space-2);
+    padding: var(--space-4);
     justify-content: flex-end;
   }
 
-  .btn {
-    padding: 0.5rem 1.25rem;
-    border-radius: 0;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
+
+
+  .actions .btn {
+    min-width: 96px;
   }
 
-  .btn-cancel {
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-primary, #222);
-  }
-
-  .btn-ok {
-    background: var(--accent, #0066cc);
-    color: var(--accent-text, #fff);
+  @media (min-width: 640px) {
+    .overlay { align-items: center; }
+    .picker { max-width: 400px; border-radius: var(--radius-lg); }
   }
 </style>

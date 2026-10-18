@@ -59,44 +59,29 @@ export const ssr = false;
 </script>
 
 <div class="page">
-  <header class="page-header">
-    <a href="/accountability" class="back-link" onclick={() => goto('/accountability')}>
-      <Icon icon="mdi:chevron-left" />
-    </a>
-    <div class="header-info">
-      <h1>{partner?.name ?? partner?.email ?? 'Partner'}</h1>
-      <p class="partner-tag">Viewing shared habits</p>
-    </div>
-    <button class="btn-share" onclick={goToShare}>
-      <Icon icon="mdi:share-variant" /> Manage Sharing
-    </button>
-  </header>
+  <a class="back" href="/accountability"><Icon icon="mdi:chevron-left" />Partners</a>
+  <div class="title-row">
+    <h1 class="page-title">{partner?.name ?? partner?.email ?? 'Partner'}</h1>
+    <button class="btn btn-sm btn-secondary" onclick={goToShare}>Share habits</button>
+  </div>
 
   {#if loading}
-    <div class="loading">Loading...</div>
+    <p class="empty">Loading…</p>
   {:else if error}
-    <div class="error">{error}</div>
+    <p class="empty">{error}</p>
   {:else if !partner}
-    <div class="error">Partner not found</div>
+    <p class="empty">You’re not partners with this person anymore.</p>
   {:else if sharedHabits.length === 0}
-    <div class="empty-state">
-      <Icon icon="mdi:account-heart" size="64" />
-      <h2>No shared habits yet</h2>
-      <p>Your partner hasn't shared any habits with you.</p>
-    </div>
+    <p class="empty">{partner.name ?? 'Your partner'} hasn’t shared any habits with you yet.</p>
   {:else}
     <div class="date-nav">
-      <button class="date-arrow" onclick={() => shiftDate(-1)}>
-        <Icon icon="mdi:chevron-left" />
-      </button>
+      <button class="icon-btn" onclick={() => shiftDate(-1)} aria-label="Previous day"><Icon icon="mdi:chevron-left" /></button>
       <span class="date-display">{formatDate(viewDate)}</span>
-      <button class="date-arrow" onclick={() => shiftDate(1)}>
-        <Icon icon="mdi:chevron-right" />
-      </button>
+      <button class="icon-btn" onclick={() => shiftDate(1)} disabled={viewDate >= getLocalDateString()} aria-label="Next day"><Icon icon="mdi:chevron-right" /></button>
     </div>
 
-    <div class="habits-grid">
-      {#each sharedHabits as sh}
+    <div class="group list">
+      {#each sharedHabits as sh (sh.habit.id)}
         <PartnerHabitCard {sh} />
       {/each}
     </div>
@@ -104,78 +89,39 @@ export const ssr = false;
 </div>
 
 <style>
-  .page { padding: 1rem; max-width: 800px; margin: 0 auto; }
-  .page-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem 0;
-    border-bottom: 1px solid var(--card-border, #e0e0e0);
-    margin-bottom: 1rem;
-  }
-  .back-link {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border: none;
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-secondary, #666);
-    border-radius: 8px;
-    cursor: pointer;
-  }
-  .header-info { flex: 1; }
-  .header-info h1 { margin: 0; font-size: 1.25rem; }
-  .partner-tag { font-size: 0.8rem; color: var(--accent, #0066cc); font-weight: 500; }
-  .btn-share {
+  .back {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--card-border, #ccc);
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
+    margin-left: -6px;
   }
-  .btn-share:hover { background: var(--btn-secondary-bg, #f5f5f5); }
+
+  .back :global(svg) { font-size: 22px; }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .title-row .page-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .date-nav {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--card-border, #e0e0e0);
-    margin-bottom: 1rem;
+    justify-content: space-between;
+    margin-bottom: var(--space-2);
   }
-  .date-arrow {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border: none;
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-secondary, #666);
-    border-radius: 8px;
-    cursor: pointer;
+
+  .date-display {
+    font-weight: 600;
   }
-  .date-arrow:hover { background: var(--accent, #0066cc); color: white; }
-  .date-display { font-weight: 600; color: var(--text-primary, #222); }
-  .habits-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+
+  .list > :global(* + *) {
+    border-top: 0.5px solid var(--separator-strong);
   }
-  .loading, .error { text-align: center; padding: 2rem; color: var(--text-secondary, #888); }
-  .error { color: #dc2626; }
-  .empty-state {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: var(--text-secondary, #888);
-  }
-  .empty-state h2 { margin: 1rem 0 0.5rem; color: var(--text-primary, #222); }
 </style>

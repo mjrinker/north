@@ -11,6 +11,12 @@
   import { onDestroy } from 'svelte'
   import { getMyApiKeys, createMyApiKey, revokeMyApiKey, copyToClipboard, type ApiKey } from '../../lib/apiKeys'
   import { getLastSyncedAt, setLastSyncedAt, daysAgo } from '../../services/syncState'
+  import { userRoles } from '../../stores/roles'
+  import { userHasPermission } from '../../lib/featureFlags'
+  import Icon from '@iconify/svelte'
+
+  let roles = $state<string[]>([])
+  userRoles.subscribe(v => roles = v)
 
   let currentUser = $state<any>(null)
   let syncing = $state(false)
@@ -59,8 +65,8 @@
   let undoMain = $state(false);
 
   function openPicker(type: 'accent' | 'main') {
-    prevAccentColor = s.accentColor || '#0066cc';
-    prevMainColor = s.mainColor || '#1a1a2e';
+    prevAccentColor = s.accentColor;
+    prevMainColor = s.mainColor;
     undoAccent = false;
     undoMain = false;
     pickerType = type;
@@ -189,201 +195,186 @@
   }
 </script>
 
-<div class="page">
-  <h1>Settings</h1>
+<div class="page settings">
+  <h1 class="page-title">Settings</h1>
 
-  <div class="settings-card">
-  <section class="settings-section">
-    <h2>Reset Time</h2>
-    <p>When should habits reset for the next day?</p>
-    <input type="time" value={s.resetTime} oninput={(e) => update({ resetTime: (e.target as HTMLInputElement).value })} />
-  </section>
+  {#if currentUser}
+    <div class="group">
+      <div class="row profile">
+        {#if currentUser.user_metadata?.avatar_url}
+          <img class="avatar" src={currentUser.user_metadata.avatar_url} alt="" referrerpolicy="no-referrer" />
+        {:else}
+          <span class="avatar placeholder"><Icon icon="mdi:account" /></span>
+        {/if}
+        <div class="row-label">
+          <div class="profile-name">{currentUser.name ?? currentUser.email}</div>
+          {#if currentUser.name}<div class="profile-email">{currentUser.email}</div>{/if}
+        </div>
+      </div>
+      <a class="row link" href="/accountability">
+        <span class="row-label">Accountability partners</span>
+        <Icon icon="mdi:chevron-right" class="chev" />
+      </a>
+      {#if userHasPermission(roles, 'access_admin')}
+        <a class="row link" href="/admin">
+          <span class="row-label">Admin</span>
+          <Icon icon="mdi:chevron-right" class="chev" />
+        </a>
+      {/if}
+    </div>
+  {:else}
+    <div class="group signin">
+      <div class="signin-copy">
+        <div class="signin-title">Sync across devices</div>
+        <p>Sign in to back up your habits and use North on more than one device. Everything works offline without an account.</p>
+      </div>
+      <div class="google-btn-wrap" bind:this={googleBtnEl}></div>
+    </div>
+  {/if}
 
-  <section class="settings-section">
-    <h2>Appearance</h2>
-    <div class="setting-row">
-      <span class="setting-label">Theme</span>
-      <select value={s.themeMode} onchange={(e) => update({ themeMode: (e.target as HTMLSelectElement).value as ThemeMode })}>
+  <h2 class="section-label">Appearance</h2>
+  <div class="group">
+    <div class="row">
+      <span class="row-label">Theme</span>
+      <select class="inline-select" value={s.themeMode} onchange={(e) => update({ themeMode: (e.target as HTMLSelectElement).value as ThemeMode })} aria-label="Theme">
         <option value="system">System</option>
         <option value="light">Light</option>
         <option value="dark">Dark</option>
-        <option value="adaptive">Adaptive (time of day)</option>
+        <option value="adaptive">By time of day</option>
       </select>
     </div>
-    <div class="setting-row">
-      <span class="setting-label">OLED mode (true black)</span>
-      <label class="toggle">
-        <input type="checkbox" checked={s.oled} onchange={(e) => update({ oled: (e.target as HTMLInputElement).checked })} />
-        <span class="toggle-slider"></span>
-      </label>
+    <label class="row">
+      <span class="row-label">True black in dark mode</span>
+      <input type="checkbox" class="switch" checked={s.oled} onchange={(e) => update({ oled: (e.target as HTMLInputElement).checked })} />
+    </label>
+    <div class="row">
+      <span class="row-label">Accent color</span>
+      {#if undoAccent}<button class="btn btn-plain btn-sm" onclick={undoAccentColor}>Undo</button>{/if}
+      <button class="swatch-btn" onclick={() => openPicker('accent')} aria-label="Choose accent color">
+        <span class="swatch" style="background: {s.accentColor || 'var(--accent)'}"></span>
+        <Icon icon="mdi:chevron-right" class="chev" />
+      </button>
     </div>
-    <div class="setting-row">
-      <span class="setting-label">Accent color</span>
-      <div class="color-row">
-        <button class="color-btn" onclick={() => openPicker('accent')} aria-label="Choose accent color">
-          <span class="color-swatch" style="background: {s.accentColor || '#0066cc'};"></span>
-          <span class="color-label">{s.accentColor || '#0066cc'}</span>
-        </button>
-        {#if undoAccent}
-          <button class="btn-undo" onclick={undoAccentColor}>Undo</button>
-        {/if}
-      </div>
-    </div>
-    <div class="setting-row">
-      <span class="setting-label">Main color</span>
-      <div class="color-row">
-        <button class="color-btn" onclick={() => openPicker('main')} aria-label="Choose main color">
-          <span class="color-swatch" style="background: {s.mainColor || '#1a1a2e'};"></span>
-          <span class="color-label">{s.mainColor || 'None'}</span>
-        </button>
+    <div class="row">
+      <span class="row-label">Background tint</span>
+      {#if undoMain}<button class="btn btn-plain btn-sm" onclick={undoMainColor}>Undo</button>{/if}
+      {#if s.mainColor}<button class="btn btn-plain btn-sm" onclick={() => update({ mainColor: '' })}>Reset</button>{/if}
+      <button class="swatch-btn" onclick={() => openPicker('main')} aria-label="Choose background tint">
         {#if s.mainColor}
-          <button class="btn-reset" onclick={() => update({ mainColor: '' })}>Reset</button>
+          <span class="swatch" style="background: {s.mainColor}"></span>
+        {:else}
+          <span class="row-value">None</span>
         {/if}
-        {#if undoMain}
-          <button class="btn-undo" onclick={undoMainColor}>Undo</button>
-        {/if}
-      </div>
+        <Icon icon="mdi:chevron-right" class="chev" />
+      </button>
     </div>
-  </section>
-
-  <section class="settings-section">
-    <h2>Launch Screen</h2>
-    <p>Which page opens by default?</p>
-    <select value={s.launchScreen} onchange={(e) => update({ launchScreen: (e.target as HTMLSelectElement).value as LaunchScreen })}>
-      <option value="/today">Today</option>
-      <option value="/history">History</option>
-      <option value="/stats">Stats</option>
-      <option value="/settings">Settings</option>
-    </select>
-  </section>
-
-  <section class="settings-section">
-    <h2>Account</h2>
-    {#if currentUser}
-      <p class="user-info">
-        Signed in as <strong>{currentUser.email}</strong>
-      </p>
-      <button class="btn" onclick={() => showLogoutConfirm = true}>Sign Out</button>
-    {:else}
-      <p>Sign in to enable cloud sync.</p>
-      <div class="google-btn-wrap" bind:this={googleBtnEl}></div>
-    {/if}
-  </section>
-
-  <section class="settings-section">
-    <h2>Cloud Sync</h2>
-    <p>Pull recent changes and push only what changed since your last sync. Use the menu to change the download range.</p>
-    {#if currentUser}
-      <div class="sync-split">
-        <button class="btn sync-main" onclick={() => { syncMenuOpen = false; syncNow() }} disabled={syncing}>
-          {syncing ? 'Syncing…' : 'Sync'}
-        </button>
-        <button
-          class="btn sync-arrow"
-          onclick={() => syncMenuOpen = !syncMenuOpen}
-          disabled={syncing}
-          aria-label="Sync range options"
-          aria-expanded={syncMenuOpen}
-        >▾</button>
-      </div>
-      {#if syncMenuOpen}
-        <div class="sync-menu">
-          <div class="sync-menu-label">Download range</div>
-          {#each RANGE_PRESETS as preset (preset.days)}
-            <button class="sync-menu-item" onclick={() => syncNow({ days: preset.days })}>{preset.label}</button>
-          {/each}
-          <button class="sync-menu-item" onclick={() => syncNow({ allTime: true })}>All time</button>
-          <button class="sync-menu-item" onclick={() => customOpen = !customOpen}>Custom date range…</button>
-          {#if customOpen}
-            <div class="sync-custom">
-              <label>
-                <span>From</span>
-                <input type="date" bind:value={customFrom} />
-              </label>
-              <label>
-                <span>To</span>
-                <input type="date" bind:value={customTo} />
-              </label>
-              <button class="btn" onclick={() => { if (customFrom && customTo) syncNow({ from: customFrom, to: customTo }) }} disabled={!customFrom || !customTo}>
-                Sync range
-              </button>
-            </div>
-          {/if}
-        </div>
-      {/if}
-      {#if syncStatus}
-        <p class="status">{syncStatus}</p>
-      {/if}
-      {#if lastSynced}
-        <p class="muted">Last synced: {lastSynced}</p>
-      {/if}
-    {:else}
-      <p class="muted">Sign in above to enable cloud sync.</p>
-    {/if}
-  </section>
-
-  <section class="settings-section">
-    <h2>API Key</h2>
-    <p>Use an API key to connect external tools to the North API. It grants full access to your account data — keep it secret. See the <a class="docs-link" href="/api-docs">API documentation</a> for examples.</p>
-    {#if currentUser}
-      {#if myKeys.length > 0}
-        <div class="api-key-list">
-          {#each myKeys as k (k.id)}
-            <div class="api-key-row">
-              <span class="api-key-name">{k.name || 'Unnamed key'}</span>
-              <div class="api-key-actions">
-                <button class="btn" onclick={() => copyKey(k)}>Copy</button>
-                <button class="btn btn-danger" onclick={() => revokeKey(k)}>Revoke</button>
-              </div>
-            </div>
-          {/each}
-        </div>
-      {:else}
-        <p class="muted">You don't have any API keys yet.</p>
-      {/if}
-      <div class="api-key-new">
-        <input type="text" placeholder="Label (optional)" bind:value={newKeyName} disabled={apiBusy} />
-        <button class="btn" onclick={generateKey} disabled={apiBusy}>{apiBusy ? 'Creating…' : 'Generate key'}</button>
-      </div>
-      {#if apiMsg}
-        <p class="status">{apiMsg}</p>
-      {/if}
-    {:else}
-      <p class="muted">Sign in above to manage an API key.</p>
-    {/if}
-  </section>
-
-  <section class="settings-section">
-    <h2>Pause All Habits</h2>
-    <p>Temporarily pause every active habit at once.</p>
-    <div class="pause-controls">
-      <label class="pause-until-label">
-        Until
-        <input type="date" bind:value={pauseAllUntil} disabled={pauseAllIndefinite} />
-      </label>
-      <label class="pause-indef">
-        <input type="checkbox" bind:checked={pauseAllIndefinite} />
-        Indefinitely
-      </label>
-    </div>
-    <div class="pause-btns">
-      <button class="btn" onclick={handlePauseAll}>Pause all habits</button>
-      <button class="btn" onclick={handleResumeAll} disabled={pausedCount === 0}>Resume all habits</button>
-    </div>
-    {#if pausedCount > 0}
-      <p class="muted">{pausedCount} habit(s) currently paused.</p>
-    {/if}
-    {#if pauseMsg}
-      <p class="status">{pauseMsg}</p>
-    {/if}
-  </section>
   </div>
+
+  <h2 class="section-label">Organize</h2>
+  <div class="group">
+    <a class="row link" href="/tags">
+      <span class="row-label">Tags</span>
+      <Icon icon="mdi:chevron-right" class="chev" />
+    </a>
+    <a class="row link" href="/identities">
+      <span class="row-label">Identities</span>
+      <Icon icon="mdi:chevron-right" class="chev" />
+    </a>
+  </div>
+
+  <h2 class="section-label">Your day</h2>
+  <div class="group">
+    <div class="row">
+      <span class="row-label">New day starts at</span>
+      <input class="inline-select" type="time" value={s.resetTime} oninput={(e) => update({ resetTime: (e.target as HTMLInputElement).value })} aria-label="New day starts at" />
+    </div>
+    <div class="row">
+      <span class="row-label">Open the app to</span>
+      <select class="inline-select" value={s.launchScreen} onchange={(e) => update({ launchScreen: (e.target as HTMLSelectElement).value as LaunchScreen })} aria-label="Launch screen">
+        <option value="/today">Today</option>
+        <option value="/history">History</option>
+        <option value="/stats">Stats</option>
+        <option value="/settings">Settings</option>
+      </select>
+    </div>
+  </div>
+  <p class="section-footnote">Anything you log before this time counts toward the previous day.</p>
+
+  <h2 class="section-label">Pause everything</h2>
+  <div class="group">
+    <label class="row">
+      <span class="row-label">Until I resume</span>
+      <input type="checkbox" class="switch" bind:checked={pauseAllIndefinite} />
+    </label>
+    {#if !pauseAllIndefinite}
+      <div class="row">
+        <span class="row-label">Resume on</span>
+        <input class="inline-select" type="date" bind:value={pauseAllUntil} aria-label="Resume on" />
+      </div>
+    {/if}
+    <button class="row action" onclick={handlePauseAll}>Pause all habits</button>
+    {#if pausedCount > 0}
+      <button class="row action" onclick={handleResumeAll}>Resume {pausedCount} paused habit{pausedCount === 1 ? '' : 's'}</button>
+    {/if}
+  </div>
+  <p class="section-footnote">{pauseMsg || 'Useful for travel or illness.'}</p>
+
+  {#if currentUser}
+    <h2 class="section-label">Sync</h2>
+    <div class="group">
+      <button class="row action" onclick={() => { syncMenuOpen = false; syncNow() }} disabled={syncing}>
+        {syncing ? 'Syncing…' : 'Sync now'}
+      </button>
+      <button class="row link" onclick={() => syncMenuOpen = !syncMenuOpen} aria-expanded={syncMenuOpen}>
+        <span class="row-label">Download a date range</span>
+        <Icon icon="mdi:chevron-down" class="chev {syncMenuOpen ? 'open' : ''}" />
+      </button>
+      {#if syncMenuOpen}
+        {#each RANGE_PRESETS as preset (preset.days)}
+          <button class="row sub" onclick={() => syncNow({ days: preset.days })} disabled={syncing}>{preset.label}</button>
+        {/each}
+        <button class="row sub" onclick={() => syncNow({ allTime: true })} disabled={syncing}>All time</button>
+        <button class="row sub" onclick={() => customOpen = !customOpen}>Custom range…</button>
+        {#if customOpen}
+          <div class="row custom-range">
+            <input class="inline-select" type="date" bind:value={customFrom} aria-label="From" />
+            <span class="row-value">to</span>
+            <input class="inline-select" type="date" bind:value={customTo} aria-label="To" />
+            <button class="btn btn-sm" onclick={() => { if (customFrom && customTo) syncNow({ from: customFrom, to: customTo }) }} disabled={!customFrom || !customTo}>Go</button>
+          </div>
+        {/if}
+      {/if}
+    </div>
+    <p class="section-footnote">
+      {#if syncStatus}{syncStatus}{:else if lastSynced}Last synced {lastSynced}.{:else}Changes sync automatically when you’re online.{/if}
+    </p>
+
+    <h2 class="section-label">API keys</h2>
+    <div class="group">
+      {#each myKeys as k (k.id)}
+        <div class="row">
+          <span class="row-label">{k.name || 'Unnamed key'}</span>
+          <button class="btn btn-sm btn-secondary" onclick={() => copyKey(k)}>Copy</button>
+          <button class="btn btn-sm btn-danger" onclick={() => revokeKey(k)}>Revoke</button>
+        </div>
+      {/each}
+      <div class="row new-key">
+        <input class="row-input" type="text" placeholder="New key name" bind:value={newKeyName} disabled={apiBusy} aria-label="New key name" />
+        <button class="btn btn-sm" onclick={generateKey} disabled={apiBusy}>{apiBusy ? 'Creating…' : 'Create'}</button>
+      </div>
+    </div>
+    <p class="section-footnote">{apiMsg || ''} Keys give full access to your data, for tools like iOS Shortcuts. See the <a href="/api-docs">API documentation</a>.</p>
+
+    <div class="group signout">
+      <button class="row action danger" onclick={() => showLogoutConfirm = true}>Sign out</button>
+    </div>
+  {/if}
 </div>
 
 {#if pickerType}
   <ColorPickerModal
-    title={pickerType === 'accent' ? 'Accent Color' : 'Main Color'}
-    currentHex={pickerType === 'accent' ? (s.accentColor || '#0066cc') : (s.mainColor || '#1a1a2e')}
+    title={pickerType === 'accent' ? 'Accent color' : 'Background tint'}
+    currentHex={pickerType === 'accent' ? (s.accentColor || '#2b62c9') : (s.mainColor || '#8a7a6b')}
     themeMode={resolveThemeMode(s.themeMode)}
     pickerType={pickerType}
     onConfirm={handlePickerConfirm}
@@ -396,332 +387,165 @@
 {/if}
 
 <style>
-  .page {
-    padding: 1.5rem;
-    max-width: 600px;
-    margin: 0 auto;
-  }
-  h1 { color: var(--text-primary, #222); margin-bottom: 1.5rem; }
-  .settings-card {
-    margin: 1.5rem 0;
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 0;
-    padding: 0 1.25rem;
-  }
-  .settings-section {
-    padding: 1.25rem 0;
-    border-top: 1px solid var(--card-border, #e0e0e0);
-  }
-  .settings-section:first-child { border-top: none; }
-  .settings-section:last-child { border-bottom: none; }
-  .settings-section h2 {
-    margin: 0 0 0.5rem;
-    font-size: 0.78rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-secondary, #888);
-  }
-  .settings-section p { margin: 0 0 0.75rem; font-size: 0.9rem; color: var(--text-secondary, #555); }
-  .user-info { font-size: 0.9rem; color: var(--text-primary, #222); }
-  .muted { color: var(--text-secondary, #888); }
-  .status { font-size: 0.85rem; margin-top: 0.5rem; color: var(--text-secondary, #555); }
-  .btn {
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-primary, #222);
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 500;
-  }
-  .btn:disabled { opacity: 0.5; cursor: default; }
-  .google-btn-wrap {
-    display: flex;
-    justify-content: flex-start;
-    margin-top: 0.5rem;
-  }
-  .google-btn-wrap :global(div) {
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .google-btn-wrap :global(.google-signin-error) {
-    margin: 0;
-    font-size: 0.85rem;
-    color: #d32f2f;
-    line-height: 1.4;
-  }
-  .setting-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.5rem 0;
-    gap: 1rem;
-  }
-  .setting-row + .setting-row { border-top: 1px solid var(--card-border, #eee); }
-  .setting-label { font-size: 0.9rem; color: var(--text-primary, #222); }
-  .setting-row select {
-    padding: 0.4rem 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    font-size: 0.85rem;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
-  }
-  .setting-row input[type="time"] {
-    padding: 0.4rem 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    font-size: 0.85rem;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
-  }
-  .color-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.3rem 0.6rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    background: var(--input-bg, #fff);
-    cursor: pointer;
+  .profile {
+    min-height: 68px;
   }
 
-  .color-btn:hover {
-    background: var(--btn-secondary-bg, #eee);
-  }
-
-  .color-swatch {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    border: 1px solid var(--card-border, #ccc);
+  .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
     flex-shrink: 0;
   }
 
-  .color-label {
-    font-size: 0.85rem;
-    color: var(--text-primary, #222);
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  .avatar.placeholder {
+    display: grid;
+    place-items: center;
+    background: var(--surface-2);
+    color: var(--text-3);
+    font-size: 26px;
   }
 
-  .color-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+  .profile-name {
+    font-size: var(--text-md);
+    font-weight: 600;
   }
-  .btn-reset {
-    padding: 0.25rem 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    background: transparent;
-    cursor: pointer;
-    font-size: 0.8rem;
-    color: var(--text-secondary, #888);
+
+  .profile-email {
+    font-size: var(--text-sm);
+    color: var(--text-2);
   }
-  .btn-reset:hover { background: var(--btn-secondary-bg, #eee); }
-  .btn-undo {
-    padding: 0.25rem 0.5rem;
-    border: 1px solid var(--accent, #0066cc);
-    border-radius: 0;
-    background: transparent;
-    cursor: pointer;
-    font-size: 0.8rem;
-    color: var(--accent, #0066cc);
-  }
-  .btn-undo:hover { background: var(--accent, #0066cc); color: var(--accent-text, #fff); }
-  .toggle {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-    cursor: pointer;
-  }
-  .toggle input { display: none; }
-  .toggle-slider {
-    position: absolute;
-    inset: 0;
-    background: var(--card-border, #ccc);
-    border-radius: 999px;
-    transition: background 0.2s;
-  }
-  .toggle-slider::before {
-    content: '';
-    position: absolute;
-    left: 3px;
-    top: 3px;
-    width: 18px;
-    height: 18px;
-    background: #fff;
-    border-radius: 50%;
-    transition: transform 0.2s;
-  }
-  .toggle input:checked + .toggle-slider { background: var(--text-secondary, #888); }
-  .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
-  .pause-controls {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-bottom: 0.75rem;
-  }
-  .pause-until-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.9rem;
-    color: var(--text-primary, #222);
-  }
-  .pause-until-label input[type="date"] {
-    padding: 0.4rem 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    font-size: 0.85rem;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
-  }
-  .pause-until-label input[type="date"]:disabled { opacity: 0.5; }
-  .pause-indef {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.9rem;
-    color: var(--text-primary, #222);
-    cursor: pointer;
-  }
-  .pause-btns {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 0.5rem;
-  }
-  .api-key-list {
+
+  .signin {
+    padding: var(--space-4);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    gap: var(--space-3);
   }
-  .api-key-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    background: var(--input-bg, #f5f5f5);
-    border: 1px solid var(--card-border, #eee);
-    border-radius: 8px;
+
+  .signin-title {
+    font-weight: 600;
+    font-size: var(--text-md);
+    margin-bottom: 2px;
   }
-  .api-key-name {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-primary, #222);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+
+  .signin p {
+    font-size: var(--text-sm);
+    color: var(--text-2);
   }
-  .api-key-actions {
-    display: flex;
-    gap: 0.4rem;
+
+  .google-btn-wrap :global(.google-signin-error) {
+    font-size: var(--text-sm);
+    color: var(--danger);
+  }
+
+  .row.link,
+  .row.action,
+  .row.sub {
+    width: 100%;
+    text-align: left;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .row.link:active,
+  .row.action:active,
+  .row.sub:active {
+    background: var(--surface-2);
+  }
+
+  .row.action {
+    color: var(--accent);
+  }
+
+  .row.action.danger {
+    color: var(--danger);
+  }
+
+  .row:disabled {
+    opacity: 0.5;
+  }
+
+  .row.sub {
+    padding-left: var(--space-6);
+    color: var(--accent);
+  }
+
+  .row :global(.chev) {
+    font-size: 20px;
+    color: var(--text-3);
     flex-shrink: 0;
+    transition: transform 0.2s var(--ease);
   }
-  .btn-danger {
-    background: rgba(211, 47, 47, 0.1);
-    color: #d32f2f;
-    border-color: rgba(211, 47, 47, 0.3);
+
+  .row :global(.chev.open) {
+    transform: rotate(180deg);
   }
-  .api-key-new {
-    display: flex;
-    gap: 0.5rem;
+
+  label.row {
+    cursor: pointer;
+  }
+
+  .swatch-btn {
+    display: inline-flex;
     align-items: center;
+    gap: var(--space-2);
+    min-height: 36px;
   }
-  .api-key-new input {
+
+  .swatch {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+  }
+
+  .inline-select {
+    max-width: 55%;
+    min-height: 32px;
+    padding: 4px var(--space-2);
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: var(--text-base);
+    text-align: right;
+  }
+
+  select.inline-select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 28px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%23908d89' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+
+  .custom-range {
+    flex-wrap: wrap;
+  }
+
+  .custom-range .inline-select {
+    flex: 1;
+    max-width: none;
+  }
+
+  .row-input {
     flex: 1;
     min-width: 0;
-    padding: 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    font-size: 0.85rem;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
-    box-sizing: border-box;
-  }
-  .docs-link {
-    color: var(--accent, #0066cc);
-    text-decoration: underline;
-  }
-  .sync-split {
-    display: inline-flex;
-    align-items: stretch;
-    vertical-align: middle;
-  }
-  .sync-main {
-    border-radius: 0;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-    border-right: none;
-  }
-  .sync-arrow {
-    border-radius: 0;
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-    padding: 0.5rem 0.7rem;
-    font-size: 0.85rem;
-  }
-  .sync-menu {
-    margin-top: 0.5rem;
-    display: inline-flex;
-    flex-direction: column;
-    align-items: stretch;
-    border: 1px solid var(--card-border, #ccc);
-    background: var(--card-bg, #fff);
-    border-radius: 0;
-    padding: 0.25rem;
-    min-width: 200px;
-  }
-  .sync-menu-label {
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-secondary, #888);
-    padding: 0.25rem 0.5rem;
-  }
-  .sync-menu-item {
-    padding: 0.4rem 0.5rem;
+    min-height: 32px;
     border: none;
     background: none;
-    text-align: left;
-    cursor: pointer;
-    font-size: 0.85rem;
-    color: var(--text-primary, #222);
-    border-radius: 0;
+    color: var(--text);
+    outline: none;
   }
-  .sync-menu-item:hover { background: var(--btn-secondary-bg, #eee); }
-  .sync-custom {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    border-top: 1px solid var(--card-border, #eee);
+
+  .signout {
+    margin-top: var(--space-6);
   }
-  .sync-custom label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    font-size: 0.75rem;
-    color: var(--text-secondary, #666);
-  }
-  .sync-custom input[type="date"] {
-    padding: 0.4rem 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    font-size: 0.85rem;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
-  }
-  .sync-custom .btn {
-    grid-column: 1 / -1;
+
+  .signout .row {
+    justify-content: center;
   }
 </style>

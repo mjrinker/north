@@ -101,16 +101,16 @@
 <Modal {onClose}>
   <div class="header">
     <h2>Notes</h2>
-    <button class="add-btn" onclick={openAdd} aria-label="Add note">+</button>
+    <button class="add-btn" onclick={openAdd}>New note</button>
   </div>
 
   {#if adding}
     <div class="add-area">
-      <textarea bind:value={newContent} placeholder="Write a note (supports Markdown)..." class="note-input"></textarea>
+      <textarea bind:value={newContent} placeholder="Write a note. Markdown works." class="note-input"></textarea>
       {@render habitPicker()}
       <div class="add-actions">
-        <button class="btn" onclick={handleAdd}>Save</button>
-        <button class="btn btn-outline" onclick={() => { adding = false; newContent = ''; }}>Cancel</button>
+        <button class="btn btn-secondary btn-sm" onclick={() => { adding = false; newContent = ''; }}>Cancel</button>
+        <button class="btn btn-sm" onclick={handleAdd}>Save</button>
       </div>
     </div>
   {/if}
@@ -124,8 +124,8 @@
           <div class="note-meta">
             <span class="note-time">{new Date(note.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             <div class="actions">
-              <button class="btn" onclick={saveEdit}>Save</button>
-              <button class="btn btn-outline" onclick={cancelEdit}>Cancel</button>
+              <button class="btn btn-secondary btn-sm" onclick={cancelEdit}>Cancel</button>
+              <button class="btn btn-sm" onclick={saveEdit}>Save</button>
             </div>
           </div>
         </div>
@@ -148,7 +148,7 @@
         </div>
       {/if}
     {:else}
-      <p class="empty">No notes for today.</p>
+      <p class="empty">No notes for this day.</p>
     {/each}
   </div>
 </Modal>
@@ -158,149 +158,140 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-3);
   }
-  .header h2 { margin: 0; font-size: 1.1rem; color: var(--text-primary, #222); }
-  .add-btn {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    border: none;
-    background: var(--accent, #0066cc);
-    color: var(--accent-text, white);
-    font-size: 1.25rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-  }
-  .add-btn:hover { opacity: 0.85; }
 
-  .add-area { margin-bottom: 1rem; }
-  .note-habits { margin: 0.5rem 0; }
-  .note-habits .mini {
-    display: block;
-    font-size: 0.72rem;
-    color: var(--text-secondary, #666);
-    margin-bottom: 0.25rem;
+  .header h2 {
+    margin: 0;
   }
-  .chip-row { display: flex; flex-wrap: wrap; gap: 4px; }
-  .chip {
-    padding: 0.25rem 0.6rem;
-    border: 1px solid var(--card-border, #ccc);
+
+  .add-btn {
+    height: 34px;
+    padding: 0 var(--space-3);
     border-radius: 999px;
-    background: var(--card-bg, #f5f5f5);
-    cursor: pointer;
-    font-size: 0.78rem;
-    color: var(--text-primary, #222);
-    font-family: inherit;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+    font-size: var(--text-sm);
   }
-  .chip.selected {
-    background: #0066cc;
-    color: #fff;
-    border-color: #0066cc;
+
+  .add-area {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
   }
+
   .note-input {
     width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    font-size: 0.85rem;
-    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
-    box-sizing: border-box;
-    min-height: 4rem;
-    resize: vertical;
   }
-  .edit-input { min-height: 5rem; }
-  .add-actions {
+
+  .add-actions,
+  .actions {
     display: flex;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    justify-content: flex-end;
+    gap: var(--space-2);
   }
-  .btn {
-    padding: 0.35rem 0.75rem;
-    border-radius: 0;
-    border: none;
-    background: var(--accent, #0066cc);
-    color: var(--accent-text, white);
-    cursor: pointer;
-    font-size: 0.8rem;
+
+  .note-habits {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .mini {
+    font-size: var(--text-xs);
     font-weight: 500;
+    color: var(--text-2);
   }
-  .btn:hover { opacity: 0.85; }
-  .btn-outline {
-    background: transparent;
-    border: 1px solid var(--card-border, #ccc);
-    color: var(--text-primary, #222);
+
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 32px;
+    padding: 0 var(--space-3);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    box-shadow: inset 0 0 0 1px var(--separator);
+  }
+
+  .chip.selected {
+    background: var(--accent-soft);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1.5px var(--accent);
   }
 
   .note-list {
-    max-height: 50vh;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-2);
   }
-  .note-card {
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 8px;
-    padding: 0.6rem 0.75rem;
-    cursor: pointer;
-    transition: border-color 0.15s;
-  }
-  .note-card:hover { border-color: var(--accent, #0066cc); }
-  .note-card.expanded { border-color: var(--accent, #0066cc); }
 
-  .note-content { font-size: 0.85rem; color: var(--text-primary, #222); line-height: 1.5; word-wrap: break-word; }
+  .note-card {
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius);
+    background: var(--surface);
+    cursor: pointer;
+  }
+
+  .note-content {
+    font-size: var(--text-base);
+    line-height: 1.5;
+    color: var(--text);
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
   .note-content.truncated {
-    max-height: 3em;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    position: relative;
   }
-  .note-content.truncated::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 1em;
-    background: linear-gradient(transparent, var(--card-bg, #fff));
-  }
-  .note-content :global(p) { margin: 0 0 0.3em; }
-  .note-content :global(p:last-child) { margin-bottom: 0; }
-  .note-content :global(ul), .note-content :global(ol) { margin: 0.2em 0; padding-left: 1.2em; }
-  .note-content :global(li) { margin: 0.1em 0; }
-  .note-content :global(code) { font-size: 0.8em; background: var(--btn-secondary-bg, #eee); padding: 1px 4px; border-radius: 3px; }
-  .note-content :global(pre) { font-size: 0.8em; background: var(--btn-secondary-bg, #eee); padding: 0.4rem; border-radius: 4px; overflow-x: auto; margin: 0.3em 0; }
-  .note-content :global(blockquote) { margin: 0.3em 0; padding-left: 0.5em; border-left: 3px solid var(--card-border, #ccc); color: var(--text-secondary, #888); }
+
+  .note-content :global(p + p) { margin-top: var(--space-2); }
+  .note-content :global(ul), .note-content :global(ol) { padding-left: 1.25em; }
+  .note-content :global(a) { color: var(--accent); }
+  .note-content :global(code) { font-family: var(--font-mono); font-size: 0.9em; background: var(--surface-2); padding: 1px 4px; border-radius: 4px; }
 
   .note-meta {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 0.3rem;
+    margin-top: var(--space-2);
   }
-  .note-time { font-size: 0.7rem; color: var(--text-secondary, #999); }
 
-  .actions {
-    display: flex;
-    gap: 0.25rem;
+  .note-time {
+    font-size: var(--text-xs);
+    color: var(--text-3);
   }
+
   .action-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-secondary, #999);
-    padding: 2px;
-    border-radius: 0;
-    display: flex;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--text-3);
   }
-  .action-btn:hover { color: var(--accent, #0066cc); background: rgba(0,102,204,0.06); }
-  .action-btn.del:hover { color: #d32f2f; background: rgba(211,47,47,0.08); }
 
-  .empty { text-align: center; color: var(--text-secondary, #999); font-size: 0.85rem; padding: 2rem 0; }
+  .action-btn:active { background: var(--surface-2); }
+  .action-btn.del { color: var(--danger); }
+
+  .empty {
+    padding: var(--space-5) 0;
+    text-align: center;
+    color: var(--text-2);
+  }
 </style>

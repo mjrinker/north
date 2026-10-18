@@ -39,12 +39,17 @@
 <style>
   input {
     width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    font-size: 0.9rem;
-    box-sizing: border-box;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
+    min-height: var(--tap);
+    padding: 10px var(--space-3);
+    border: none;
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent);
   }
 </style>

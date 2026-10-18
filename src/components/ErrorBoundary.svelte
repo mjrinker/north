@@ -66,8 +66,8 @@
     <h1>Something went wrong</h1>
     <p class="error-msg">{errorMessage}</p>
     <div class="error-actions">
-      <button class="btn-primary" onclick={() => window.location.reload()}>Reload app</button>
-      <button class="btn-link" onclick={copyError}>{copied ? 'Copied!' : 'Copy error stack'}</button>
+      <button class="btn" onclick={() => window.location.reload()}>Reload</button>
+      <button class="btn btn-plain" onclick={copyError}>{copied ? 'Copied' : 'Copy error details'}</button>
     </div>
   </div>
 {:else}
@@ -76,44 +76,28 @@
 
 <style>
   .error-boundary {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 96px var(--gutter) var(--space-6);
+    text-align: center;
+  }
+
+  h1 {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-2);
+  }
+
+  .error-msg {
+    margin-bottom: var(--space-5);
+    color: var(--text-2);
+    font-size: var(--text-sm);
+    word-break: break-word;
+  }
+
+  .error-actions {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    min-height: 60vh;
-    padding: 2rem;
-    text-align: center;
-    color: var(--text-primary, #222);
+    gap: var(--space-2);
   }
-  h1 { margin-bottom: 0.5rem; font-size: 1.5rem; }
-  .error-msg {
-    margin-bottom: 1.5rem;
-    color: var(--text-secondary, #555);
-    font-size: 0.9rem;
-    max-width: 500px;
-    word-break: break-word;
-  }
-  .error-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; justify-content: center; }
-  .btn-primary {
-    padding: 0.5rem 1.5rem;
-    border: none;
-    border-radius: 0;
-    background: var(--accent, #0066cc);
-    color: var(--accent-text, white);
-    cursor: pointer;
-    font-size: 1rem;
-    text-decoration: none;
-  }
-  .btn-primary:hover { opacity: 0.9; }
-  .btn-link {
-    padding: 0.5rem 1.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    background: transparent;
-    color: var(--text-primary, #222);
-    cursor: pointer;
-    font-size: 1rem;
-    text-decoration: none;
-  }
-  .btn-link:hover { background: var(--btn-secondary-bg, #eee); }
 </style>

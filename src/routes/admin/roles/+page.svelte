@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '@iconify/svelte';
   import { user } from '../../../stores/auth';
   import { userHasPermission, type Feature, type Permission } from '../../../lib/featureFlags';
   import { goto } from '$app/navigation';
@@ -94,7 +95,7 @@ export const ssr = false;
     showCreate = false;
   }
 
-  const allFeatures: Feature[] = ['STATS', 'IOS_NATIVE_UI'];
+  const allFeatures: Feature[] = ['STATS'];
   const allPermissions: Permission[] = ['access_admin', 'manage_roles'];
 
   function toggleFeature(role: any, feature: Feature) {
@@ -110,196 +111,108 @@ export const ssr = false;
   }
 </script>
 
-<div class="admin-page">
-  <h1>Roles & Features</h1>
-  <p class="subtitle">Define roles and assign features/permissions. Features are defined in code.</p>
+<div class="page">
+  <a class="back" href="/admin"><Icon icon="mdi:chevron-left" />Admin</a>
+  <div class="title-row">
+    <h1 class="page-title">Roles</h1>
+    {#if !editingRole}<button class="btn btn-sm" onclick={startCreate}><Icon icon="mdi:plus" />New role</button>{/if}
+  </div>
 
   {#if errorMessage}
-    <div class="error-banner">{errorMessage}</div>
+    <p class="error" role="alert">{errorMessage}</p>
   {/if}
 
   {#if loading}
-    <p class="status">Loading roles...</p>
+    <p class="empty">Loading roles…</p>
   {:else}
+    {#if editingRole}
+      <section class="editor">
+        <h2 class="section-label">{showCreate ? 'New role' : editingRole.label}</h2>
+        <div class="fields">
+          <div class="field">
+            <label for="role-name">Name <span class="hint">used in code, can’t change later</span></label>
+            <input id="role-name" type="text" bind:value={editingRole.name} disabled={!showCreate} placeholder="e.g. beta" />
+          </div>
+          <div class="field">
+            <label for="role-label">Label</label>
+            <input id="role-label" type="text" bind:value={editingRole.label} placeholder="e.g. Beta tester" />
+          </div>
+          <div class="field">
+            <label for="role-desc">Description</label>
+            <textarea id="role-desc" bind:value={editingRole.description} rows="2" placeholder="What this role gets"></textarea>
+          </div>
+        </div>
 
-  <div class="actions">
-    <button class="btn" onclick={startCreate}>Create Role</button>
-  </div>
-
-  {#if editingRole}
-    <div class="role-form card">
-      <h2>{showCreate ? 'Create Role' : 'Edit ' + editingRole.label}</h2>
-      <div class="form-group">
-        <label>Name (unique, code reference)</label>
-        <input type="text" bind:value={editingRole.name} disabled={!showCreate} placeholder="e.g. premium" />
-        <small>Cannot be changed after creation</small>
-      </div>
-      <div class="form-group">
-        <label>Label</label>
-        <input type="text" bind:value={editingRole.label} placeholder="e.g. Premium User" />
-      </div>
-      <div class="form-group">
-        <label>Description</label>
-        <textarea bind:value={editingRole.description} rows="2" placeholder="What this role provides"></textarea>
-      </div>
-
-      <div class="form-group">
-        <label>Features</label>
-        <div class="checkbox-grid">
+        <h3 class="section-label">Features</h3>
+        <div class="group">
           {#each allFeatures as feature}
-            <label class="checkbox-item">
-              <input type="checkbox" checked={editingRole.features.includes(feature)} onchange={() => toggleFeature(editingRole!, feature)} />
-              <span>{feature}</span>
+            <label class="row toggle-row">
+              <span class="row-label mono">{feature}</span>
+              <input type="checkbox" class="switch" checked={editingRole.features.includes(feature)} onchange={() => toggleFeature(editingRole!, feature)} />
             </label>
           {/each}
         </div>
-      </div>
 
-      <div class="form-group">
-        <label>Permissions</label>
-        <div class="checkbox-grid">
+        <h3 class="section-label">Permissions</h3>
+        <div class="group">
           {#each allPermissions as perm}
-            <label class="checkbox-item">
-              <input type="checkbox" checked={editingRole.permissions.includes(perm)} onchange={() => togglePermission(editingRole!, perm)} />
-              <span>{perm}</span>
+            <label class="row toggle-row">
+              <span class="row-label mono">{perm}</span>
+              <input type="checkbox" class="switch" checked={editingRole.permissions.includes(perm)} onchange={() => togglePermission(editingRole!, perm)} />
             </label>
           {/each}
         </div>
-      </div>
 
-      <div class="form-actions">
-        <button class="btn btn-secondary" onclick={cancelEdit}>Cancel</button>
-        <button class="btn" onclick={saveRole}>Save</button>
-      </div>
+        <div class="actions">
+          <button class="btn btn-secondary" onclick={cancelEdit}>Cancel</button>
+          <button class="btn" onclick={saveRole}>Save</button>
+        </div>
+      </section>
+    {/if}
+
+    <div class="group role-list">
+      {#each roleDefs as role (role.name)}
+        <div class="row role">
+          <div class="row-label">
+            <div class="role-title">{role.label} <code>{role.name}</code></div>
+            {#if role.description}<div class="role-desc">{role.description}</div>{/if}
+            <div class="role-meta">
+              {role.features.length ? role.features.join(', ') : 'No features'} · {role.permissions.length ? role.permissions.join(', ') : 'no permissions'}
+            </div>
+          </div>
+          <button class="btn btn-sm btn-secondary" onclick={() => startEdit(role)}>Edit</button>
+          {#if role.name !== 'default' && role.name !== 'admin'}
+            <button class="icon-btn" onclick={() => deleteRole(role.name)} aria-label="Delete {role.label}"><Icon icon="mdi:trash-can-outline" /></button>
+          {/if}
+        </div>
+      {/each}
     </div>
   {/if}
-
-  <div class="role-list">
-    {#each roleDefs as role (role.name)}
-      <div class="role-card card">
-        <div class="role-header">
-          <div>
-            <h3>{role.label} <code>{role.name}</code></h3>
-            <p>{role.description}</p>
-          </div>
-          <div class="role-actions">
-            <button class="btn btn-small" onclick={() => startEdit(role)}>Edit</button>
-            {#if role.name !== 'default' && role.name !== 'admin'}
-              <button class="btn btn-small btn-danger" onclick={() => deleteRole(role.name)}>Delete</button>
-            {/if}
-          </div>
-        </div>
-        <div class="role-meta">
-          <div class="meta-group">
-            <strong>Features:</strong>
-            <span>{role.features.length ? role.features.join(', ') : '—'}</span>
-          </div>
-          <div class="meta-group">
-            <strong>Permissions:</strong>
-            <span>{role.permissions.length ? role.permissions.join(', ') : '—'}</span>
-</div>
-      </div>
-    </div>
-  {/each}
-</div>
-{/if}
 </div>
 
 <style>
-  .admin-page {
-    padding: 1.5rem;
-    max-width: 800px;
-    margin: 0 auto;
-  }
-  h1 { color: var(--text-primary, #222); margin-bottom: 0.25rem; }
-  .subtitle { color: var(--text-secondary, #666); margin-bottom: 1.5rem; }
-  .actions { margin-bottom: 1.5rem; }
-  .btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
-  .btn-secondary { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
-  .btn-danger { background: #fee2e2; color: #dc2626; }
-  .btn-small { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
-  .card {
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 10px;
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-  }
-  .form-group { margin-bottom: 1rem; }
-  .form-group label { display: block; font-weight: 500; margin-bottom: 0.35rem; color: var(--text-primary, #222); }
-  .form-group input, .form-group textarea {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 6px;
-    font-size: 0.9rem;
-    box-sizing: border-box;
-  }
-  .form-group small { display: block; margin-top: 0.25rem; font-size: 0.75rem; color: var(--text-secondary, #888); }
-  .checkbox-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 0.5rem;
-  }
-  .checkbox-item {
-    display: flex;
+  .back {
+    display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    font-size: 0.85rem;
-    cursor: pointer;
+    margin-left: -6px;
   }
-  .form-actions {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: flex-end;
-    margin-top: 1rem;
-  }
-  .role-list { display: flex; flex-direction: column; gap: 0.75rem; }
-  .role-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 0.75rem;
-  }
-  .role-header h3 {
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 1rem;
-  }
-  .role-header code {
-    font-size: 0.75rem;
-    background: var(--btn-secondary-bg, #eee);
-    padding: 0.1rem 0.35rem;
-    border-radius: 4px;
-  }
-  .role-header p { margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--text-secondary, #666); }
-  .role-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
-  .role-meta {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    font-size: 0.85rem;
-    color: var(--text-secondary, #666);
-  }
-  .meta-group { display: flex; flex-direction: column; gap: 0.25rem; }
-  .meta-group strong { color: var(--text-primary, #222); font-size: 0.8rem; }
-  .error-banner {
-    padding: 0.75rem 1rem;
-    background: #fee2e2;
-    color: #dc2626;
-    border: 1px solid #fecaca;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    font-size: 0.85rem;
-  }
+
+  .back :global(svg) { font-size: 22px; }
+
+  .title-row { display: flex; align-items: center; justify-content: space-between; }
+  .error { padding: var(--space-3); border-radius: var(--radius); background: var(--danger-soft); color: var(--danger); font-size: var(--text-sm); margin-bottom: var(--space-3); }
+  .editor { margin-bottom: var(--space-6); }
+  .editor > .section-label:first-child { margin-top: 0; }
+  .fields { display: flex; flex-direction: column; gap: var(--space-3); }
+  .hint { font-weight: 400; color: var(--text-3); }
+  .toggle-row { cursor: pointer; }
+  .mono, code { font-family: var(--font-mono); font-size: var(--text-sm); }
+  code { color: var(--text-3); font-weight: 400; }
+  .actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-4); }
+  .actions .btn { min-width: 96px; }
+  .role { align-items: flex-start; padding-top: var(--space-3); padding-bottom: var(--space-3); }
+  .role-title { font-weight: 500; }
+  .role-desc { font-size: var(--text-sm); color: var(--text-2); }
+  .role-meta { font-size: var(--text-xs); color: var(--text-3); margin-top: 2px; font-family: var(--font-mono); }
+  .icon-btn { color: var(--text-3); font-size: 20px; }
 </style>

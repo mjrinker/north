@@ -60,13 +60,22 @@ export const ssr = false;
     await loadData();
   }
 
-  function copyInviteLink(invitation: any) {
+  let copiedId = $state<string | null>(null);
+
+  async function copyInviteLink(invitation: any) {
     const url = `${window.location.origin}/accountability/invite/${invitation.shortCode}`;
-    navigator.clipboard.writeText(url);
-    alert('Invitation link copied!');
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Be my accountability partner on North', url }); return; } catch {}
+    }
+    await navigator.clipboard.writeText(url);
+    copiedId = invitation.id;
+    setTimeout(() => { if (copiedId === invitation.id) copiedId = null; }, 2000);
   }
 
+  const STATUS_TONE: Record<string, string> = { pending: 'warning', accepted: 'success', declined: 'danger', expired: '' };
+
   async function removePartnership(partnerId: string) {
+    if (!confirm('Remove this partner? You’ll both stop seeing each other’s shared habits.')) return;
     await gql(`mutation ($partnerId: ID!) { removeAccountabilityPartnership(partnerId: $partnerId) }`, { partnerId });
     await loadData();
   }
@@ -81,81 +90,66 @@ export const ssr = false;
 </script>
 
 <div class="page">
-  <h1>Accountability Partners</h1>
-  <p class="subtitle">Share your habit progress with trusted partners</p>
-
-  <div class="actions">
-    <button class="btn" onclick={openInviteModal}>
-      <Icon icon="mdi:account-plus" /> Invite Partner
-    </button>
+  <a class="back" href="/settings"><Icon icon="mdi:chevron-left" />Settings</a>
+  <div class="title-row">
+    <h1 class="page-title">Partners</h1>
+    <button class="btn btn-sm" onclick={openInviteModal}><Icon icon="mdi:plus" />Invite</button>
   </div>
+  <p class="intro">Share chosen habits with someone you trust, and see theirs.</p>
 
   {#if loading}
-    <p class="status">Loading...</p>
+    <p class="empty">Loading…</p>
   {:else}
-    <section class="section">
-      <h2>Your Partnerships</h2>
-      {#if uniquePartnerships.length === 0}
-        <p class="empty">No partnerships yet. Invite someone to get started!</p>
-      {:else}
-        <AccountabilityPartnershipList 
-          partnerships={uniquePartnerships} 
-          currentUserId={currentUser?.id}
-          onRemove={removePartnership}
-        />
-      {/if}
-    </section>
+    <h2 class="section-label">Your partners</h2>
+    {#if uniquePartnerships.length === 0}
+      <div class="group empty-group">
+        <p>No partners yet. Invite someone with a link.</p>
+      </div>
+    {:else}
+      <AccountabilityPartnershipList
+        partnerships={uniquePartnerships}
+        currentUserId={currentUser?.id}
+        onRemove={removePartnership}
+      />
+    {/if}
 
-    <section class="section">
-      <h2>Invitations</h2>
-      <div class="invitation-tabs">
+    <div class="section-head">
+      <h2 class="section-label">Invitations</h2>
+      <div class="segmented small">
         <button class:active={invitationTab === 'sent'} onclick={() => invitationTab = 'sent'}>Sent</button>
         <button class:active={invitationTab === 'received'} onclick={() => invitationTab = 'received'}>Received</button>
       </div>
-      {#if invitationTab === 'sent'}
-        {#if sentInvitations.length === 0}
-          <p class="empty">No sent invitations.</p>
-        {:else}
-          <ul class="invitation-list">
-            {#each sentInvitations as inv}
-              <li class="invitation-item">
-                <div class="inv-info">
-                  <span class="inv-email">{inv.invitee?.name ?? inv.invitee?.email ?? inv.inviteeEmail ?? 'Shareable link'}</span>
-                  <span class="inv-status" class:pending={inv.status === 'pending'} class:accepted={inv.status === 'accepted'} class:declined={inv.status === 'declined'}>{inv.status}</span>
-                </div>
-                <div class="inv-actions">
-                  {#if inv.status === 'pending'}
-                    <button class="btn-small" onclick={() => copyInviteLink(inv)}>Copy Link</button>
-                    <button class="btn-small btn-danger" onclick={() => cancelInvitation(inv.id)}>Cancel</button>
-                  {/if}
-                </div>
-              </li>
-            {/each}
-          </ul>
-        {/if}
-      {:else}
-        {#if receivedInvitations.length === 0}
-          <p class="empty">No received invitations.</p>
-        {:else}
-          <ul class="invitation-list">
-            {#each receivedInvitations as inv}
-              <li class="invitation-item">
-                <div class="inv-info">
-                  <span class="inv-email">{inv.inviter?.email}</span>
-                  <span class="inv-status" class:pending={inv.status === 'pending'} class:accepted={inv.status === 'accepted'} class:declined={inv.status === 'declined'}>{inv.status}</span>
-                </div>
-                <div class="inv-actions">
-                  {#if inv.status === 'pending'}
-                    <button class="btn-small" onclick={() => acceptInvitation(inv.id)}>Accept</button>
-                    <button class="btn-small btn-secondary" onclick={() => declineInvitation(inv.id)}>Decline</button>
-                  {/if}
-                </div>
-              </li>
-            {/each}
-          </ul>
-        {/if}
-      {/if}
-    </section>
+    </div>
+    {@const list = invitationTab === 'sent' ? sentInvitations : receivedInvitations}
+    {#if list.length === 0}
+      <div class="group empty-group"><p>No {invitationTab} invitations.</p></div>
+    {:else}
+      <div class="group">
+        {#each list as inv (inv.id)}
+          <div class="row inv">
+            <div class="row-label">
+              <div class="inv-who">
+                {#if invitationTab === 'sent'}
+                  {inv.invitee?.name ?? inv.invitee?.email ?? inv.inviteeEmail ?? 'Invite link'}
+                {:else}
+                  {inv.inviter?.name ?? inv.inviter?.email}
+                {/if}
+              </div>
+              <div class="inv-meta"><span class="pill {STATUS_TONE[inv.status] ?? ''}">{inv.status}</span></div>
+            </div>
+            {#if inv.status === 'pending'}
+              {#if invitationTab === 'sent'}
+                <button class="btn btn-sm btn-secondary" onclick={() => copyInviteLink(inv)}>{copiedId === inv.id ? 'Copied' : 'Share link'}</button>
+                <button class="icon-btn" onclick={() => cancelInvitation(inv.id)} aria-label="Cancel invitation"><Icon icon="mdi:close" /></button>
+              {:else}
+                <button class="btn btn-sm btn-secondary" onclick={() => declineInvitation(inv.id)}>Decline</button>
+                <button class="btn btn-sm" onclick={() => acceptInvitation(inv.id)}>Accept</button>
+              {/if}
+            {/if}
+          </div>
+        {/each}
+      </div>
+    {/if}
   {/if}
 </div>
 
@@ -164,63 +158,57 @@ export const ssr = false;
 {/if}
 
 <style>
-  .page { padding: 1.5rem; max-width: 700px; margin: 0 auto; }
-  h1 { color: var(--text-primary, #222); margin-bottom: 0.25rem; }
-  .subtitle { color: var(--text-secondary, #666); margin-bottom: 1.5rem; }
-  .actions { margin-bottom: 1.5rem; }
-  .btn {
+  .back {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.9rem;
-    background: var(--accent, #0066cc);
-    color: white;
+    margin-left: -6px;
   }
-  .btn:hover { opacity: 0.9; }
-  .section { margin-bottom: 2rem; }
-  .section h2 { font-size: 1.1rem; color: var(--text-primary, #222); margin-bottom: 1rem; }
-  .empty { color: var(--text-secondary, #888); text-align: center; padding: 2rem; }
-  .invitation-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-  .invitation-tabs button {
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--card-border, #ccc);
-    background: var(--input-bg, #fff);
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
-  .invitation-tabs button.active {
-    background: var(--accent, #0066cc);
-    color: white;
-    border-color: var(--accent, #0066cc);
-  }
-  .invitation-list { display: flex; flex-direction: column; gap: 0.5rem; }
-  .invitation-item {
+
+  .back :global(svg) { font-size: 22px; }
+
+  .title-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 1rem;
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 8px;
+    justify-content: space-between;
   }
-  .inv-info { display: flex; flex-direction: column; gap: 0.25rem; }
-  .inv-email { font-weight: 500; color: var(--text-primary, #222); }
-  .inv-status { font-size: 0.75rem; font-weight: 600; padding: 0.125rem 0.5rem; border-radius: 999px; width: fit-content; }
-  .inv-status.pending { background: var(--badge-pending-bg, #fef3c7); color: var(--badge-pending-text, #92400e); }
-  .inv-status.accepted { background: var(--badge-accepted-bg, #dcfce7); color: var(--badge-accepted-text, #166534); }
-  .inv-status.declined { background: var(--badge-declined-bg, #fee2e2); color: var(--badge-declined-text, #991b1b); }
-  .inv-actions { display: flex; gap: 0.5rem; }
-  .btn-small {
-    padding: 0.35rem 0.75rem;
-    font-size: 0.8rem;
-    border-radius: 4px;
+
+  .title-row .page-title { margin-bottom: var(--space-1); }
+
+  .intro {
+    color: var(--text-2);
+    margin-bottom: var(--space-2);
   }
-  .btn-danger { background: #fee2e2; color: #dc2626; border: none; }
-  .btn-secondary { background: var(--btn-secondary-bg, #eee); color: var(--text-primary, #222); }
+
+  .section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin: var(--space-5) 0 var(--space-2);
+  }
+
+  .section-head .section-label { margin: 0; }
+
+  .segmented.small > button {
+    min-height: 28px;
+    font-size: var(--text-xs);
+  }
+
+  .empty-group {
+    padding: var(--space-4);
+    color: var(--text-2);
+    font-size: var(--text-sm);
+  }
+
+  .inv-who {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .inv-meta { margin-top: 2px; }
+
+  .pill { text-transform: capitalize; }
+
+  .icon-btn { color: var(--text-3); font-size: 20px; }
 </style>

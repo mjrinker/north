@@ -71,89 +71,42 @@ function hexToHsl(color: string): { h: number; s: number; l: number } {
   return { h: Math.round(h$ * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
+// Tints the neutral surfaces toward the user's main color. Saturation stays
+// low so any hue keeps the quiet look; `mainLightness` nudges how deep the
+// tint goes.
+const PALETTE_PROPS = ['--bg', '--surface', '--surface-2', '--surface-3', '--text', '--text-2', '--text-3'];
+
 function applyPalette(hue: number, mainLightness: number, isDark: boolean, isOled: boolean) {
   const body = document.body;
-  const f = mainLightness / 100;
+  const depth = 1 - mainLightness / 100; // darker main color => stronger tint
+  const sat = Math.round(8 + depth * 14);
+  const set = (k: string, v: string) => body.style.setProperty(k, v);
   if (isOled) {
-    body.style.setProperty('--bg', `#000000`);
-    body.style.setProperty('--text', `hsl(${hue}, 15%, 90%)`);
-    body.style.setProperty('--text-primary', `hsl(${hue}, 15%, 90%)`);
-    body.style.setProperty('--text-secondary', `hsl(${hue}, 10%, 60%)`);
-    body.style.setProperty('--nav-bg', `hsl(${hue}, 40%, ${4 + f * 6}%)`);
-    body.style.setProperty('--nav-border', `hsl(${hue}, 30%, ${8 + f * 6}%)`);
-    body.style.setProperty('--card-bg', `hsl(${hue}, 40%, ${5 + f * 6}%)`);
-    body.style.setProperty('--card-border', `hsl(${hue}, 30%, ${10 + f * 6}%)`);
-    body.style.setProperty('--input-bg', `#000000`);
-    body.style.setProperty('--input-border', `hsl(${hue}, 30%, ${10 + f * 6}%)`);
-    body.style.setProperty('--btn-secondary-bg', `hsl(${hue}, 30%, ${8 + f * 6}%)`);
-    body.style.setProperty('--slide-track', `hsl(${hue}, 30%, ${10 + f * 6}%)`);
-    body.style.setProperty('--slide-thumb', `hsl(${hue}, 40%, ${5 + f * 6}%)`);
-    body.style.setProperty('--dep-popover-bg', `#000000`);
-    body.style.setProperty('--dep-popover-text', `hsl(${hue}, 15%, 90%)`);
-    body.style.setProperty('--dep-popover-border', `hsl(${hue}, 30%, ${6 + f * 4}%)`);
-    body.style.setProperty('--dep-popover-muted', `hsl(${hue}, 10%, 50%)`);
-    return;
-  }
-  if (isDark) {
-    const bgL = 5 + f * 15;
-    const textL = 80 + f * 15;
-    const navL = 8 + f * 15;
-    const cardL = 8 + f * 15;
-    const borderL = 15 + f * 15;
-    const btnL = 12 + f * 15;
-    body.style.setProperty('--bg', `hsl(${hue}, 45%, ${bgL}%)`);
-    body.style.setProperty('--text', `hsl(${hue}, 15%, ${textL}%)`);
-    body.style.setProperty('--text-primary', `hsl(${hue}, 15%, ${textL}%)`);
-    body.style.setProperty('--text-secondary', `hsl(${hue}, 10%, ${textL - 20}%)`);
-    body.style.setProperty('--nav-bg', `hsl(${hue}, 40%, ${navL}%)`);
-    body.style.setProperty('--nav-border', `hsl(${hue}, 30%, ${borderL}%)`);
-    body.style.setProperty('--card-bg', `hsl(${hue}, 40%, ${cardL}%)`);
-    body.style.setProperty('--card-border', `hsl(${hue}, 30%, ${borderL}%)`);
-    body.style.setProperty('--input-bg', `hsl(${hue}, 45%, ${bgL}%)`);
-    body.style.setProperty('--input-border', `hsl(${hue}, 30%, ${borderL}%)`);
-    body.style.setProperty('--btn-secondary-bg', `hsl(${hue}, 30%, ${btnL}%)`);
-    body.style.setProperty('--slide-track', `hsl(${hue}, 30%, ${borderL}%)`);
-    body.style.setProperty('--slide-thumb', `hsl(${hue}, 40%, ${cardL}%)`);
-    body.style.setProperty('--dep-popover-bg', `hsl(${hue}, 40%, ${bgL}%)`);
-    body.style.setProperty('--dep-popover-text', `hsl(${hue}, 15%, ${textL}%)`);
-    body.style.setProperty('--dep-popover-border', `hsl(${hue}, 30%, ${borderL - 5}%)`);
-    body.style.setProperty('--dep-popover-muted', `hsl(${hue}, 10%, ${textL - 30}%)`);
+    set('--bg', '#000000');
+    set('--surface', `hsl(${hue}, ${sat}%, 6%)`);
+    set('--surface-2', `hsl(${hue}, ${sat}%, 11%)`);
+    set('--surface-3', `hsl(${hue}, ${sat}%, 16%)`);
+  } else if (isDark) {
+    set('--bg', `hsl(${hue}, ${sat}%, 7%)`);
+    set('--surface', `hsl(${hue}, ${sat}%, 11%)`);
+    set('--surface-2', `hsl(${hue}, ${sat}%, 16%)`);
+    set('--surface-3', `hsl(${hue}, ${sat}%, 21%)`);
+    set('--text', `hsl(${hue}, 8%, 93%)`);
+    set('--text-2', `hsl(${hue}, 6%, 64%)`);
+    set('--text-3', `hsl(${hue}, 5%, 45%)`);
   } else {
-    const bgL = 70 + f * 25;
-    const textL = 10 + f * 20;
-    const navL = 65 + f * 25;
-    const borderL = 60 + f * 25;
-    const btnL = 60 + f * 25;
-    body.style.setProperty('--bg', `hsl(${hue}, 35%, ${bgL}%)`);
-    body.style.setProperty('--text', `hsl(${hue}, 25%, ${textL}%)`);
-    body.style.setProperty('--text-primary', `hsl(${hue}, 25%, ${textL}%)`);
-    body.style.setProperty('--text-secondary', `hsl(${hue}, 20%, ${textL + 30}%)`);
-    body.style.setProperty('--nav-bg', `hsl(${hue}, 30%, ${navL}%)`);
-    body.style.setProperty('--nav-border', `hsl(${hue}, 20%, ${borderL}%)`);
-    body.style.setProperty('--card-bg', `#ffffff`);
-    body.style.setProperty('--card-border', `hsl(${hue}, 20%, ${borderL}%)`);
-    body.style.setProperty('--input-bg', `#ffffff`);
-    body.style.setProperty('--input-border', `hsl(${hue}, 15%, ${borderL - 10}%)`);
-    body.style.setProperty('--btn-secondary-bg', `hsl(${hue}, 20%, ${btnL}%)`);
-    body.style.setProperty('--slide-track', `hsl(${hue}, 20%, ${borderL}%)`);
-    body.style.setProperty('--slide-thumb', `#ffffff`);
-    body.style.setProperty('--dep-popover-bg', `#ffffff`);
-    body.style.setProperty('--dep-popover-text', `hsl(${hue}, 25%, ${textL}%)`);
-    body.style.setProperty('--dep-popover-border', `hsl(${hue}, 15%, ${borderL - 10}%)`);
-    body.style.setProperty('--dep-popover-muted', `hsl(${hue}, 20%, ${textL + 30}%)`);
+    set('--bg', `hsl(${hue}, ${sat}%, 95%)`);
+    set('--surface', `hsl(${hue}, ${Math.round(sat / 2)}%, 99.5%)`);
+    set('--surface-2', `hsl(${hue}, ${sat}%, 91%)`);
+    set('--surface-3', `hsl(${hue}, ${sat}%, 87%)`);
+    set('--text', `hsl(${hue}, 12%, 11%)`);
+    set('--text-2', `hsl(${hue}, 6%, 41%)`);
+    set('--text-3', `hsl(${hue}, 5%, 60%)`);
   }
 }
 
 function clearPalette() {
-  const body = document.body;
-  const props = [
-    '--bg', '--text', '--text-primary', '--text-secondary',
-    '--nav-bg', '--nav-border', '--card-bg', '--card-border',
-    '--input-bg', '--input-border', '--btn-secondary-bg',
-    '--slide-track', '--slide-thumb',
-    '--dep-popover-bg', '--dep-popover-text', '--dep-popover-border', '--dep-popover-muted',
-  ];
-  for (const p of props) body.style.removeProperty(p);
+  for (const p of PALETTE_PROPS) document.body.style.removeProperty(p);
 }
 
 function getContrastText(color: string): string {
@@ -184,12 +137,10 @@ function applyTheme() {
 
     if (s.accentColor) {
       body.style.setProperty('--accent', s.accentColor);
-      body.style.setProperty('--accent-hover', s.accentColor + 'cc');
-      body.style.setProperty('--accent-text', getContrastText(s.accentColor));
+      body.style.setProperty('--accent-contrast', getContrastText(s.accentColor));
     } else {
       body.style.removeProperty('--accent');
-      body.style.removeProperty('--accent-hover');
-      body.style.removeProperty('--accent-text');
+      body.style.removeProperty('--accent-contrast');
     }
 
     if (s.mainColor) {
@@ -198,6 +149,9 @@ function applyTheme() {
     } else {
       clearPalette();
     }
+
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', getComputedStyle(body).getPropertyValue('--bg').trim() || '#f4f3f1');
   });
   return unsub;
 }

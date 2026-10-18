@@ -166,8 +166,8 @@
 
 <style>
   .api-example {
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #e0e0e0);
+    background: var(--surface);
+    border: none;
     border-radius: 10px;
     overflow: hidden;
   }
@@ -183,12 +183,12 @@
   h3 {
     margin: 0;
     font-size: 1rem;
-    color: var(--text-primary, #222);
+    color: var(--text);
   }
   .desc {
     margin: 0.25rem 0 0;
     font-size: 0.85rem;
-    color: var(--text-secondary, #666);
+    color: var(--text-2);
   }
   .copy-wrap {
     position: relative;
@@ -196,10 +196,10 @@
   }
   .copy-btn {
     padding: 0.35rem 0.75rem;
-    border: 1px solid var(--card-border, #ccc);
+    border: none;
     border-radius: 0;
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-primary, #222);
+    background: var(--surface-2);
+    color: var(--text);
     cursor: pointer;
     font-size: 0.8rem;
     font-weight: 600;
@@ -219,9 +219,9 @@
     top: calc(100% + 4px);
     z-index: 1000;
     min-width: 210px;
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 8px;
+    background: var(--surface);
+    border: none;
+    border-radius: var(--radius);
     box-shadow: 0 6px 18px rgba(0,0,0,0.15);
     padding: 0.25rem;
     display: flex;
@@ -237,29 +237,29 @@
     border-radius: 0;
     cursor: pointer;
     font-size: 0.85rem;
-    color: var(--text-primary, #222);
+    color: var(--text);
     text-align: left;
     font-family: inherit;
   }
-  .menu-item:hover { background: var(--btn-secondary-bg, #eee); }
+  .menu-item:hover { background: var(--surface-2); }
   .menu-check {
     width: 0.9rem;
-    color: #2e7d32;
+    color: var(--success);
     font-weight: 700;
   }
   .gql {
     margin: 0;
     padding: 0.9rem 1rem 1rem;
-    background: var(--input-bg, #f5f5f5);
-    border-top: 1px solid var(--card-border, #e0e0e0);
+    background: var(--surface-2);
+    border-top: 1px solid var(--separator);
     overflow-x: auto;
     font-size: 0.82rem;
     line-height: 1.5;
-    color: var(--text-primary, #222);
-    font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
+    color: var(--text);
+    font-family: var(--font-mono);
   }
   .resp-block {
-    border-top: 1px solid var(--card-border, #e0e0e0);
+    border-top: 1px solid var(--separator);
   }
   .resp-head {
     display: flex;
@@ -270,16 +270,14 @@
   .resp-label {
     font-size: 0.8rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-secondary, #666);
+    color: var(--text-2);
   }
   .resp-copy {
     padding: 0.25rem 0.6rem;
-    border: 1px solid var(--card-border, #ccc);
+    border: none;
     border-radius: 0;
-    background: var(--btn-secondary-bg, #eee);
-    color: var(--text-primary, #222);
+    background: var(--surface-2);
+    color: var(--text);
     cursor: pointer;
     font-size: 0.75rem;
     font-weight: 600;

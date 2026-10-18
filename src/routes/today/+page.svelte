@@ -82,7 +82,44 @@
   function formatDisplayDate(dateStr: string): string {
     if (dateStr === today) return 'Today';
     const d = new Date(dateStr + 'T12:00:00');
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const y = new Date(today + 'T12:00:00');
+    y.setDate(y.getDate() - 1);
+    if (d.toDateString() === y.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString(undefined, { weekday: 'long' });
+  }
+
+  function formatLongDate(dateStr: string): string {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  }
+
+  // Svelte 5 event attributes register touch listeners as passive, but the
+  // drag handlers need preventDefault, so wire those up non-passively.
+  type TouchHandlers = { start?: (e: TouchEvent) => void; move?: (e: TouchEvent) => void; end?: (e: TouchEvent) => void };
+  function touch(node: HTMLElement, handlers: TouchHandlers) {
+    let h = handlers;
+    const start = (e: TouchEvent) => h.start?.(e);
+    const move = (e: TouchEvent) => h.move?.(e);
+    const end = (e: TouchEvent) => h.end?.(e);
+    node.addEventListener('touchstart', start, { passive: false });
+    node.addEventListener('touchmove', move, { passive: false });
+    node.addEventListener('touchend', end);
+    return {
+      update(next: TouchHandlers) { h = next; },
+      destroy() {
+        node.removeEventListener('touchstart', start);
+        node.removeEventListener('touchmove', move);
+        node.removeEventListener('touchend', end);
+      },
+    };
+  }
+
+  let viewMenuOpen = $state(false);
+  const SORT_LABELS: Record<string, string> = { tag: 'Tag', name: 'Name', type: 'Type', custom: 'Custom' };
+
+  // Only label groups when there's more than one; the untagged bucket reads as "Other".
+  function groupLabel(tag: string): string {
+    return tag === 'Untagged' ? 'Other' : tag;
   }
 
   let sortMode = $state(loadSortMode());
@@ -258,7 +295,7 @@
     e.preventDefault();
     e.dataTransfer!.dropEffect = 'move';
     clearGroupDropTargets();
-    (e.currentTarget as HTMLElement).closest<HTMLElement>('.tag-header-row')?.classList.add('drop-target');
+    (e.currentTarget as HTMLElement).closest<HTMLElement>('.group-head')?.classList.add('drop-target');
   }
 
   function handleGroupDrop(e: DragEvent, tag: string) {
@@ -275,7 +312,7 @@
   }
 
   function clearGroupDropTargets() {
-    document.querySelectorAll('.tag-header-row.drop-target').forEach(n => n.classList.remove('drop-target'));
+    document.querySelectorAll('.group-head.drop-target').forEach(n => n.classList.remove('drop-target'));
   }
 
   // Touch drag for group headers (mobile)
@@ -295,7 +332,7 @@
     e.preventDefault();
     e.stopPropagation();
     const target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-    const el = target?.closest<HTMLElement>('.tag-header-row');
+    const el = target?.closest<HTMLElement>('.group-head');
     if (el && el.dataset.tag && el.dataset.tag !== touchGroupFrom) {
       clearGroupDropTargets();
       el.classList.add('drop-target');
@@ -591,90 +628,222 @@
   }
 </script>
 
-<div class="page-outer"
-  on:touchstart={handlePullStart}
-  on:touchmove={handlePullMove}
-  on:touchend={handlePullEnd}
-  on:touchcancel={handlePullEnd}
+<div class="page-outer" role="presentation"
+  ontouchstart={handlePullStart}
+  ontouchmove={handlePullMove}
+  ontouchend={handlePullEnd}
+  ontouchcancel={handlePullEnd}
 >
 <div class="pull-indicator" style="transform: translateY({Math.min(pullRefreshDistance - 50, 0)}px); opacity: {Math.min(pullRefreshDistance / PULL_THRESHOLD, 1)};">
-  {#if pullRefreshDistance >= PULL_THRESHOLD}
-    <span class="pull-icon">↻</span>
+  <span class="pull-icon" class:ready={pullRefreshDistance >= PULL_THRESHOLD}><Icon icon="mdi:arrow-down" /></span>
+</div>
+
+<div class="page today">
+  <header class="today-header">
+    <div class="header-top">
+      <span class="date-sub">{formatLongDate(viewDate)}</span>
+      <div class="header-actions">
+        <button class="icon-btn" onclick={() => shiftDate(-1)} aria-label="Previous day"><Icon icon="mdi:chevron-left" /></button>
+        <button class="icon-btn" onclick={() => shiftDate(1)} disabled={viewDate === today} aria-label="Next day"><Icon icon="mdi:chevron-right" /></button>
+        <button class="icon-btn add" onclick={() => showCreate = true} aria-label="New habit"><Icon icon="mdi:plus" /></button>
+      </div>
+    </div>
+    <h1 class="page-title">
+      {formatDisplayDate(viewDate)}
+      {#if viewDate !== today}
+        <button class="btn-plain back-today" onclick={() => viewDate = today}>Back to today</button>
+      {/if}
+    </h1>
+  </header>
+
+  <div class="toolbar">
+    <div class="search-field" class:focused={searchFocused}>
+      <Icon icon="mdi:magnify" />
+      <input
+        type="search"
+        bind:value={searchQuery}
+        placeholder={searchScope === 'notes' ? 'Search notes' : 'Search habits'}
+        onfocus={() => searchFocused = true}
+        onblur={() => setTimeout(() => searchFocused = false, 150)}
+        aria-label="Search"
+      />
+    </div>
+    <div class="view-menu-wrap">
+      <button class="icon-btn" class:on={viewMenuOpen} onclick={() => viewMenuOpen = !viewMenuOpen} aria-label="View options" aria-expanded={viewMenuOpen}>
+        <Icon icon="mdi:tune-variant" />
+        {#if showHidden && hiddenHabits.length > 0}<span class="dot"></span>{/if}
+      </button>
+      {#if viewMenuOpen}
+        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+        <div class="menu-backdrop" onclick={() => viewMenuOpen = false}></div>
+        <div class="menu view-menu" role="menu">
+          <div class="menu-label">Sort by</div>
+          <div class="segmented">
+            {#each Object.entries(SORT_LABELS) as [value, label]}
+              <button class:active={sortMode === value} onclick={() => sortMode = value as typeof sortMode}>{label}</button>
+            {/each}
+          </div>
+          <label class="menu-toggle">
+            <span>Group by tag</span>
+            <input type="checkbox" class="switch" bind:checked={groupingEnabled} />
+          </label>
+          <label class="menu-toggle">
+            <span>Show hidden{hiddenHabits.length ? ` (${hiddenHabits.length})` : ''}</span>
+            <input type="checkbox" class="switch" bind:checked={showHidden} />
+          </label>
+        </div>
+      {/if}
+    </div>
+  </div>
+
+  {#if searchFocused}
+    <div class="segmented search-scope" role="group" aria-label="Search scope">
+      <button type="button" class:active={searchScope === 'habits'} onclick={() => focusSearch('habits')}>Habits</button>
+      <button type="button" class:active={searchScope === 'notes'} onclick={() => focusSearch('notes')}>Notes</button>
+    </div>
+  {/if}
+
+  {#if searchScope === 'notes' && searchFocused && matchingNotes.length > 0}
+    <div class="group note-results" role="listbox">
+      {#each matchingNotes as note (note.id)}
+        <button type="button" class="row note-result" role="option" aria-selected="false" onclick={() => openNoteResult(note)}>
+          <span class="nr-head"><span class="nr-title">{allHabitsById.get(note.habitId)?.title ?? 'Unknown habit'}</span><span class="nr-date">{note.date}</span></span>
+          <span class="nr-snippet">{note.content}</span>
+        </button>
+      {/each}
+    </div>
+  {/if}
+
+  {#snippet habitItem(habit: Habit, i: number, count: number)}
+    <div class="habit-wrapper" class:habit-hidden={isHabitHidden(habit)} data-habit-id={habit.id}>
+      <div class="left-reveal">
+        {#if sortMode === 'custom'}
+          <span
+            class="drag-handle"
+            role="button"
+            tabindex="-1"
+            aria-label="Reorder"
+            draggable="true"
+            ondragstart={(e) => handleDragStart(e, habit.id)}
+            use:touch={{ start: (e) => handleTouchDragStart(e, habit.id), move: handleTouchDragMove, end: handleTouchDragEnd }}
+          ><Icon icon="mdi:drag-horizontal-variant" /></span>
+        {/if}
+      </div>
+      <div
+        class="habit-slider"
+        style="transform: {sliderTransform(habit.id)}"
+        use:touch={{ start: (e) => handleTouchStart(e, habit.id), move: (e) => handleTouchMove(e, habit.id), end: (e) => handleTouchEnd(e, habit.id) }}
+      >
+        <div class="habit-dim">
+          <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} isFirst={i === 0} isLast={i === count - 1} />
+        </div>
+      </div>
+      <div class="swipe-actions">
+        <button class="swipe-btn hide" onclick={() => isHabitHidden(habit) ? unhideHabit(habit) : hideHabit(habit)}>
+          <Icon icon={isHabitHidden(habit) ? 'mdi:eye-outline' : 'mdi:eye-off-outline'} />
+          <span>{isHabitHidden(habit) ? 'Show' : 'Hide'}</span>
+        </button>
+        <button class="swipe-btn more" onclick={(e) => openMoreMenu(e, habit)} aria-haspopup="menu">
+          <Icon icon="mdi:dots-horizontal" />
+          <span>More</span>
+        </button>
+      </div>
+    </div>
+  {/snippet}
+
+  {#if allHabits.length === 0}
+    <div class="first-run">
+      <h2>Start with one habit</h2>
+      <p>Pick something small enough to do on your worst day.</p>
+      <button class="btn" onclick={() => showCreate = true}><Icon icon="mdi:plus" />New habit</button>
+    </div>
+  {:else if groupingEnabled}
+    {#each tagGroups as group (group.tag)}
+      <section class="habit-group">
+        {#if tagGroups.length > 1 || group.tag !== 'Untagged'}
+          <div class="group-head" data-tag={group.tag}>
+            <button class="group-toggle" onclick={() => toggleGroup(group.tag)} aria-expanded={!collapsedGroups.has(group.tag)}>
+              <span>{groupLabel(group.tag)}</span>
+              <span class="group-count tabular">{group.habits.length}</span>
+              <Icon icon="mdi:chevron-down" class="chev {collapsedGroups.has(group.tag) ? 'collapsed' : ''}" />
+            </button>
+            {#if sortMode === 'custom'}
+              <span
+                class="group-drag-handle"
+                role="button"
+                tabindex="0"
+                draggable="true"
+                ondragstart={(e) => handleGroupDragStart(e, group.tag)}
+                ondragover={(e) => handleGroupDragOver(e, group.tag)}
+                ondrop={(e) => handleGroupDrop(e, group.tag)}
+                ondragend={handleGroupDragEnd}
+                use:touch={{ start: (e) => handleGroupTouchStart(e, group.tag), move: handleGroupTouchMove, end: handleGroupTouchEnd }}
+                aria-label="Reorder group"
+              ><Icon icon="mdi:drag-horizontal-variant" /></span>
+            {/if}
+          </div>
+        {/if}
+        {#if !collapsedGroups.has(group.tag)}
+          <div class="group list" role="list"
+            ondragover={handleGridDragOver}
+            ondrop={handleGridDrop}
+            ondragend={handleDragEnd}
+          >
+            {#each group.habits as habit, i (habit.id)}
+              <div animate:flip={{ duration: 200 }} role="listitem">
+                {@render habitItem(habit, i, group.habits.length)}
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </section>
+    {/each}
   {:else}
-    <span class="pull-icon">↓</span>
+    <div class="group list habit-group" role="list"
+      ondragover={handleGridDragOver}
+      ondrop={handleGridDrop}
+      ondragend={handleDragEnd}
+    >
+      {#each flatVisible as habit, i (habit.id)}
+        <div animate:flip={{ duration: 200 }} role="listitem">
+          {@render habitItem(habit, i, flatVisible.length)}
+        </div>
+      {/each}
+    </div>
+  {/if}
+
+  {#if searchScope === 'habits' && searchQueryNorm && visibleHabits.length === 0}
+    <p class="empty">No habits match “{searchQuery}”.</p>
+  {/if}
+
+  {#if visiblePausedHabits.length > 0}
+    <section class="habit-group paused-section">
+      <div class="group-head">
+        <button class="group-toggle" onclick={() => pausedCollapsed = !pausedCollapsed} aria-expanded={!pausedCollapsed}>
+          <span>Paused</span>
+          <span class="group-count tabular">{visiblePausedHabits.length}</span>
+          <Icon icon="mdi:chevron-down" class="chev {pausedCollapsed ? 'collapsed' : ''}" />
+        </button>
+      </div>
+      {#if !pausedCollapsed}
+        <div class="group list">
+          {#each visiblePausedHabits as habit (habit.id)}
+            <div class="row paused-row" role="button" tabindex="0" onclick={() => openEdit(habit)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(habit); } }}>
+              <span class="paused-glyph" style="color: {habit.metadata?.color || 'var(--text-2)'}">
+                {#if habit.metadata?.emoji}{habit.metadata.emoji}{:else if habit.metadata?.icon}<Icon icon={habit.metadata.icon} />{/if}
+              </span>
+              <div class="row-label">
+                <div class="paused-title">{habit.title}</div>
+                <div class="paused-info">{pauseLabel(habit)}</div>
+              </div>
+              <button class="btn btn-sm btn-secondary" onclick={(e) => { e.stopPropagation(); handleResume(habit); }}>Resume</button>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </section>
   {/if}
 </div>
-
-<div class="date-nav">
-  <button class="date-arrow" on:click={() => shiftDate(-1)} aria-label="Previous day">
-    <Icon icon="mdi:chevron-left" />
-  </button>
-  <span class="date-label">{viewDate === today ? 'Today' : formatDisplayDate(viewDate)}</span>
-  <button class="date-arrow" on:click={() => shiftDate(1)} disabled={viewDate === today} aria-label="Next day">
-    <Icon icon="mdi:chevron-right" />
-  </button>
-</div>
-
-<div class="toolbar">
-  <div class="search-bar" class:active={searchFocused}>
-    <input
-      type="search"
-      bind:value={searchQuery}
-      placeholder={searchScope === 'notes' ? 'Search notes…' : 'Search habits…'}
-      on:focus={() => searchFocused = true}
-      on:blur={() => setTimeout(() => searchFocused = false, 150)}
-      aria-label="Search"
-    />
-    {#if searchFocused}
-      <div class="search-scope" role="group" aria-label="Search scope">
-        <button type="button" class:active={searchScope === 'habits'} on:click={() => focusSearch('habits')}>Habits</button>
-        <button type="button" class:active={searchScope === 'notes'} on:click={() => focusSearch('notes')}>Notes</button>
-      </div>
-    {/if}
-  </div>
-  <label class="sort-label">
-    Sort:
-    <select bind:value={sortMode}>
-      <option value="tag">Tag</option>
-      <option value="name">Name</option>
-      <option value="type">Type</option>
-      <option value="custom">Custom</option>
-    </select>
-  </label>
-  <button
-    class="tool-icon-btn"
-    class:active={groupingEnabled}
-    on:click={() => groupingEnabled = !groupingEnabled}
-    aria-label={groupingEnabled ? 'Turn off grouping' : 'Turn on grouping'}
-    aria-pressed={groupingEnabled}
-  >
-    <Icon icon={groupingEnabled ? 'mdi:view-grid' : 'mdi:view-list'} />
-  </button>
-  <button
-    class="tool-icon-btn"
-    class:active={showHidden}
-    on:click={() => showHidden = !showHidden}
-    aria-label={showHidden ? 'Hide hidden habits' : 'Show hidden habits'}
-    aria-pressed={showHidden}
-  >
-    <Icon icon={showHidden ? 'mdi:eye' : 'mdi:eye-off'} />
-    {#if hiddenHabits.length > 0}
-      <span class="hidden-badge">{hiddenHabits.length}</span>
-    {/if}
-  </button>
-</div>
-
-{#if searchScope === 'notes' && searchFocused && matchingNotes.length > 0}
-  <div class="note-results" role="listbox">
-    {#each matchingNotes as note (note.id)}
-      <button type="button" class="note-result" role="option" on:click={() => openNoteResult(note)}>
-        <span class="nr-title">{allHabitsById.get(note.habitId)?.title ?? 'Unknown habit'}</span>
-        <span class="nr-date">{note.date}</span>
-        <span class="nr-snippet">{note.content}</span>
-      </button>
-    {/each}
-  </div>
-{/if}
 
 {#if showCreate}
   <HabitCreateModal {habits} onClose={() => showCreate = false} />
@@ -689,461 +858,349 @@
 {/if}
 
 {#if depPopover}
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <div class="dep-popover-backdrop" on:click={() => depPopover = null}></div>
-  <div class="dep-popover" id="page-dep-popover" style={depPopover.style} on:click|stopPropagation role="listbox">
-    <div class="dep-popover-header">
-      {depPopover.mode === 'and' ? 'All required' : 'Any one required'}
-    </div>
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+  <div class="menu-backdrop" onclick={() => depPopover = null}></div>
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+  <div class="menu dep-popover" id="page-dep-popover" style={depPopover.style} onclick={(e) => e.stopPropagation()} role="listbox" tabindex="-1">
+    <div class="menu-label">{depPopover.mode === 'and' ? 'Needs all of' : 'Needs any of'}</div>
     {#each depPopover.deps as r}
       <div class="dep-row" role="option" aria-selected={r.met}>
-        <span class="dep-indicator" class:met={r.met}>{r.met ? '✓' : '○'}</span>
-        <span class="dep-name">{r.name}</span>
+        <Icon icon={r.met ? 'mdi:check-circle' : 'mdi:circle-outline'} class={r.met ? 'dep-met' : 'dep-unmet'} />
+        <span>{r.name}</span>
       </div>
     {/each}
   </div>
 {/if}
 
 {#if moreMenuHabit}
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+  <div class="menu-backdrop" onclick={() => moreMenuHabit = null}></div>
   <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <div class="dep-popover-backdrop" on:click={() => moreMenuHabit = null}></div>
-  <div class="dep-popover more-menu" style={moreMenuStyle} on:click|stopPropagation role="menu">
-    <button class="menu-row" role="menuitem" on:click={() => { if (moreMenuHabit) { archiveHabit(moreMenuHabit); moreMenuHabit = null; } }}>
-      <Icon icon="mdi:archive-outline" />
-      Archive
+  <div class="menu more-menu" style={moreMenuStyle} onclick={(e) => e.stopPropagation()} role="menu" tabindex="-1">
+    <button class="menu-row" role="menuitem" onclick={() => { if (moreMenuHabit) { archiveHabit(moreMenuHabit); moreMenuHabit = null; } }}>
+      <span>Archive</span><Icon icon="mdi:archive-outline" />
     </button>
-    <button class="menu-row danger" role="menuitem" on:click={() => { if (moreMenuHabit) { deleteHabit(moreMenuHabit); moreMenuHabit = null; } }}>
-      <Icon icon="mdi:trash-can-outline" />
-      Delete
+    <button class="menu-row danger" role="menuitem" onclick={() => { if (moreMenuHabit) { deleteHabit(moreMenuHabit); moreMenuHabit = null; } }}>
+      <span>Delete</span><Icon icon="mdi:trash-can-outline" />
     </button>
   </div>
 {/if}
-
-{#snippet habitItem(habit: Habit, i: number, count: number)}
-  <div class="habit-wrapper" class:habit-hidden={isHabitHidden(habit)} data-habit-id={habit.id}>
-    <div class="left-reveal">
-      {#if sortMode === 'custom'}
-        <span
-          class="drag-handle"
-          draggable="true"
-          on:dragstart={(e) => handleDragStart(e, habit.id)}
-          on:touchstart|nonpassive={(e) => handleTouchDragStart(e, habit.id)}
-          on:touchmove|nonpassive={(e) => handleTouchDragMove(e)}
-          on:touchend={(e) => handleTouchDragEnd(e)}
-        ><Icon icon="mdi:drag" /></span>
-      {/if}
-    </div>
-    <div
-      class="habit-slider"
-      style="transform: {sliderTransform(habit.id)}"
-      on:touchstart|nonpassive={(e) => handleTouchStart(e, habit.id)}
-      on:touchmove|nonpassive={(e) => handleTouchMove(e, habit.id)}
-      on:touchend={(e) => handleTouchEnd(e, habit.id)}
-    >
-      <div class="habit-dim">
-        <HabitCard {habit} date={viewDate} onEdit={() => openEdit(habit)} onNotes={() => notesHabitId = habit.id} notesCount={notesCountMap.get(habit.id) ?? 0} onDepPopover={handleDepPopover} isFirst={i === 0} isLast={i === count - 1} />
-      </div>
-    </div>
-    <div class="swipe-actions">
-      <button class="swipe-btn hide" on:click={() => isHabitHidden(habit) ? unhideHabit(habit) : hideHabit(habit)} aria-label={isHabitHidden(habit) ? 'Show' : 'Hide'}>
-        {#if isHabitHidden(habit)}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
-        {:else}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-        {/if}
-      </button>
-      <button class="swipe-btn more" on:click={(e) => openMoreMenu(e, habit)} aria-label="More actions" aria-haspopup="menu">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-      </button>
-    </div>
-  </div>
-{/snippet}
-
-{#if groupingEnabled}
-  {#each tagGroups as group}
-    <div class="tag-section">
-      <div class="tag-header-row" class:drop-target={false} data-tag={group.tag}>
-        <button class="tag-header" on:click={() => toggleGroup(group.tag)}>
-          <span class="collapse-arrow">{collapsedGroups.has(group.tag) ? '▶' : '▼'}</span>
-          {group.tag}
-        </button>
-        {#if sortMode === 'custom'}
-          <span
-            class="group-drag-handle"
-            role="button"
-            tabindex="0"
-            draggable="true"
-            on:dragstart={(e) => handleGroupDragStart(e, group.tag)}
-            on:dragover={(e) => handleGroupDragOver(e, group.tag)}
-            on:drop={(e) => handleGroupDrop(e, group.tag)}
-            on:dragend={handleGroupDragEnd}
-            on:touchstart|nonpassive={(e) => handleGroupTouchStart(e, group.tag)}
-            on:touchmove|nonpassive={(e) => handleGroupTouchMove(e)}
-            on:touchend={handleGroupTouchEnd}
-            aria-label="Reorder group"
-          ><Icon icon="mdi:drag" /></span>
-        {/if}
-      </div>
-      {#if !collapsedGroups.has(group.tag)}
-      <div class="habits-grid"
-        on:dragover={handleGridDragOver}
-        on:drop={handleGridDrop}
-        on:dragend={handleDragEnd}
-      >
-        {#each group.habits as habit, i (habit.id)}
-          <div animate:flip={{ duration: 200 }}>
-            {@render habitItem(habit, i, group.habits.length)}
-          </div>
-{/each}
-      </div>
-      {/if}
-    </div>
-  {/each}
-{:else}
-  <div class="habits-grid"
-    on:dragover={handleGridDragOver}
-    on:drop={handleGridDrop}
-    on:dragend={handleDragEnd}
-  >
-    {#each flatVisible as habit, i (habit.id)}
-      <div animate:flip={{ duration: 200 }}>
-        {@render habitItem(habit, i, flatVisible.length)}
-      </div>
-    {/each}
-  </div>
-{/if}
-
-{#if searchScope === 'habits' && searchQueryNorm && visibleHabits.length === 0}
-  <p class="search-empty">No habits match "{searchQuery}".</p>
-{/if}
-
-{#if visiblePausedHabits.length > 0}
-  <section class="tag-section paused-section">
-    <button class="tag-header" on:click={() => pausedCollapsed = !pausedCollapsed}>
-      <span class="collapse-arrow">{pausedCollapsed ? '▶' : '▼'}</span>
-      Paused ({visiblePausedHabits.length})
-    </button>
-    {#if !pausedCollapsed}
-    <div class="habits-grid">
-      {#each visiblePausedHabits as habit (habit.id)}
-        <div class="paused-card" role="button" tabindex="0" on:click={() => openEdit(habit)} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(habit); } }}>
-          {#if habit.metadata?.emoji}
-            <span class="paused-glyph">{habit.metadata.emoji}</span>
-          {:else if habit.metadata?.icon}
-            <span class="paused-glyph"><Icon icon={habit.metadata.icon} style="color: inherit" /></span>
-          {/if}
-          <div class="paused-body">
-            <span class="paused-title">{habit.title}</span>
-            <span class="paused-info">{pauseLabel(habit)}</span>
-          </div>
-          <button class="paused-resume" on:click={(e) => { e.stopPropagation(); handleResume(habit); }}>Resume</button>
-        </div>
-      {/each}
-    </div>
-    {/if}
-  </section>
-{/if}
-
 </div>
 
 <style>
-  .date-nav {
+  .today-header {
+    margin-bottom: var(--space-3);
+  }
+
+  .header-top {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    justify-content: space-between;
+    margin: 0 calc(-1 * var(--space-2)) 0 0;
   }
-  .date-arrow {
-    background: none;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    padding: 0.25rem;
-    cursor: pointer;
+
+  .date-sub {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-2);
+  }
+
+  .header-actions {
     display: flex;
     align-items: center;
-    color: var(--text-primary, #222);
-    line-height: 1;
   }
-  .date-arrow:disabled { opacity: 0.3; cursor: default; }
-  .date-arrow :global(svg), .date-arrow :global(.iconify) { font-size: 1.25rem; }
-  .date-label {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-primary, #222);
-    min-width: 8rem;
-    text-align: center;
+
+  .icon-btn.add {
+    color: var(--accent);
+    font-size: 26px;
   }
+
+  .today .page-title {
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+  }
+
+  .back-today {
+    font-size: var(--text-base);
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
   .toolbar {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
   }
 
-  .search-bar {
-    position: relative;
-    flex: 1 1 100%;
+  .search-field {
+    flex: 1;
     display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 38px;
+    padding: 0 var(--space-3);
+    border-radius: 10px;
+    background: var(--surface-2);
+    color: var(--text-3);
+    font-size: 19px;
+    transition: box-shadow 0.15s;
   }
-  .search-bar input[type='search'] {
-    width: 100%;
-    padding: 0.45rem 0.6rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    font-size: 0.9rem;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
-    box-sizing: border-box;
+
+  .search-field.focused {
+    box-shadow: 0 0 0 2px var(--accent);
   }
-  .search-bar input[type='search']:focus { outline: none; border-color: var(--accent, #0066cc); }
-  .search-bar.active input[type='search'] { border-color: var(--accent, #0066cc); }
+
+  .search-field input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: none;
+    color: var(--text);
+    outline: none;
+  }
+
+  .search-field input::-webkit-search-cancel-button {
+    filter: grayscale(1);
+  }
+
+  .view-menu-wrap {
+    position: relative;
+  }
+
+  .view-menu-wrap .icon-btn {
+    position: relative;
+  }
+
+  .icon-btn.on {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  .dot {
+    position: absolute;
+    top: 9px;
+    right: 9px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
 
   .search-scope {
-    position: absolute;
-    top: calc(100% + 0.25rem);
-    left: 0;
-    display: flex;
-    gap: 0.25rem;
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #ccc);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    padding: 0.25rem;
-    z-index: 30;
-  }
-  .search-scope button {
-    border: none;
-    background: none;
-    padding: 0.35rem 0.6rem;
-    font-size: 0.8rem;
-    cursor: pointer;
-    color: var(--text-secondary, #666);
-    border-radius: 0;
-    font-weight: 500;
-  }
-  .search-scope button.active {
-    background: var(--accent, #0066cc);
-    color: var(--accent-text, white);
+    margin-bottom: var(--space-3);
   }
 
-  .note-results {
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--card-border, #ccc);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    margin: 0 0 1rem;
-    max-height: 40vh;
-    overflow-y: auto;
-    z-index: 30;
+  /* Pop-over menus (view options, conditions, row actions). */
+  .menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
   }
+
+  .menu {
+    position: fixed;
+    z-index: 61;
+    min-width: 200px;
+    padding: var(--space-2);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow-pop);
+    animation: pop 0.14s var(--ease);
+  }
+
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.96); }
+  }
+
+  .view-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    transform-origin: top right;
+  }
+
+  .menu-label {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--text-2);
+    padding: var(--space-1) var(--space-1) 0;
+  }
+
+  .menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-1);
+    font-size: var(--text-base);
+    cursor: pointer;
+  }
+
+  .dep-popover {
+    position: absolute;
+    min-width: 220px;
+  }
+
+  .dep-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 6px var(--space-1);
+    font-size: var(--text-base);
+  }
+
+  .dep-row :global(.dep-met) { color: var(--success); font-size: 18px; }
+  .dep-row :global(.dep-unmet) { color: var(--text-3); font-size: 18px; }
+
+  .more-menu {
+    padding: var(--space-1) 0;
+    transform-origin: top right;
+  }
+
+  .menu-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: var(--tap);
+    padding: 0 var(--space-4);
+    font-size: var(--text-base);
+    color: var(--text);
+    font-size: var(--text-md);
+  }
+
+  .menu-row :global(svg) { font-size: 20px; color: var(--text-2); }
+  .menu-row + .menu-row { border-top: 0.5px solid var(--separator-strong); }
+  .menu-row.danger, .menu-row.danger :global(svg) { color: var(--danger); }
+  .menu-row:active { background: var(--surface-2); }
+
+  /* Notes search results */
+  .note-results {
+    margin-bottom: var(--space-4);
+  }
+
   .note-result {
-    display: block;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
     width: 100%;
     text-align: left;
-    border: none;
-    background: none;
-    padding: 0.5rem 0.6rem;
-    cursor: pointer;
-    border-bottom: 1px solid var(--card-border, #e0e0e0);
-    font-family: inherit;
-    border-radius: 0;
-    color: var(--text-primary, #222);
-  }
-  .note-result:last-child { border-bottom: none; }
-  .note-result:hover, .note-result:focus { background: var(--btn-secondary-bg, #eee); }
-  .note-result .nr-title { font-weight: 600; font-size: 0.85rem; }
-  .note-result .nr-date { margin-left: 0.4rem; font-size: 0.72rem; color: var(--text-secondary, #888); }
-  .note-result .nr-snippet {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--text-secondary, #666);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .search-empty {
-    margin: 0.5rem 0 1rem;
-    color: var(--text-secondary, #888);
-    font-size: 0.85rem;
+    padding-top: var(--space-3);
+    padding-bottom: var(--space-3);
   }
 
-  .sort-label {
+  .nr-head { display: flex; justify-content: space-between; gap: var(--space-2); }
+  .nr-title { font-weight: 600; }
+  .nr-date { font-size: var(--text-sm); color: var(--text-3); }
+  .nr-snippet { font-size: var(--text-sm); color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Groups */
+  .habit-group {
+    margin-bottom: var(--space-5);
+  }
+
+  .group-head {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.85rem;
-    color: var(--text-secondary, #666);
-    font-weight: 500;
+    padding: 0 var(--space-1) 0 var(--space-4);
+    margin-bottom: 6px;
   }
-  .sort-label select {
-    padding: 0.3rem 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    font-size: 0.85rem;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
+
+  :global(.group-head.drop-target) .group-toggle {
+    color: var(--accent);
   }
-  .tool-icon-btn {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.1rem;
-    height: 2.1rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    background: var(--input-bg, #fff);
-    color: var(--text-secondary, #666);
-    cursor: pointer;
-    flex-shrink: 0;
-    line-height: 1;
-  }
-  .tool-icon-btn :global(svg), .tool-icon-btn :global(.iconify) { font-size: 1.2rem; }
-  .tool-icon-btn:hover { border-color: var(--accent, #0066cc); color: var(--text-primary, #222); }
-  .tool-icon-btn.active {
-    border-color: var(--accent, #0066cc);
-    color: var(--accent, #0066cc);
-    background: rgba(0, 102, 204, 0.08);
-  }
-  .hidden-badge {
-    position: absolute;
-    top: -0.3rem;
-    right: -0.3rem;
-    min-width: 0.95rem;
-    height: 0.95rem;
-    padding: 0 0.2rem;
-    border-radius: 999px;
-    background: #f59e0b;
-    color: #fff;
-    font-size: 0.62rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-  }
-  .tag-section { margin-bottom: 1rem; content-visibility: auto; contain-intrinsic-size: 200px; }
-  .tag-header-row {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-  .tag-section + .tag-section .tag-header-row { margin-top: 1rem; }
-  .tag-header-row .tag-header {
+
+  .group-toggle {
     flex: 1;
-    min-width: 0;
-    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 28px;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-2);
+    text-align: left;
   }
-  .tag-header-row.drop-target .tag-header {
-    outline: 2px dashed var(--text-secondary, #888);
-    outline-offset: -2px;
+
+  .group-count {
+    font-weight: 500;
+    color: var(--text-3);
   }
-  .group-drag-handle {
+
+  .group-toggle :global(.chev) {
+    margin-left: auto;
+    font-size: 18px;
+    color: var(--text-3);
+    transition: transform 0.2s var(--ease);
+  }
+
+  .group-toggle :global(.chev.collapsed) {
+    transform: rotate(-90deg);
+  }
+
+  .group-drag-handle,
+  .drag-handle {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2rem;
-    flex-shrink: 0;
+    width: 40px;
+    color: var(--text-3);
+    font-size: 22px;
     cursor: grab;
-    color: var(--text-secondary, #888);
     touch-action: none;
   }
-  .group-drag-handle:active { cursor: grabbing; }
-  .group-drag-handle :global(svg), .group-drag-handle :global(.iconify) { font-size: 1.3rem; }
-  .tag-header {
-    background: none;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text-secondary, #666);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin: 1rem 0 0.5rem;
-    padding: 0;
-    width: 100%;
-    text-align: left;
+
+  .group-drag-handle:active,
+  .drag-handle:active {
+    cursor: grabbing;
   }
-  .tag-header:first-of-type { margin-top: 0; }
-  .habit-dim {
+
+  .list > div + div {
     position: relative;
-    z-index: 1;
-    flex: 1;
-    min-width: 0;
   }
-  .habit-wrapper.habit-hidden .habit-dim::after {
+
+  .list > div + div::before {
     content: '';
     position: absolute;
-    inset: 0;
-    z-index: 2;
-    background: rgba(128, 128, 128, 0.35);
+    top: 0;
+    left: 68px;
+    right: 0;
+    z-index: 3;
+    border-top: 0.5px solid var(--separator-strong);
     pointer-events: none;
   }
-  .habit-wrapper.habit-hidden .left-reveal {
-    display: none;
-  }
-  .habit-wrapper.habit-hidden .swipe-actions {
-    display: none;
-  }
-  .collapse-arrow {
-    font-size: 0.7rem;
-    width: 1rem;
-    flex-shrink: 0;
-  }
-  .habits-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 0;
-    margin-bottom: 2rem;
-  }
-  .paused-card {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    background: var(--card-bg, #fff);
-    border: 1px dashed var(--card-border, #ccc);
-    border-radius: 8px;
-    padding: 0.6rem 0.75rem;
-    cursor: pointer;
-    opacity: 0.75;
-  }
-  .paused-card:hover { opacity: 1; border-color: var(--text-secondary, #888); }
-  .paused-glyph { font-size: 1.15rem; line-height: 1; }
-  .paused-glyph :global(svg), .paused-glyph :global(.iconify) { font-size: 1.15rem; color: inherit; }
-  .paused-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .paused-title { font-size: 0.9rem; font-weight: 600; color: var(--text-primary, #222); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .paused-info { font-size: 0.75rem; color: var(--text-secondary, #888); }
-  .paused-resume {
-    padding: 0.3rem 0.7rem;
-    border: 1px solid var(--accent, #0066cc);
-    border-radius: 999px;
-    background: transparent;
-    color: var(--accent, #0066cc);
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-  .paused-resume:hover { background: var(--accent, #0066cc); color: var(--accent-text, #fff); }
-  .paused-section .habits-grid { margin-bottom: 0; }
+
+  /* Swipe row */
   .habit-wrapper {
     position: relative;
     overflow: hidden;
     overflow-anchor: none;
     content-visibility: auto;
     contain: layout style paint;
-    contain-intrinsic-size: 120px;
+    contain-intrinsic-size: auto 64px;
+    background: var(--surface-2);
   }
-  .habit-wrapper.drop-target { outline: 2px dashed var(--text-secondary, #888); outline-offset: -2px; border-radius: 8px; }
-  .drag-ghost { transition: transform 0.05s linear; }
+
+  :global(.habit-wrapper.drop-target) {
+    box-shadow: inset 0 2px 0 var(--accent);
+  }
+
+  :global(.drag-ghost) {
+    transition: transform 0.05s linear;
+    box-shadow: var(--shadow-pop);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
   .left-reveal {
     position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
+    inset: 0 auto 0 0;
     display: flex;
     align-items: stretch;
     z-index: 0;
@@ -1152,147 +1209,124 @@
   .habit-slider {
     position: relative;
     z-index: 1;
-    transition: transform 0.2s ease;
+    transition: transform 0.25s var(--ease);
     touch-action: pan-y;
     display: flex;
     align-items: stretch;
   }
-  .drag-handle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2rem;
-    cursor: grab;
-    color: var(--text-secondary, #888);
-    flex-shrink: 0;
-    touch-action: none;
+
+  .habit-dim {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    min-width: 0;
   }
-  .drag-handle:active { cursor: grabbing; }
-  .drag-handle :global(svg), .drag-handle :global(.iconify) { font-size: 1.4rem; }
+
+  .habit-wrapper.habit-hidden .habit-dim {
+    opacity: 0.45;
+  }
+
+  .habit-wrapper.habit-hidden .left-reveal {
+    display: none;
+  }
+
   .swipe-actions {
     position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
+    inset: 0 0 0 auto;
     display: flex;
     align-items: stretch;
     z-index: 0;
-    gap: 2px;
   }
+
   .swipe-btn {
-    border: none;
-    padding: 0 16px;
-    cursor: pointer;
-    color: white;
+    min-width: 72px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-width: 52px;
+    gap: 2px;
+    color: #fff;
+    font-size: var(--text-xs);
+    font-weight: 500;
   }
-  .swipe-btn svg {
-    width: 22px;
-    height: 22px;
-  }
-  .swipe-btn.hide { background: #64748b; }
-  .swipe-btn.more { background: var(--text-secondary, #777); }
 
-  .more-menu { min-width: 150px; }
-  .menu-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: none;
-    background: none;
-    font-family: inherit;
-    font-size: 0.85rem;
-    color: var(--text-primary, #222);
+  .swipe-btn :global(svg) {
+    font-size: 22px;
+  }
+
+  .swipe-btn.hide { background: #8e8c88; }
+  .swipe-btn.more { background: #6b6966; }
+
+  /* Paused */
+  .paused-row {
     cursor: pointer;
-    text-align: left;
-    border-radius: 0;
   }
-  .menu-row :global(svg), .menu-row :global(.iconify) { font-size: 1.1rem; flex-shrink: 0; }
-  .menu-row:hover { background: var(--btn-secondary-bg, #f5f5f5); }
-  .menu-row.danger { color: #d32f2f; }
 
-  .dep-popover-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
+  .paused-glyph {
+    width: 40px;
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+    opacity: 0.6;
   }
-  .dep-popover {
-    position: absolute;
-    z-index: 10000;
-    min-width: 160px;
-    background: var(--dep-popover-bg, #f0f0f0);
-    border: 1px solid var(--dep-popover-border, #ccc);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-    padding: 0.4rem 0;
-    font-size: 0.8rem;
-    color: var(--dep-popover-text, #222);
-  }
-  .dep-popover-header {
-    padding: 0.3rem 0.75rem 0.2rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--dep-popover-muted, #888);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  .dep-row {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.3rem 0.75rem;
-    cursor: default;
-  }
-  .dep-row:hover {
-    background: var(--btn-secondary-bg, #f5f5f5);
-  }
-  .dep-indicator {
-    font-size: 0.75rem;
-    color: var(--text-secondary, #aaa);
-    width: 1em;
-    text-align: center;
-    flex-shrink: 0;
-  }
-  .dep-indicator.met {
-    color: #2e7d32;
-  }
-  .dep-name {
-    color: var(--text-primary, #222);
-    white-space: nowrap;
+
+  .paused-title {
+    font-size: var(--text-md);
+    color: var(--text-2);
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  @media (max-width: 600px) {
-    .habits-grid { grid-template-columns: 1fr; }
+  .paused-info {
+    font-size: var(--text-sm);
+    color: var(--text-3);
   }
 
+  .first-run {
+    text-align: center;
+    padding: 72px var(--space-4);
+  }
+
+  .first-run h2 {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-2);
+  }
+
+  .first-run p {
+    color: var(--text-2);
+    margin-bottom: var(--space-5);
+  }
+
+  /* Pull to refresh */
   .page-outer {
     touch-action: pan-y;
     position: relative;
     overflow-anchor: none;
   }
+
   .pull-indicator {
     position: fixed;
-    top: 0;
+    top: env(safe-area-inset-top);
     left: 0;
     right: 0;
     height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
+    z-index: 30;
     pointer-events: none;
-    color: var(--text-secondary, #888);
-    font-size: 1.5rem;
+    color: var(--text-3);
+    font-size: 22px;
   }
+
   .pull-icon {
-    display: inline-block;
-    transition: transform 0.15s;
+    display: inline-flex;
+    transition: transform 0.2s var(--ease);
+  }
+
+  .pull-icon.ready {
+    transform: rotate(180deg);
+    color: var(--accent);
   }
 </style>

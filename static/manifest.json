@@ -1,11 +1,11 @@
 {
   "name": "North Habit Tracker",
-  "short_name": "Habits",
+  "short_name": "North",
   "start_url": "/today",
   "display": "standalone",
   "scope": "/",
-  "background_color": "#1a1a2e",
-  "theme_color": "#0066cc",
+  "background_color": "#f4f3f1",
+  "theme_color": "#f4f3f1",
   "icons": [
     {
       "src": "/icon.svg",

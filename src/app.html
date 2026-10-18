@@ -2,11 +2,12 @@
 <html lang="en" style="touch-action: manipulation">
 	<head>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 		<meta name="text-scale" content="scale" />
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 		<meta name="mobile-web-app-capable" content="yes" />
+		<meta name="theme-color" content="#f4f3f1" />
 		<link rel="manifest" href="/manifest.json" />
 		<link rel="icon" type="image/svg+xml" href="/icon.svg" />
 		<script>
@@ -43,6 +44,16 @@
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
+		<script>
+			// Apply the saved theme before first paint (stores/theme.ts takes over after hydration).
+			(function () {
+				var mode = 'system', oled = false;
+				try { var s = JSON.parse(localStorage.getItem('appSettings') || '{}'); mode = s.themeMode || mode; oled = !!s.oled; } catch (e) {}
+				var dark = mode === 'dark' || (mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+					|| (mode === 'adaptive' && (new Date().getHours() < 7 || new Date().getHours() >= 20));
+				document.body.className = dark ? (oled ? 'oled' : 'dark') : 'light';
+			})();
+		</script>
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>

@@ -73,11 +73,11 @@
     errorMsg = '';
     if (type !== 'binary') {
       if (category === 'break' && standard < (target ?? 0)) {
-        errorMsg = 'For a Break habit, Standard must be higher than Target.';
+        errorMsg = 'For a habit you’re breaking, the limit must be higher than the stricter limit.';
         return;
       }
       if (category === 'build' && standard > (target ?? 0)) {
-        errorMsg = 'For a Build habit, Standard must be lower than Target.';
+        errorMsg = 'The minimum must be lower than the stretch goal.';
         return;
       }
     }
@@ -130,100 +130,117 @@
 </script>
 
 <Modal {onClose}>
-  <h2>Add New Habit</h2>
-  <form onsubmit={handleSubmit}>
-    <label for="title">Title</label>
-    <input type="text" bind:value={title} placeholder="Enter habit title" required />
-
-    <label for="description">Description (optional, supports Markdown)</label>
-    <textarea bind:value={description} placeholder="Add details about this habit..." class="desc-input"></textarea>
-
-    <div class="form-row">
-      <label>Color
-        <HabitColorPicker bind:color />
-      </label>
-      <label>Icon
-        <HabitIconPicker bind:icon bind:emoji />
-      </label>
+  <h2>New habit</h2>
+  <form onsubmit={handleSubmit} class="habit-form">
+    <div class="field">
+      <label for="new-title">Name</label>
+      <input id="new-title" type="text" bind:value={title} placeholder="e.g. Read" required autocomplete="off" />
     </div>
 
-    <div class="form-row">
-      <label>Category
-        <select bind:value={category}>
-          <option value="build">Build</option>
-          <option value="break">Break</option>
-        </select>
-      </label>
-      <label>Type
-        <select bind:value={type} required>
-          <option value="binary">Binary (Done / Not Done)</option>
-          <option value="quantity">Quantity (Count)</option>
-          <option value="duration">Duration (Time)</option>
-        </select>
-      </label>
+    <div class="field">
+      <label for="new-desc">Notes <span class="hint">Markdown supported</span></label>
+      <textarea id="new-desc" bind:value={description} placeholder="Why it matters, how you’ll do it"></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <span class="field-label">Color</span>
+        <HabitColorPicker bind:color />
+      </div>
+      <div class="field">
+        <span class="field-label">Icon</span>
+        <HabitIconPicker bind:icon bind:emoji />
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="field-label">I want to</span>
+      <div class="segmented" role="radiogroup" aria-label="Category">
+        <button type="button" role="radio" aria-checked={category === 'build'} class:active={category === 'build'} onclick={() => category = 'build'}>Build a habit</button>
+        <button type="button" role="radio" aria-checked={category === 'break'} class:active={category === 'break'} onclick={() => category = 'break'}>Break a habit</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="field-label">Track it by</span>
+      <div class="segmented" role="radiogroup" aria-label="Type">
+        <button type="button" role="radio" aria-checked={type === 'binary'} class:active={type === 'binary'} onclick={() => type = 'binary'}>Check off</button>
+        <button type="button" role="radio" aria-checked={type === 'quantity'} class:active={type === 'quantity'} onclick={() => type = 'quantity'}>Count</button>
+        <button type="button" role="radio" aria-checked={type === 'duration'} class:active={type === 'duration'} onclick={() => type = 'duration'}>Time</button>
+      </div>
     </div>
 
     {#if showStandard}
-      <div class="section-header">Goals</div>
-      <div class="form-row">
-        <label>Minimum
+      <div class="field-row">
+        <div class="field">
+          <label for="standard">{category === 'break' ? 'Limit' : 'Minimum'}</label>
           {#if type === 'duration'}
-            <DurationField id="standard" bind:value={standard} placeholder="e.g. 5:00" touched={() => thresholdsDefaulted = false} />
+            <DurationField id="standard" bind:value={standard} placeholder="5:00" touched={() => thresholdsDefaulted = false} />
           {:else}
-            <input type="number" bind:value={standard} placeholder="Standard value" min="1" />
+            <input id="standard" type="number" inputmode="numeric" bind:value={standard} min="1" />
           {/if}
-        </label>
-        <label>Stretch goal
+        </div>
+        <div class="field">
+          <label for="target">{category === 'break' ? 'Stricter limit' : 'Stretch goal'}</label>
           {#if type === 'duration'}
-            <DurationField id="target" bind:value={target} placeholder="e.g. 15:00" touched={() => thresholdsDefaulted = false} />
+            <DurationField id="target" bind:value={target} placeholder="15:00" touched={() => thresholdsDefaulted = false} />
           {:else}
-            <input type="number" bind:value={target} placeholder="Goal (optional)" min="1" />
+            <input id="target" type="number" inputmode="numeric" bind:value={target} placeholder="Optional" min="1" />
           {/if}
-        </label>
+        </div>
       </div>
-      <label for="unit">Unit</label>
-      <input type="text" bind:value={unit} placeholder={type === 'duration' ? 'seconds' : 'times'} oninput={() => unitDefaulted = false} />
+      {#if type === 'quantity'}
+        <div class="field">
+          <label for="unit">Unit</label>
+          <input id="unit" type="text" bind:value={unit} placeholder="times" oninput={() => unitDefaulted = false} />
+        </div>
+      {/if}
     {/if}
 
-    <div class="form-row">
-      <label>Frequency
-        <select bind:value={frequency}>
-          <option value="daily">Daily</option>
-          <option value="days_per_week">X Days/Week</option>
+    <div class="field-row">
+      <div class="field">
+        <label for="frequency">Repeat</label>
+        <select id="frequency" bind:value={frequency}>
+          <option value="daily">Every day</option>
+          <option value="days_per_week">Days per week</option>
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
-          <option value="custom">Every X Days</option>
+          <option value="custom">Every few days</option>
         </select>
-      </label>
-      <label>Interval
-        {#if frequency === 'days_per_week'}
-          <input type="number" bind:value={interval} min="1" max="7" />
-        {:else}
-          <input type="number" bind:value={interval} min="1" />
-        {/if}
-      </label>
+      </div>
+      {#if frequency !== 'daily'}
+        <div class="field">
+          <label for="interval">{frequency === 'days_per_week' ? 'Days per week' : frequency === 'weekly' ? 'Every … weeks' : frequency === 'monthly' ? 'Every … months' : 'Every … days'}</label>
+          <input id="interval" type="number" inputmode="numeric" bind:value={interval} min="1" max={frequency === 'days_per_week' ? 7 : undefined} />
+        </div>
+      {/if}
     </div>
 
     {#if showStartOfWeek}
-      <label for="startOfWeek">Start of week</label>
-      <select bind:value={startOfWeek}>
-        <option value="0">Sunday</option>
-        <option value="1">Monday</option>
-        <option value="2">Tuesday</option>
-        <option value="3">Wednesday</option>
-        <option value="4">Thursday</option>
-        <option value="5">Friday</option>
-        <option value="6">Saturday</option>
-      </select>
+      <div class="field">
+        <label for="startOfWeek">Week starts on</label>
+        <select id="startOfWeek" bind:value={startOfWeek}>
+          <option value={0}>Sunday</option>
+          <option value={1}>Monday</option>
+          <option value={2}>Tuesday</option>
+          <option value={3}>Wednesday</option>
+          <option value={4}>Thursday</option>
+          <option value={5}>Friday</option>
+          <option value={6}>Saturday</option>
+        </select>
+      </div>
     {/if}
 
-    <span class="field-label">Tags</span>
-    <TagInput bind:tags={habitTags} allTags={existingTags} />
+    <div class="field">
+      <span class="field-label">Tags</span>
+      <TagInput bind:tags={habitTags} allTags={existingTags} />
+    </div>
 
-    <div class="advanced-section">
-      <button class="advanced-toggle" onclick={() => advancedOpen = !advancedOpen} aria-expanded={advancedOpen}>
-        <span>Advanced</span>
-        <span class:rotated={advancedOpen}><Icon icon="mdi:chevron-down" /></span>
+    <div class="advanced">
+      <button type="button" class="advanced-toggle" onclick={() => advancedOpen = !advancedOpen} aria-expanded={advancedOpen}>
+        <span>More options</span>
+        <span class="hint">Conditions, linked habits, webhooks, Shortcuts</span>
+        <Icon icon="mdi:chevron-down" class="chev {advancedOpen ? 'open' : ''}" />
       </button>
 
       {#if advancedOpen}
@@ -231,114 +248,86 @@
           {#if type === 'binary'}
             <DependencyDropdownPicker habits={habits} bind:depIds bind:depMode />
           {/if}
-
           <LinkedDropdownPicker habits={linkCandidates} bind:linkedIds={linkIds} />
-
           <HabitWebhookSection bind:webhooks {type} />
-
           <HabitShortcutSection bind:shortcuts {type} />
         </div>
       {/if}
     </div>
 
     {#if errorMsg}
-      <p class="form-error">{errorMsg}</p>
+      <p class="form-error" role="alert">{errorMsg}</p>
     {/if}
-    <ModalActions onCancel={onClose} saveType="submit" saveLabel="Create" />
+    <ModalActions onCancel={onClose} saveType="submit" saveLabel="Add habit" />
   </form>
 </Modal>
 
 <style>
-  h2 {
-    margin: 0 0 1rem;
-    color: var(--text-primary, #222);
-  }
-  label {
-    display: block;
-    margin-bottom: 0.25rem;
-    font-weight: 500;
-    color: var(--text-primary, #222);
-  }
-  input, select, .desc-input {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--card-border, #ccc);
-    border-radius: 0;
-    font-size: 1rem;
-    box-sizing: border-box;
-    margin-bottom: 0.75rem;
-    background: var(--input-bg, #fff);
-    color: var(--text-primary, #222);
-  }
-  .desc-input {
-    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
-    font-size: 0.85rem;
-    min-height: 4rem;
-    resize: vertical;
-  }
-  .field-label {
-    display: block;
-    margin-bottom: 0.25rem;
-    font-weight: 500;
-    color: var(--text-primary, #222);
-  }
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-  }
-  .form-row > * { margin-bottom: 0; }
-  .form-row > label { display: flex; flex-direction: column; gap: 0.25rem; }
-  .form-error {
-    margin: 0.5rem 0 0.75rem;
-    padding: 0.5rem;
-    border: 1px solid #c62828;
-    background: rgba(198, 40, 40, 0.1);
-    color: #c62828;
-    font-size: 0.85rem;
-  }
-  .advanced-section {
-    margin-top: 0.5rem;
-    border-top: 1px solid var(--card-border, #ccc);
-    padding-top: 0.75rem;
-  }
-  .advanced-toggle {
+  .habit-form {
     display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .hint {
+    font-weight: 400;
+    color: var(--text-3);
+  }
+
+  .segmented {
+    background: var(--surface-3);
+  }
+
+  .segmented > button {
+    font-size: var(--text-sm);
+    min-height: 34px;
+  }
+
+  .advanced {
+    border-top: 0.5px solid var(--separator-strong);
+    padding-top: var(--space-2);
+  }
+
+  .advanced-toggle {
+    display: grid;
+    grid-template-columns: 1fr auto;
     align-items: center;
-    justify-content: space-between;
     width: 100%;
-    padding: 0.5rem 0;
-    border: none;
-    background: none;
-    color: var(--accent, #0066cc);
+    padding: var(--space-2) 0;
+    text-align: left;
     font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
-    font-family: inherit;
+    color: var(--text);
   }
-  .advanced-toggle:hover { color: var(--accent-hover, #0052a3); }
-  .advanced-toggle :global(svg) {
-    transition: transform 0.2s;
-    font-size: 1.2rem;
+
+  .advanced-toggle .hint {
+    grid-column: 1;
+    font-size: var(--text-sm);
   }
-  .advanced-toggle :global(svg).rotated { transform: rotate(180deg); }
-  .section-header {
-    margin: 1rem 0 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--text-secondary, #888);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+
+  .advanced-toggle :global(.chev) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    font-size: 20px;
+    color: var(--text-3);
+    transition: transform 0.2s var(--ease);
   }
+
+  .advanced-toggle :global(.chev.open) {
+    transform: rotate(180deg);
+  }
+
   .advanced-content {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    padding-top: 0.5rem;
-    animation: slideDown 0.2s ease;
+    gap: var(--space-4);
+    padding-top: var(--space-3);
   }
-  @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
+
+  .form-error {
+    padding: var(--space-3);
+    border-radius: var(--radius);
+    background: var(--danger-soft);
+    color: var(--danger);
+    font-size: var(--text-sm);
   }
 </style>
