@@ -1,6 +1,7 @@
 import type { GraphQLContext } from '../context.js';
 import { toGlobalId, requireGlobalId, requireGlobalIdOptional } from '../ids.js';
 import { runPage } from '../pagination.js';
+import { assertOwnedOrNew } from '../db.js';
 
 interface NoteRow {
   id: string;
@@ -71,8 +72,12 @@ export const noteResolvers = {
         .map((h) => requireGlobalId(h, 'Habit'));
       if (!habitIds.length) throw new Error('A note must be linked to at least one habit');
       const primaryHabitId = habitIds[0];
+      const noteId = requireGlobalIdOptional(args.input.id, 'HabitNote') ?? crypto.randomUUID();
+      await assertOwnedOrNew(ctx.db, 'notes', noteId, ctx.userId);
+      const { count: ownedHabits } = await ctx.db.from('habits').select('id', { count: 'exact', head: true }).in('id', habitIds).eq('user_id', ctx.userId);
+      if (ownedHabits !== new Set(habitIds).size) throw new Error('Habit not found');
       const { data, error } = await ctx.db.from('notes').upsert({
-        id: requireGlobalIdOptional(args.input.id, 'HabitNote') ?? crypto.randomUUID(),
+        id: noteId,
         user_id: ctx.userId,
         habit_id: primaryHabitId,
         habit_ids: habitIds,

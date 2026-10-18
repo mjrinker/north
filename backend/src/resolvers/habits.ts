@@ -4,8 +4,9 @@ import { toEntry, type EntryRow } from './entries.js';
 import { toNote, type NoteRow } from './notes.js';
 import { toGlobalId, requireGlobalId, requireGlobalIdOptional, encodeDependsOn, decodeDependsOn, toGlobalIds, decodeGlobalIds } from '../ids.js';
 import { runPage } from '../pagination.js';
+import { assertOwnedOrNew } from '../db.js';
 
-interface HabitRow {
+export interface HabitRow {
   id: string;
   user_id: string;
   title: string;
@@ -26,7 +27,7 @@ interface HabitRow {
   updated_at: string | null;
 }
 
-function toHabit(row: HabitRow) {
+export function toHabit(row: HabitRow) {
   return {
     id: toGlobalId('Habit', row.id),
     userId: toGlobalId('User', row.user_id),
@@ -161,7 +162,7 @@ export const habitResolvers = {
     notes: async (habit: { id: string }, args: { dateFrom?: string; dateTo?: string; limit?: number }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       const habitId = requireGlobalId(habit.id, 'Habit');
-      let query = ctx.db.from('notes').select('*').contains('habit_ids', [habitId]);
+      let query = ctx.db.from('notes').select('*').eq('user_id', ctx.userId).contains('habit_ids', [habitId]);
       if (args.dateFrom) query = query.gte('date', args.dateFrom);
       if (args.dateTo) query = query.lte('date', args.dateTo);
       query = query.order('created_at', { ascending: false });
@@ -304,6 +305,7 @@ export const habitResolvers = {
     upsertHabit: async (_: unknown, args: { id: string; input: Record<string, unknown> }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       const id = requireGlobalId(args.id, 'Habit');
+      await assertOwnedOrNew(ctx.db, 'habits', id, ctx.userId);
       const provided = args.input.linkedHabitIds !== undefined;
       const linkedIds = provided ? decodeGlobalIds(args.input.linkedHabitIds as string[] | null | undefined) : null;
       const row: Record<string, unknown> = {
