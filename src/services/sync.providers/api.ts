@@ -16,7 +16,7 @@ import { getLastSyncedAt } from '../syncState';
 const HABIT_FIELDS = `id title description type standard target unit schedule metadata dependsOn linkedHabitIds identityId tags status sortOrder createdAt updatedAt`;
 const ENTRY_FIELDS = `id habitId date value standardMet targetMet notes updatedAt`;
 const NOTE_FIELDS = `id habitId habitIds date content status createdAt`;
-const IDENTITY_FIELDS = `id name description goals`;
+const IDENTITY_FIELDS = `id name description goals createdAt`;
 
 function toDate(v: string | null | undefined): Date {
   return v ? new Date(v) : new Date();
@@ -119,7 +119,7 @@ function fromApiIdentity(i: any): Identity {
     name: i.name,
     description: i.description ?? undefined,
     goals: i.goals ?? [],
-    createdAt: new Date(),
+    createdAt: toDate(i.createdAt),
   };
 }
 
@@ -596,17 +596,62 @@ class ApiSyncProvider implements SyncProvider {
         } catch {}
       }
 
+      // Habits/entries/notes that exist only on the device were either created
+      // since the last sync (keep them, they're still on their way up) or
+      // deleted on the server / another device (drop them, or they'd be
+      // resurrected).
+      // The first refresh after this logic shipped can't trust that local-only
+      // records were ever uploaded, so it pushes them up instead of dropping.
+      const RECONCILED_KEY = 'north:reconciled-v1';
+      let reconciled = false;
+      try { reconciled = localStorage.getItem(RECONCILED_KEY) === '1'; } catch {}
+      const watermark = reconciled ? getLastSyncedAt() : null;
+      const watermarkMs = watermark ? new Date(watermark).getTime() : null;
+      const keepLocalOnly = (ts: Date | string | undefined) =>
+        watermarkMs == null || !ts || new Date(ts).getTime() > watermarkMs;
+      const serverHabitIds = new Set((data.habits ?? []).map((h: any) => decodeId(h.id)));
+      const serverEntryKeys = new Set((data.entries ?? []).map((e: any) => `${decodeId(e.habitId)}|${e.date}`));
+      // Identities are never dropped: until 2026-10 their upsert always failed
+      // server-side, so local-only identities are pushed up instead.
+      const serverIdentityIds = new Set((data.identities ?? []).map((i: any) => decodeId(i.id)));
+      const unsyncedIdentities = mergedIdentities.filter(i => !serverIdentityIds.has(i.id));
+      await Promise.allSettled(unsyncedIdentities.map(i => this.upsertIdentity(i)));
+      const serverNoteIds = new Set((data.notes ?? []).map((n: any) => decodeId(n.id)));
+      const keptHabits = mergedHabits.filter(h => serverHabitIds.has(h.id) || keepLocalOnly(h.updatedAt));
+      const keptEntries = mergedEntries.filter(e => serverEntryKeys.has(keyOf(e)) || keepLocalOnly(e.updatedAt));
+      const keptNotes = mergedNotes.filter(n => serverNoteIds.has(n.id) || keepLocalOnly(n.createdAt));
+      if (!reconciled) {
+        const localOnlyHabits = mergedHabits.filter(h => !serverHabitIds.has(h.id));
+        const habitResults = await Promise.allSettled(localOnlyHabits.map(h => this.upsertHabit(h)));
+        // Entries/notes whose habit no longer exists anywhere are orphans; skip them.
+        const knownHabitIds = new Set(mergedHabits.map(h => h.id));
+        const entryResults = await Promise.allSettled(
+          mergedEntries
+            .filter(e => !serverEntryKeys.has(keyOf(e)) && knownHabitIds.has(e.habitId))
+            .map(e => this.upsertEntry(e)),
+        );
+        const noteResults = await Promise.allSettled(
+          mergedNotes
+            .filter(n => !serverNoteIds.has(n.id) && n.status !== 'deleted')
+            .filter(n => (n.habitIds?.length ? n.habitIds : [n.habitId]).every(id => knownHabitIds.has(id)))
+            .map(n => this.upsertNote(n)),
+        );
+        const failed = [...habitResults, ...entryResults, ...noteResults].filter(r => r.status === 'rejected');
+        if (failed.length) console.error(`api reconcile: ${failed.length} local-only records failed to upload`);
+        else try { localStorage.setItem(RECONCILED_KEY, '1'); } catch {}
+      }
+
       // Rewrite the cache first (atomically per collection), then publish to
       // the stores so subscribers read a fully consistent IndexedDB.
-      await replaceAllHabits(mergedHabits);
-      await replaceAllEntries(mergedEntries);
+      await replaceAllHabits(keptHabits);
+      await replaceAllEntries(keptEntries);
       await replaceAllIdentities(mergedIdentities);
-      await replaceAllNotes(mergedNotes);
+      await replaceAllNotes(keptNotes);
 
-      habitsStore.set(mergedHabits);
-      entriesStore.set(mergedEntries);
+      habitsStore.set(keptHabits);
+      entriesStore.set(keptEntries);
       identitiesStore.set(mergedIdentities);
-      notesStore.set(mergedNotes);
+      notesStore.set(keptNotes);
 
       if (data.settings) {
         const s = get(appSettings);

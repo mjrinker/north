@@ -1,6 +1,7 @@
 import type { GraphQLContext } from '../context.js';
 import { toGlobalId, requireGlobalId } from '../ids.js';
 import { runPage } from '../pagination.js';
+import { assertOwnedOrNew } from '../db.js';
 
 interface IdentityRow {
   id: string;
@@ -8,6 +9,7 @@ interface IdentityRow {
   name: string;
   description: string | null;
   goals: string[] | null;
+  created_at: string | null;
 }
 
 function toIdentity(row: IdentityRow) {
@@ -17,6 +19,7 @@ function toIdentity(row: IdentityRow) {
     name: row.name,
     description: row.description,
     goals: row.goals ?? [],
+    createdAt: row.created_at,
   };
 }
 
@@ -77,13 +80,13 @@ export const identityResolvers = {
     upsertIdentity: async (_: unknown, args: { id: string; name: string; description?: string; goals?: string[] }, ctx: GraphQLContext) => {
       if (!ctx.userId) throw new Error('Unauthorized');
       const id = requireGlobalId(args.id, 'Identity');
+      await assertOwnedOrNew(ctx.db, 'identities', id, ctx.userId);
       const row = {
         id,
         user_id: ctx.userId,
         name: args.name,
         description: args.description ?? null,
         goals: args.goals ?? [],
-        updated_at: new Date().toISOString(),
       };
       const { data, error } = await ctx.db.from('identities').upsert(row, { onConflict: 'id' }).select('*').single();
       if (error) throw new Error(error.message);
