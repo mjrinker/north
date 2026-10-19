@@ -195,13 +195,33 @@
 
   let allHabitsById = $derived(new Map(allHabits.map(h => [h.id, h] as [string, Habit])));
 
+  // Searches every note on the device (content and the names of the habits it's
+  // linked to), newest first. Results render in pages so a long list stays fast.
+  const NOTE_PAGE = 50;
+  let noteLimit = $state(NOTE_PAGE);
+  let notesSearchActive = $derived(searchScope === 'notes' && !!searchQueryNorm);
   let matchingNotes = $derived.by(() => {
-    if (searchScope !== 'notes' || !searchQueryNorm) return [];
+    if (!notesSearchActive) return [];
     return allNotes
-      .filter(n => n.status !== 'deleted' && n.content.toLowerCase().includes(searchQueryNorm))
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 50);
+      .filter(n => {
+        if (n.status === 'deleted') return false;
+        if (n.content.toLowerCase().includes(searchQueryNorm)) return true;
+        const ids = n.habitIds?.length ? n.habitIds : [n.habitId];
+        return ids.some(id => allHabitsById.get(id)?.title.toLowerCase().includes(searchQueryNorm));
+      })
+      .sort((a, b) => b.date.localeCompare(a.date) || +new Date(b.createdAt) - +new Date(a.createdAt));
   });
+  let visibleNotes = $derived(matchingNotes.slice(0, noteLimit));
+
+  $effect(() => {
+    searchQueryNorm;
+    searchScope;
+    noteLimit = NOTE_PAGE;
+  });
+
+  function formatNoteDate(date: string): string {
+    return new Date(date + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: date.slice(0, 4) === today.slice(0, 4) ? undefined : 'numeric' });
+  }
 
   function focusSearch(scope: 'habits' | 'notes') {
     searchScope = scope;
@@ -696,22 +716,32 @@
     </div>
   </div>
 
-  {#if searchFocused}
+  {#if searchFocused || searchQueryNorm}
     <div class="segmented search-scope" role="group" aria-label="Search scope">
       <button type="button" class:active={searchScope === 'habits'} onclick={() => focusSearch('habits')}>Habits</button>
       <button type="button" class:active={searchScope === 'notes'} onclick={() => focusSearch('notes')}>Notes</button>
     </div>
   {/if}
 
-  {#if searchScope === 'notes' && searchFocused && matchingNotes.length > 0}
-    <div class="group note-results" role="listbox">
-      {#each matchingNotes as note (note.id)}
-        <button type="button" class="row note-result" role="option" aria-selected="false" onclick={() => openNoteResult(note)}>
-          <span class="nr-head"><span class="nr-title">{allHabitsById.get(note.habitId)?.title ?? 'Unknown habit'}</span><span class="nr-date">{note.date}</span></span>
-          <span class="nr-snippet">{note.content}</span>
+  {#if notesSearchActive}
+    {#if matchingNotes.length === 0}
+      <p class="empty">No notes match “{searchQuery}”.</p>
+    {:else}
+      <p class="results-count">{matchingNotes.length} note{matchingNotes.length === 1 ? '' : 's'}</p>
+      <div class="group note-results" role="listbox">
+        {#each visibleNotes as note (note.id)}
+          <button type="button" class="row note-result" role="option" aria-selected="false" onclick={() => openNoteResult(note)}>
+            <span class="nr-head"><span class="nr-title">{allHabitsById.get(note.habitId)?.title ?? 'Unknown habit'}</span><span class="nr-date">{formatNoteDate(note.date)}</span></span>
+            <span class="nr-snippet">{note.content}</span>
+          </button>
+        {/each}
+      </div>
+      {#if matchingNotes.length > visibleNotes.length}
+        <button class="btn btn-secondary btn-block show-more" onclick={() => noteLimit += NOTE_PAGE}>
+          Show {Math.min(NOTE_PAGE, matchingNotes.length - visibleNotes.length)} more
         </button>
-      {/each}
-    </div>
+      {/if}
+    {/if}
   {/if}
 
   {#snippet habitItem(habit: Habit, i: number, count: number)}
@@ -751,7 +781,9 @@
     </div>
   {/snippet}
 
-  {#if allHabits.length === 0}
+  {#if notesSearchActive}
+    <!-- note results shown above -->
+  {:else if allHabits.length === 0}
     <div class="first-run">
       <h2>Start with one habit</h2>
       <p>Pick something small enough to do on your worst day.</p>
@@ -816,7 +848,7 @@
     <p class="empty">No habits match “{searchQuery}”.</p>
   {/if}
 
-  {#if visiblePausedHabits.length > 0}
+  {#if visiblePausedHabits.length > 0 && !notesSearchActive}
     <section class="habit-group paused-section">
       <div class="group-head">
         <button class="group-toggle" onclick={() => pausedCollapsed = !pausedCollapsed} aria-expanded={!pausedCollapsed}>
@@ -1098,7 +1130,26 @@
   .nr-head { display: flex; justify-content: space-between; gap: var(--space-2); }
   .nr-title { font-weight: 600; }
   .nr-date { font-size: var(--text-sm); color: var(--text-3); }
-  .nr-snippet { font-size: var(--text-sm); color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nr-snippet {
+    font-size: var(--text-sm);
+    color: var(--text-2);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .results-count {
+    font-size: var(--text-sm);
+    color: var(--text-2);
+    padding: 0 var(--space-4);
+    margin-bottom: var(--space-2);
+  }
+
+  .show-more {
+    margin-bottom: var(--space-5);
+  }
 
   /* Groups */
   .habit-group {

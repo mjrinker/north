@@ -7,6 +7,20 @@
 
   let sheet = $state<HTMLDivElement | null>(null);
 
+  // Only a press that starts AND ends on the backdrop closes the sheet. A
+  // long-press that opens the sheet ends with a click on the backdrop that
+  // appeared under the finger; that release must not close it again.
+  let pressStartedOnScrim = false;
+
+  function onScrimPointerDown(e: PointerEvent) {
+    pressStartedOnScrim = e.target === e.currentTarget;
+  }
+
+  function onScrimClick(e: MouseEvent) {
+    if (pressStartedOnScrim && e.target === e.currentTarget) onClose();
+    pressStartedOnScrim = false;
+  }
+
   onMount(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -16,7 +30,7 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-<div class="scrim" onclick={onClose}>
+<div class="scrim" onpointerdown={onScrimPointerDown} onclick={onScrimClick}>
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
   <div class="sheet" class:wide bind:this={sheet} role="dialog" aria-modal="true" tabindex="-1"
     onclick={e => e.stopPropagation()}
