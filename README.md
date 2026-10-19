@@ -47,6 +47,8 @@ The app and the API are deployed as two Vercel projects from this repository: th
 
 ## Engineering notes
 
+A longer write-up covering the data model, sync protocol, API security and habit rules is in [docs/architecture.md](docs/architecture.md).
+
 **Offline-first sync.** IndexedDB is the source of truth for the UI, so every interaction is instant and works without a connection. Writes go to IndexedDB first and are then pushed to the API. Network failures land in a durable outbox (a separate IndexedDB database) that drains when connectivity returns. When the app regains focus or comes back online, it pulls a fresh snapshot and merges it with local data, last-write-wins per record (entries are keyed by habit + date). Each collection's cache is rewritten in a single IndexedDB transaction, so the UI never sees a half-written state. A sync watermark tells "created offline, not uploaded yet" apart from "deleted on another device", so deletions propagate without losing unsynced work.
 
 **API design.** A GraphQL API (GraphQL Yoga on Hono, running as a Vercel function) with Relay-style opaque global IDs, plus cursor and offset pagination with a stable tie-breaker so pages don't shift under concurrent writes. The API talks to Postgres with a service role, so authorization is enforced explicitly in every resolver: queries are scoped to the caller, and upserts refuse to touch rows owned by someone else. Sign-in verifies Google ID tokens against Google's published keys and issues the app's own signed session token. API keys resolve to a specific user, so external tools see exactly what the owner sees.
