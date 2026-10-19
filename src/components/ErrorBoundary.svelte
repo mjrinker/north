@@ -31,14 +31,22 @@
     e.preventDefault();
   }
 
+  // Unhandled rejections come from background work (sync, storage, network)
+  // that already falls back to cached data. iOS aborts that work when the app is
+  // suspended, so these are logged rather than replacing the whole app.
   function onRejection(e: PromiseRejectionEvent) {
     const r = e.reason;
-    const msg = r?.message || String(r || 'Unknown rejection');
+    const msg = describeError(r);
     lsLog('error', 'Unhandled rejection: ' + msg, r?.stack);
-    hasError = true;
-    errorMessage = msg;
-    errorStack = r?.stack;
+    console.error('Unhandled rejection:', msg, r);
     e.preventDefault();
+  }
+
+  function describeError(r: unknown): string {
+    if (r instanceof Error || r instanceof DOMException) {
+      return r.message && r.message !== r.name ? `${r.name}: ${r.message}` : r.name;
+    }
+    return String(r ?? 'Unknown rejection');
   }
 
   let copied = $state(false);

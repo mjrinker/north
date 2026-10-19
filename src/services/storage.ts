@@ -8,56 +8,72 @@ const DB_VERSION = 2;
 // Check if we are in a browser environment with indexedDB support
 const isBrowser = typeof window !== 'undefined' && window.indexedDB;
 
-async function getDB(): Promise<IDBPDatabase> {
-  if (!isBrowser) {
-    throw new Error('IndexedDB is not available in this environment');
+// One shared connection. iOS closes IndexedDB connections (and aborts their
+// in-flight transactions) when the app is suspended in the background, so a
+// dropped connection is forgotten and reopened, and an operation that fails
+// because of it is retried once on a fresh connection.
+let dbPromise: Promise<IDBPDatabase> | null = null;
+
+function getDB(): Promise<IDBPDatabase> {
+  if (!isBrowser) return Promise.reject(new Error('IndexedDB is not available in this environment'));
+  if (!dbPromise) {
+    dbPromise = openDB(DB_NAME, DB_VERSION, {
+      upgrade(db) {
+        for (const name of ['habits', 'entries', 'identities', 'notes']) {
+          if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: 'id' });
+        }
+      },
+      blocking() {
+        // Another tab needs a newer version: let it proceed.
+        void dbPromise?.then(db => db.close());
+        dbPromise = null;
+      },
+      terminated() {
+        dbPromise = null;
+      },
+    }).catch((e) => {
+      dbPromise = null;
+      throw e;
+    });
   }
-  return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains('habits')) {
-        db.createObjectStore('habits', { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains('entries')) {
-        db.createObjectStore('entries', { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains('identities')) {
-        db.createObjectStore('identities', { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains('notes')) {
-        db.createObjectStore('notes', { keyPath: 'id' });
-      }
-    },
-  });
+  return dbPromise;
+}
+
+const TRANSIENT = new Set(['AbortError', 'InvalidStateError', 'TransactionInactiveError', 'UnknownError']);
+
+async function withDB<T>(fn: (db: IDBPDatabase) => Promise<T>): Promise<T> {
+  try {
+    return await fn(await getDB());
+  } catch (e) {
+    if (!TRANSIENT.has((e as DOMException)?.name)) throw e;
+    dbPromise = null;
+    return await fn(await getDB());
+  }
 }
 
 async function idbPut<T>(storeName: string, value: T): Promise<void> {
   if (!isBrowser) return;
-  const db = await getDB();
-  await db.put(storeName, value);
+  await withDB(db => db.put(storeName, value));
 }
 
 async function idbGet<T>(storeName: string, id: string): Promise<T | undefined> {
   if (!isBrowser) return undefined;
-  const db = await getDB();
-  return await db.get(storeName, id);
+  return withDB(db => db.get(storeName, id));
 }
 
 async function idbGetAll<T>(storeName: string): Promise<T[]> {
   if (!isBrowser) return [];
-  const db = await getDB();
-  return await db.getAll(storeName);
+  return withDB(db => db.getAll(storeName));
 }
 
 async function idbDelete(storeName: string, id: string): Promise<void> {
   if (!isBrowser) return;
-  const db = await getDB();
-  await db.delete(storeName, id);
+  await withDB(db => db.delete(storeName, id));
 }
 
 async function idbClear(storeName: string): Promise<void> {
   if (!isBrowser) return;
-  const db = await getDB();
-  await db.clear(storeName);
+  await withDB(db => db.clear(storeName));
 }
 
 // Atomic replace: clear + bulk put inside a single readwrite transaction. If
@@ -65,14 +81,15 @@ async function idbClear(storeName: string): Promise<void> {
 // empty or partially written.
 async function idbReplaceAll<T>(storeName: string, values: T[]): Promise<void> {
   if (!isBrowser) return;
-  const db = await getDB();
-  const tx = db.transaction(storeName, 'readwrite');
-  const store = tx.objectStore(storeName);
-  await store.clear();
-  for (const value of values) {
-    await store.put(value);
-  }
-  await tx.done;
+  await withDB(async db => {
+    const tx = db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    await store.clear();
+    for (const value of values) {
+      await store.put(value);
+    }
+    await tx.done;
+  });
 }
 
 // --- Habit methods ---
@@ -118,11 +135,7 @@ export async function replaceAllEntries(entries: HabitEntry[]): Promise<void> {
 }
 
 export async function getEntry(habitId: string, date: string): Promise<HabitEntry | undefined> {
-  if (!isBrowser) return undefined;
-  const db = await getDB();
-  const tx = db.transaction('entries', 'readonly');
-  const store = tx.objectStore('entries');
-  const all = await store.getAll();
+  const all = await idbGetAll<HabitEntry>('entries');
   return all.find(e => e.habitId === habitId && e.date === date);
 }
 
@@ -131,20 +144,12 @@ export async function getAllEntries(): Promise<HabitEntry[]> {
 }
 
 export async function getEntriesByHabitId(habitId: string): Promise<HabitEntry[]> {
-  if (!isBrowser) return [];
-  const db = await getDB();
-  const tx = db.transaction('entries', 'readonly');
-  const store = tx.objectStore('entries');
-  const all = await store.getAll();
+  const all = await idbGetAll<HabitEntry>('entries');
   return all.filter(e => e.habitId === habitId);
 }
 
 export async function getEntriesByDateRange(start: string, end: string): Promise<HabitEntry[]> {
-  if (!isBrowser) return [];
-  const db = await getDB();
-  const tx = db.transaction('entries', 'readonly');
-  const store = tx.objectStore('entries');
-  const all = await store.getAll();
+  const all = await idbGetAll<HabitEntry>('entries');
   return all.filter(e => e.date >= start && e.date <= end);
 }
 
@@ -156,10 +161,7 @@ export interface EntriesRangeMeta {
 
 export async function getEntriesByDateRangeMeta(start: string, end: string): Promise<EntriesRangeMeta> {
   if (!isBrowser) return { entries: [], earliestDate: null, latestDate: null };
-  const db = await getDB();
-  const tx = db.transaction('entries', 'readonly');
-  const store = tx.objectStore('entries');
-  const all = await store.getAll();
+  const all = await idbGetAll<HabitEntry>('entries');
   let earliestDate: string | null = null;
   let latestDate: string | null = null;
   for (const e of all) {
@@ -212,11 +214,7 @@ export async function replaceAllNotes(notes: HabitNote[]): Promise<void> {
 }
 
 export async function getNotesByHabitDate(habitId: string, date: string): Promise<HabitNote[]> {
-  if (!isBrowser) return [];
-  const db = await getDB();
-  const tx = db.transaction('notes', 'readonly');
-  const store = tx.objectStore('notes');
-  const all = await store.getAll();
+  const all = await idbGetAll<HabitNote>('notes');
   return all
     .filter(n => {
       const linked = n.habitIds && n.habitIds.length ? n.habitIds.includes(habitId) : n.habitId === habitId;

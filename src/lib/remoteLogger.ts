@@ -166,8 +166,9 @@ export function initRemoteLogger(): void {
 
   window.addEventListener('unhandledrejection', (e) => {
     const reason = e.reason
-    const msg = reason?.message || String(reason || 'Unknown rejection')
-    enqueue('error', [`Unhandled rejection: ${msg}`])
+    const name = reason?.name && reason.name !== 'Error' ? `${reason.name}: ` : ''
+    const msg = name + (reason?.message || String(reason || 'Unknown rejection'))
+    enqueue('error', [`Unhandled rejection: ${msg}`, reason?.stack ?? ''])
   })
 
   window.addEventListener('beforeunload', () => {

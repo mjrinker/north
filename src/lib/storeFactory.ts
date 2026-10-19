@@ -8,7 +8,7 @@ export function createStore<T extends { id: string }>(
   const store: Writable<T[]> = writable([]);
 
   if (typeof window !== 'undefined') {
-    getAll().then(data => store.set(data));
+    getAll().then(data => store.set(data)).catch(e => console.error('Initial load failed:', e));
   }
 
   return {

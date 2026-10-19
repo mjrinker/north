@@ -16,21 +16,46 @@ const DB_NAME = 'north_outbox';
 const STORE = 'outbox';
 const isBrowser = typeof window !== 'undefined' && window.indexedDB;
 
-async function getDB(): Promise<IDBPDatabase> {
-  if (!isBrowser) throw new Error('IndexedDB is not available');
-  return openDB(DB_NAME, 1, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE, { keyPath: 'seq', autoIncrement: true });
-      }
-    },
-  });
+// Shared connection, reopened if iOS closes it while the app is suspended.
+let dbPromise: Promise<IDBPDatabase> | null = null;
+
+function getDB(): Promise<IDBPDatabase> {
+  if (!isBrowser) return Promise.reject(new Error('IndexedDB is not available'));
+  if (!dbPromise) {
+    dbPromise = openDB(DB_NAME, 1, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains(STORE)) {
+          db.createObjectStore(STORE, { keyPath: 'seq', autoIncrement: true });
+        }
+      },
+      blocking() {
+        void dbPromise?.then(db => db.close());
+        dbPromise = null;
+      },
+      terminated() {
+        dbPromise = null;
+      },
+    }).catch((e) => {
+      dbPromise = null;
+      throw e;
+    });
+  }
+  return dbPromise;
+}
+
+async function withDB<T>(fn: (db: IDBPDatabase) => Promise<T>): Promise<T> {
+  try {
+    return await fn(await getDB());
+  } catch (e) {
+    if (!['AbortError', 'InvalidStateError', 'TransactionInactiveError', 'UnknownError'].includes((e as DOMException)?.name)) throw e;
+    dbPromise = null;
+    return await fn(await getDB());
+  }
 }
 
 export async function enqueue(item: OutboxItem): Promise<void> {
   try {
-    const db = await getDB();
-    await db.add(STORE, item);
+    await withDB(db => db.add(STORE, item));
   } catch (e) {
     console.error('outbox enqueue failed:', e);
   }
@@ -39,8 +64,7 @@ export async function enqueue(item: OutboxItem): Promise<void> {
 export async function dequePending(): Promise<OutboxItem[]> {
   if (!isBrowser) return [];
   try {
-    const db = await getDB();
-    return await db.getAll(STORE);
+    return await withDB(db => db.getAll(STORE));
   } catch {
     return [];
   }
@@ -48,8 +72,7 @@ export async function dequePending(): Promise<OutboxItem[]> {
 
 export async function dequeue(seq: number): Promise<void> {
   try {
-    const db = await getDB();
-    await db.delete(STORE, seq);
+    await withDB(db => db.delete(STORE, seq));
   } catch {}
 }
 
@@ -65,8 +88,7 @@ export async function hasPending(): Promise<boolean> {
 export async function pendingCount(): Promise<number> {
   if (!isBrowser) return 0;
   try {
-    const db = await getDB();
-    return (await db.count(STORE)) || 0;
+    return (await withDB(db => db.count(STORE))) || 0;
   } catch {
     return 0;
   }
@@ -75,7 +97,6 @@ export async function pendingCount(): Promise<number> {
 export async function clearOutbox(): Promise<void> {
   if (!isBrowser) return;
   try {
-    const db = await getDB();
-    await db.clear(STORE);
+    await withDB(db => db.clear(STORE));
   } catch {}
 }
