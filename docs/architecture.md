@@ -102,7 +102,7 @@ These rules are implemented on the client in `src/lib/thresholds.ts` and mirrore
 - Timed habits store values in seconds.
 - The **day rollover time** (default midnight) shifts which calendar day "today" is, so a late-night log can count toward the previous day.
 - **Streaks:** build habits count consecutive days that met the minimum; today doesn't break the streak until it's over. Break habits keep their streak through unlogged days and reset only on a logged day that went over the limit. Days-per-week habits count consecutive weeks that hit the weekly target.
-- **Completion rate** (Stats) covers the last 30 days, measured from each habit's start (its creation date or first entry, whichever is earlier). Days-per-week habits are scored against their weekly target, and break habits count a day as done unless a logged value went over the limit.
+- **Completion rate** (Stats) covers the selected range (7, 30 or 90 days, 12 months, or all time; 30 days by default), measured from each habit's start (its creation date or first entry, whichever is earlier). Days-per-week habits are scored against their weekly target, and break habits count a day as done unless a logged value went over the limit.
 
 ## Integrations
 

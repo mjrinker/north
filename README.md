@@ -18,7 +18,7 @@ North is a habit tracker built around a simple idea: you become who you want to 
 - **Habit relationships.** *Conditional* habits complete themselves when the habits they depend on are done. *Linked* habits share one log, so a single entry counts toward each.
 - **Built-in timer** for timed habits, plus quick-step buttons and a drag-to-adjust ring for fast logging.
 - **History and backfill.** Edit any past day from a scrollable grid, or fill in a range of days with conditions (skip weekends, only on days another habit was done, and so on).
-- **Stats.** 30-day completion, a per-day breakdown, a 15-week activity heatmap, streaks and per-habit rates.
+- **Stats.** Completion over 7 days, 30 days, 90 days, a year or all time, with a day, week or month breakdown, a 15-week activity heatmap, streaks and per-habit rates.
 - **Notes** attached to one or more habits on a given day, with Markdown and search.
 - **Accountability partners.** Invite someone with a link, choose which habits they can see, and view theirs.
 - **Automation.** Per-user API keys for iOS Shortcuts and other tools, and per-habit webhooks and Shortcut triggers that fire when you log, hit your minimum or reach your stretch goal.

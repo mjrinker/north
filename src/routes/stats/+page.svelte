@@ -2,7 +2,7 @@
   import { habitsStore } from '../../stores/habits';
   import { entriesStore } from '../../stores/entries';
   import type { Habit, HabitEntry } from '../../types';
-  import { computeHabitStats, computeGlobalStats, getLastNDays, buildHeatmapData, RATE_WINDOW_DAYS, type DailyRate } from '../../services/analytics';
+  import { computeHabitStats, computeGlobalStats, getLastNDays, buildHeatmapData, rangeDays, bucketDaily, type StatsRange, type RateBucket } from '../../services/analytics';
   import Heatmap from '../../components/Heatmap.svelte';
   import Icon from '@iconify/svelte';
 
@@ -18,9 +18,39 @@
 
   let selectedHabitId = $state<string>('all');
 
+  const RANGES: { value: StatsRange; short: string; label: string }[] = [
+    { value: 7, short: '7D', label: 'Last 7 days' },
+    { value: 30, short: '30D', label: 'Last 30 days' },
+    { value: 90, short: '90D', label: 'Last 90 days' },
+    { value: 365, short: '1Y', label: 'Last 12 months' },
+    { value: null, short: 'All', label: 'All time' },
+  ];
+
+  // Remembered per device; falls back to 30 days.
+  let range = $state<StatsRange>((() => {
+    try {
+      const saved = localStorage.getItem('statsRange');
+      if (saved === 'all') return null;
+      const n = Number(saved);
+      if (RANGES.some(r => r.value === n)) return n as StatsRange;
+    } catch {}
+    return 30;
+  })());
+
+  $effect(() => {
+    try { localStorage.setItem('statsRange', range == null ? 'all' : String(range)); } catch {}
+  });
+
+  let rangeLabel = $derived(RANGES.find(r => r.value === range)!.label);
+  let rangeWindow = $derived(rangeDays(habits, entries, range));
+
   let days = $derived(getLastNDays(7 * 15));
-  let globalStats = $derived(computeGlobalStats(habits, entries));
-  let habitStatsList = $derived(habits.map(h => computeHabitStats(h, entries)).sort((a, b) => b.completionRate - a.completionRate));
+  let globalStats = $derived(computeGlobalStats(habits, entries, rangeWindow));
+  let habitStatsList = $derived(habits.map(h => computeHabitStats(h, entries, rangeWindow)).sort((a, b) => b.completionRate - a.completionRate));
+
+  // Up to ~5 weeks shows a bar per day; up to ~6 months, per week; longer, per month.
+  let bucketSize = $derived<'day' | 'week' | 'month'>(rangeWindow.length <= 35 ? 'day' : rangeWindow.length <= 190 ? 'week' : 'month');
+  let bars = $derived(bucketDaily(globalStats.daily, bucketSize));
 
   let heatmapData = $derived(buildHeatmapData(entries, days, selectedHabitId === 'all' ? undefined : selectedHabitId));
   let heatmapMax = $derived(selectedHabitId === 'all' ? Math.max(habits.length, 1) : 1);
@@ -33,7 +63,18 @@
     return new Date(date + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
-  let activeBar = $state<DailyRate | null>(null);
+  let activeBar = $state<RateBucket | null>(null);
+
+  function fmtBucket(b: RateBucket): string {
+    if (bucketSize === 'day') return fmtDay(b.start);
+    if (bucketSize === 'month') {
+      const d = new Date(b.start + 'T12:00:00');
+      return d.toLocaleDateString(undefined, { month: 'long', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+    }
+    return `${fmtDay(b.start)} – ${fmtDay(b.end)}`;
+  }
+
+  let currentBucketLabel = $derived(bucketSize === 'day' ? 'Today' : bucketSize === 'week' ? 'This week' : 'This month');
 
   function streakUnit(h: Habit, n: number) {
     const unit = h.schedule.daysPerWeek ? 'week' : 'day';
@@ -44,6 +85,14 @@
 <div class="page stats">
   <h1 class="page-title">Stats</h1>
 
+  {#if habits.length > 0}
+    <div class="segmented range" role="radiogroup" aria-label="Time range">
+      {#each RANGES as r (r.short)}
+        <button role="radio" aria-checked={range === r.value} aria-label={r.label} class:active={range === r.value} onclick={() => { range = r.value; activeBar = null; }}>{r.short}</button>
+      {/each}
+    </div>
+  {/if}
+
   {#if habits.length === 0}
     <div class="empty">
       <p>Stats show up once you’ve added a habit and logged a few days.</p>
@@ -51,35 +100,35 @@
     </div>
   {:else}
     <section class="group hero">
-      <div class="hero-label">Last {RATE_WINDOW_DAYS} days</div>
+      <div class="hero-label">{rangeLabel}</div>
       <div class="hero-row">
         <span class="hero-num tabular">{pct(globalStats.averageCompletionRate)}</span>
         <span class="hero-caption">
           {#if activeBar}
-            <strong>{fmtDay(activeBar.date)}</strong> · {activeBar.met} of {activeBar.total} habits
+            <strong>{fmtBucket(activeBar)}</strong> · {activeBar.total ? Math.round((activeBar.met / activeBar.total) * 100) : 0}%{#if bucketSize === 'day'} ({activeBar.met} of {activeBar.total}){/if}
           {:else}
-            of habits done, day by day
+            of habits done, {bucketSize === 'day' ? 'day by day' : bucketSize === 'week' ? 'week by week' : 'month by month'}
           {/if}
         </span>
       </div>
-      <div class="bars" role="img" aria-label="Share of habits done each day for the last {RATE_WINDOW_DAYS} days" onpointerleave={() => activeBar = null}>
-        {#each globalStats.daily as d (d.date)}
-          {@const r = d.total ? d.met / d.total : 0}
+      <div class="bars" style="--n: {bars.length}" role="img" aria-label="Share of habits done per {bucketSize}, {rangeLabel.toLowerCase()}" onpointerleave={() => activeBar = null}>
+        {#each bars as b (b.start)}
+          {@const r = b.total ? b.met / b.total : 0}
           <button
             type="button"
             class="bar-hit"
-            class:active={activeBar?.date === d.date}
-            onpointerenter={() => activeBar = d}
-            onclick={() => activeBar = d}
-            aria-label="{fmtDay(d.date)}: {d.met} of {d.total}"
+            class:active={activeBar?.start === b.start}
+            onpointerenter={() => activeBar = b}
+            onclick={() => activeBar = b}
+            aria-label="{fmtBucket(b)}: {Math.round(r * 100)}%"
           >
             <span class="bar" style="height: {Math.max(r * 100, r > 0 ? 4 : 0)}%"></span>
           </button>
         {/each}
       </div>
       <div class="bars-axis">
-        <span>{fmtDay(globalStats.daily[0]?.date ?? '')}</span>
-        <span>Today</span>
+        <span>{bars[0] ? fmtBucket(bars[0]).split(' – ')[0] : ''}</span>
+        <span>{currentBucketLabel}</span>
       </div>
     </section>
 
@@ -133,7 +182,7 @@
         </div>
       {/each}
     </div>
-    <p class="section-footnote">Rates cover the last {RATE_WINDOW_DAYS} days, counted from when each habit started. Habits you’re breaking count a day as done unless you went over the limit.</p>
+    <p class="section-footnote">Rates cover {rangeLabel.toLowerCase()}, counted from when each habit started. Streaks always use your full history. Habits you’re breaking count a day as done unless you went over the limit.</p>
   {/if}
 </div>
 
@@ -173,9 +222,13 @@
   }
 
   /* 30 thin bars, rounded tops, 2px gaps, anchored to a baseline */
+  .range {
+    margin-bottom: var(--space-4);
+  }
+
   .bars {
     display: grid;
-    grid-template-columns: repeat(30, 1fr);
+    grid-template-columns: repeat(var(--n), 1fr);
     height: 88px;
     border-bottom: 1px solid var(--separator-strong);
   }

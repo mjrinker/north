@@ -29,6 +29,57 @@ export interface GlobalStats {
 
 export const RATE_WINDOW_DAYS = 30;
 
+// Days in a stats range; `null` means all time (from the earliest habit start).
+export type StatsRange = 7 | 30 | 90 | 365 | null;
+
+const MAX_ALL_TIME_DAYS = 3660;
+
+export function rangeDays(habits: Habit[], entries: HabitEntry[], range: StatsRange): string[] {
+  if (range != null) return getLastNDays(range);
+  const today = getLocalDateString();
+  let earliest = today;
+  for (const h of habits) {
+    const created = dateOnly(h.createdAt);
+    if (created && created < earliest) earliest = created;
+  }
+  for (const e of entries) if (e.date < earliest) earliest = e.date;
+  const span = Math.round((new Date(today + 'T12:00:00').getTime() - new Date(earliest + 'T12:00:00').getTime()) / 86400000) + 1;
+  return getLastNDays(Math.min(Math.max(span, 1), MAX_ALL_TIME_DAYS));
+}
+
+export interface RateBucket {
+  start: string;
+  end: string;
+  met: number;
+  total: number;
+}
+
+// Groups the per-day series into `size` buckets: 'day', calendar 'week'
+// (starting `startOfWeek`) or calendar 'month'. Each bucket sums met/total.
+export function bucketDaily(daily: DailyRate[], size: 'day' | 'week' | 'month', startOfWeek = 1): RateBucket[] {
+  const buckets: RateBucket[] = [];
+  const keyOf = (date: string) => {
+    if (size === 'day') return date;
+    if (size === 'month') return date.slice(0, 7);
+    const d = new Date(date + 'T12:00:00');
+    d.setDate(d.getDate() - ((d.getDay() - startOfWeek + 7) % 7));
+    return d.toISOString().slice(0, 10);
+  };
+  let lastKey = '';
+  for (const d of daily) {
+    const key = keyOf(d.date);
+    if (key !== lastKey || buckets.length === 0) {
+      buckets.push({ start: d.date, end: d.date, met: 0, total: 0 });
+      lastKey = key;
+    }
+    const b = buckets[buckets.length - 1];
+    b.end = d.date;
+    b.met += d.met;
+    b.total += d.total;
+  }
+  return buckets;
+}
+
 function dateOnly(d: Date | string | undefined): string | null {
   if (!d) return null;
   const dt = new Date(d);
@@ -65,7 +116,7 @@ function windowRate(habit: Habit, habitEntries: HabitEntry[], window: string[]):
   return Math.min(1, hits / expected);
 }
 
-export function computeHabitStats(habit: Habit, entries: HabitEntry[]): HabitStats {
+export function computeHabitStats(habit: Habit, entries: HabitEntry[], window: string[] = getLastNDays(RATE_WINDOW_DAYS)): HabitStats {
   const habitEntries = entries.filter(e => e.habitId === habit.id);
   const standardMetCount = habitEntries.filter(e => e.standardMet).length;
   const targetMetCount = habitEntries.filter(e => e.targetMet).length;
@@ -86,17 +137,16 @@ export function computeHabitStats(habit: Habit, entries: HabitEntry[]): HabitSta
     totalEntries: habitEntries.length,
     standardMetCount,
     targetMetCount,
-    completionRate: windowRate(habit, habitEntries, getLastNDays(RATE_WINDOW_DAYS)),
+    completionRate: windowRate(habit, habitEntries, window),
     currentStreak,
     longestStreak,
     bestDay,
   };
 }
 
-export function computeGlobalStats(habits: Habit[], entries: HabitEntry[]): GlobalStats {
-  const stats = habits.map(h => computeHabitStats(h, entries));
+export function computeGlobalStats(habits: Habit[], entries: HabitEntry[], window: string[] = getLastNDays(RATE_WINDOW_DAYS)): GlobalStats {
+  const stats = habits.map(h => computeHabitStats(h, entries, window));
   const totalCompletions = stats.reduce((s, h) => s + h.standardMetCount, 0);
-  const window = getLastNDays(RATE_WINDOW_DAYS);
 
   const entriesByHabit = new Map<string, Map<string, HabitEntry>>();
   for (const e of entries) {
