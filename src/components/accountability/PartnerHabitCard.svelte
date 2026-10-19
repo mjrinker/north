@@ -16,7 +16,7 @@
   let unitLabel = $derived(habit.unit ? pluralizeUnit(habit.unit, Math.round(todayEntry?.value ?? 0)) : '');
 
   let value = $derived(todayEntry?.value ?? 0);
-  let progress = $derived(habit.type === 'binary' ? (value === 1 && !isBreakHabit ? 1 : 0) : Math.min(1, progressPercentage(habit, value)));
+  let progress = $derived(habit.type === 'binary' ? (isBreakHabit ? (value === 1 ? 0 : 1) : (value === 1 ? 1 : 0)) : Math.min(1, progressPercentage(habit, value)));
   let goalText = $derived(habit.type === 'binary' ? '' : `${isBreakHabit ? 'Under' : 'Goal'} ${habit.type === 'duration' ? formatDurationLabel(habit.standard) : habit.standard}${habit.type === 'quantity' && habit.unit ? ' ' + pluralizeUnit(habit.unit, habit.standard) : ''}`);
   const RING_C = 2 * Math.PI * 17;
 
@@ -53,8 +53,10 @@
   </div>
   <div class="value tabular" class:met={standardMet} class:target={targetMet}>
     {#if habit.type === 'binary'}
-      {#if value === 1}
-        <span class="check" class:break={isBreakHabit}><Icon icon={isBreakHabit ? 'mdi:close' : 'mdi:check'} /></span>
+      {#if isBreakHabit}
+        <span class="check" class:break={value === 1}><Icon icon={value === 1 ? 'mdi:close' : 'mdi:check'} /></span>
+      {:else if value === 1}
+        <span class="check"><Icon icon="mdi:check" /></span>
       {:else}
         <span class="not-done">Not yet</span>
       {/if}

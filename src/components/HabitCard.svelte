@@ -125,11 +125,12 @@
   // Ring fill: share of the standard reached (binary = done or not).
   let liveValue = $derived(habit.type === 'duration' && timerState.running ? timerState.elapsed : (todayEntry?.value ?? 0));
   let progress = $derived.by(() => {
-    if (habit.type === 'binary') return todayEntry?.value === 1 && !isBreakHabit ? 1 : 0;
+    // Binary break habits are kept by default, so they read as done until a slip is logged.
+    if (habit.type === 'binary') return isBreakHabit ? (todayEntry?.value === 1 ? 0 : 1) : (todayEntry?.value === 1 ? 1 : 0);
     if (isBreakHabit) return todayEntry ? Math.min(1, progressPercentage(habit, liveValue)) : 0;
     return Math.min(1, progressPercentage(habit, liveValue));
   });
-  let slipped = $derived(isBreakHabit && todayEntry != null && !metStandard(habit, todayEntry.value) && (habit.type !== 'binary' || todayEntry.value === 1));
+  let slipped = $derived(isBreakHabit && todayEntry != null && !metStandard(habit, todayEntry.value));
   const RING_C = 2 * Math.PI * 17;
 
   let progressText = $derived.by(() => {
@@ -379,10 +380,14 @@
 
   <div class="control" onclick={(e) => e.stopPropagation()} role="presentation">
     {#if habit.type === 'binary'}
-      <label class="check" class:on={todayEntry?.value === 1} class:break={isBreakHabit} aria-label={todayEntry?.value === 1 ? 'Mark not done' : 'Mark done'}>
-        <input type="checkbox" checked={todayEntry?.value === 1} onchange={handleBinaryChange} disabled={isAutoCompleted} onmousedown={(e) => e.preventDefault()} />
-        {#if todayEntry?.value === 1}
-          <Icon icon={isBreakHabit ? 'mdi:close' : 'mdi:check'} />
+      {@const logged = todayEntry?.value === 1}
+      <label class="check" class:on={isBreakHabit || logged} class:break={isBreakHabit && logged}
+        aria-label={isBreakHabit ? (logged ? 'Undo slip' : 'Log a slip') : (logged ? 'Mark not done' : 'Mark done')}>
+        <input type="checkbox" checked={logged} onchange={handleBinaryChange} disabled={isAutoCompleted} onmousedown={(e) => e.preventDefault()} />
+        {#if isBreakHabit}
+          <Icon icon={logged ? 'mdi:close' : 'mdi:check'} />
+        {:else if logged}
+          <Icon icon="mdi:check" />
         {/if}
       </label>
     {:else if habit.type === 'quantity'}

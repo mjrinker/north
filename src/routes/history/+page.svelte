@@ -364,8 +364,11 @@ import { sortHabitsForMode, loadSortMode } from '../../lib/habitUtils';
                 {@const entry = getDayEntry(habit.id, date)}
                 <td class="day-cell {cellClass(entry)}" class:today={isToday(date)}>
                   {#if habit.type === 'binary'}
-                    <label class="dot" class:on={entry?.value === 1} class:break={habit.metadata?.category === 'break'}>
-                      <input type="checkbox" checked={entry?.value === 1} onchange={() => handleBinary(habit, date)} aria-label="{habit.title}, {date}" />
+                    {@const isBreak = habit.metadata?.category === 'break'}
+                    {@const logged = entry?.value === 1}
+                    <label class="dot" class:on={isBreak || logged} class:break={isBreak && logged}>
+                      <input type="checkbox" checked={logged} onchange={() => handleBinary(habit, date)} aria-label="{habit.title}, {date}{isBreak ? (logged ? ', slipped' : ', kept') : ''}" />
+                      {#if isBreak}<Icon icon={logged ? 'mdi:close' : 'mdi:check'} />{/if}
                     </label>
                   {:else}
                     <button class="cell-btn tabular"
@@ -617,6 +620,15 @@ import { sortHabitsForMode, loadSortMode } from '../../lib/habitUtils';
   .dot.on {
     background: var(--habit);
     border-color: var(--habit);
+  }
+
+  .dot :global(svg) {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    color: #fff;
+    font-size: 15px;
+    pointer-events: none;
   }
 
   .dot.on.break {

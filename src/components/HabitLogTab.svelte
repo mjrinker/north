@@ -23,6 +23,7 @@
   });
 
   let standardMet = $derived(isStandardMet(habit, entryValue));
+  let isBreak = $derived(habit.metadata?.category === 'break');
   let unitLabel = $derived(habit.unit ? pluralizeUnit(habit.unit, Math.round(entryValue)) : '');
 
   // Progress ring: a full revolution = the standard goal.
@@ -210,13 +211,16 @@
   {#if habit.type === 'binary'}
     <button
       class="dial binary"
-      class:checked={entryValue === 1}
+      class:checked={isBreak || entryValue === 1}
+      class:slip={isBreak && entryValue === 1}
       class:met={standardMet}
       class:empty={entryValue === 0}
       onclick={toggleBinary}
-      aria-label={entryValue === 1 ? 'Mark not done' : 'Mark done'}
+      aria-label={isBreak ? (entryValue === 1 ? 'Undo slip' : 'Log a slip') : (entryValue === 1 ? 'Mark not done' : 'Mark done')}
     >
-      {#if entryValue === 1}
+      {#if isBreak}
+        <Icon icon={entryValue === 1 ? 'mdi:close' : 'mdi:check'} />
+      {:else if entryValue === 1}
         <Icon icon="mdi:check" />
       {/if}
     </button>
@@ -410,6 +414,11 @@
   .dial.binary.checked {
     background: var(--habit);
     border-color: var(--habit);
+  }
+
+  .dial.binary.slip {
+    background: var(--danger);
+    border-color: var(--danger);
   }
 
   .dial.binary :global(svg) {

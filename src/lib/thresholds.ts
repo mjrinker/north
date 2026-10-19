@@ -4,7 +4,8 @@
 //  - Build habits (quantity/duration): met when value >= threshold; standard < target.
 //  - Break habits (quantity/duration): met when value <= threshold (i.e. NOT exceeded);
 //    target is the stricter ceiling and standard the looser one, so standard > target.
-//  - Binary habits: value is 0/1, met when value >= standard; thresholds are inert.
+//  - Binary habits: value is 0/1 and thresholds are ignored. Build: met when checked
+//    (value 1). Break: value 1 logs a slip, so the day is met unless a slip is logged.
 
 import type { Habit } from '../types';
 
@@ -14,6 +15,7 @@ export function isBreakInverted(habit: Pick<Habit, 'type' | 'metadata'>): boolea
 }
 
 export function isStandardMet(habit: Pick<Habit, 'type' | 'metadata' | 'standard'>, value: number): boolean {
+  if (habit.type === 'binary') return habit.metadata?.category === 'break' ? value < 1 : value >= 1;
   if (isBreakInverted(habit)) return value <= (habit.standard ?? 0);
   return value >= (habit.standard ?? 0);
 }
@@ -22,7 +24,7 @@ export function isTargetMet(
   habit: Pick<Habit, 'type' | 'metadata' | 'standard' | 'target'>,
   value: number,
 ): boolean {
-  if (habit.target === undefined || habit.target === null) return false;
+  if (habit.type === 'binary' || habit.target === undefined || habit.target === null) return false;
   if (isBreakInverted(habit)) return value <= habit.target;
   return value >= habit.target;
 }

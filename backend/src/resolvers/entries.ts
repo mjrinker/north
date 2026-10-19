@@ -35,10 +35,14 @@ interface ThresholdHabit {
 }
 
 // Mirrors the client's threshold semantics (src/lib/thresholds.ts): build habits
-// are met at value >= threshold, break habits are met at value <= threshold, and
-// binary habits are met when value >= standard.
+// are met at value >= threshold and break habits at value <= threshold. Binary
+// habits ignore thresholds: build is met when checked (1), break is met unless a
+// slip (1) is logged.
 export function computeMet(habit: ThresholdHabit, value: number) {
   const type = habit?.type ?? 'binary';
+  if (type === 'binary') {
+    return { standardMet: habit?.metadata?.category === 'break' ? value < 1 : value >= 1, targetMet: false };
+  }
   const standard = habit?.standard ?? 0;
   const target = habit?.target ?? null;
   const breakInverted = type !== 'binary' && habit?.metadata?.category === 'break';
