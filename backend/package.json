@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
+    "dev": "vercel dev",
     "build": "tsc",
     "start": "node dist/backend/src/index.js"
   },
