@@ -62,8 +62,28 @@ app.all('/graphql', async (c) => {
 
 app.notFound((c) => c.json({ ok: false, error: 'not_found', path: c.req.path }, 404));
 
-export const GET = handle(app);
-export const POST = handle(app);
-export const OPTIONS = handle(app);
+// vercel.json rewrites every path to this file and passes the original path as
+// `__path`. Depending on the runtime, the function sees either the original URL
+// or the rewritten one (/src/index.ts), so restore the original before routing.
+export async function restoreOriginalPath(req: Request): Promise<Request> {
+  const url = new URL(req.url);
+  const original = url.searchParams.get('__path');
+  if (original === null && url.pathname !== '/src/index.ts') return req;
+  url.searchParams.delete('__path');
+  url.pathname = original !== null ? '/' + original.replace(/^\/+/, '') : '/graphql';
+  const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
+  return new Request(url.toString(), {
+    method: req.method,
+    headers: req.headers,
+    body: hasBody ? await req.arrayBuffer() : undefined,
+  });
+}
+
+const handler = handle(app);
+const vercelHandler = async (req: Request) => handler(await restoreOriginalPath(req));
+
+export const GET = vercelHandler;
+export const POST = vercelHandler;
+export const OPTIONS = vercelHandler;
 
 export const config = { runtime: 'nodejs' };

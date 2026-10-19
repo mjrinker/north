@@ -3,5 +3,5 @@
   "functions": {
     "src/index.ts": { "maxDuration": 10 }
   },
-  "rewrites": [{ "source": "/(.*)", "destination": "/src/index.ts" }]
+  "rewrites": [{ "source": "/:path*", "destination": "/src/index.ts?__path=:path*" }]
 }
