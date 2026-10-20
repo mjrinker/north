@@ -12,6 +12,7 @@
   import { isStandardMet } from '../lib/thresholds';
   import { fireHabitStart } from '../services/webhooks';
   import ProgressRing from './ProgressRing.svelte';
+  import { habitColorVars } from '../lib/color';
 
   let { habit, date = getLocalDateString() }: { habit: Habit; date?: string } = $props();
 
@@ -207,7 +208,7 @@
   function pad(n: number): string { return String(n).padStart(2, '0'); }
 </script>
 
-<div class="log-tab" style="--habit: {habit.metadata?.color || 'var(--accent)'}">
+<div class="log-tab" style={habitColorVars(habit.metadata?.color)}>
   {#if habit.type === 'binary'}
     <button
       class="dial binary"
@@ -365,7 +366,7 @@
   }
 
   .dial.met {
-    color: var(--habit);
+    color: var(--habit-ink);
   }
 
   .dial-num {
@@ -423,6 +424,10 @@
 
   .dial.binary :global(svg) {
     font-size: 96px;
+    color: var(--habit-on);
+  }
+
+  .dial.binary.slip :global(svg) {
     color: #fff;
   }
 
@@ -448,7 +453,7 @@
   }
 
   .dial-actions .act.play,
-  .dial-actions .act.pause { background: var(--habit); color: #fff; }
+  .dial-actions .act.pause { background: var(--habit); color: var(--habit-on); }
   .dial-actions .act.done { background: var(--success-soft); color: var(--success); }
   .dial-actions .act.cancel { color: var(--danger); }
   .dial-actions .act.reset { color: var(--text-2); }

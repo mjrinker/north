@@ -53,15 +53,15 @@ body.light {
   --surface-3: #e2e1dd;
   --text: #1c1b1a;
   --text-2: #6b6966;
-  --text-3: #9c9995;
+  --text-3: #7a7773;
   --separator: rgba(40, 35, 30, 0.12);
   --separator-strong: rgba(40, 35, 30, 0.2);
   --accent: #2b62c9;
   --accent-contrast: #ffffff;
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
-  --success: #2c8a55;
+  --success: #26794b;
   --success-soft: color-mix(in srgb, var(--success) 13%, transparent);
-  --warning: #b97a10;
+  --warning: #9a650c;
   --warning-soft: color-mix(in srgb, var(--warning) 14%, transparent);
   --danger: #cf3f35;
   --danger-soft: color-mix(in srgb, var(--danger) 12%, transparent);
@@ -78,7 +78,7 @@ body.dark {
   --surface-3: #353532;
   --text: #ededeb;
   --text-2: #a5a39f;
-  --text-3: #73716d;
+  --text-3: #85837e;
   --separator: rgba(255, 255, 255, 0.09);
   --separator-strong: rgba(255, 255, 255, 0.16);
   --accent: #6b9af2;
@@ -99,7 +99,7 @@ body.oled {
   --surface-3: #282826;
   --text: #ededeb;
   --text-2: #a5a39f;
-  --text-3: #6d6b67;
+  --text-3: #85837e;
   --separator: rgba(255, 255, 255, 0.1);
   --separator-strong: rgba(255, 255, 255, 0.18);
   --accent: #6b9af2;

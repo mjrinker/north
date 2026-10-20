@@ -1198,7 +1198,7 @@ base64("Habit:23d82b83-f52a-40a6-8ebe-05126ebc2f55")
   .admin-badge {
     font-size: 0.7rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--accent-contrast);
     background: var(--accent);
     border-radius: 4px;
     padding: 1px 6px;

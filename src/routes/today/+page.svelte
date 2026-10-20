@@ -861,7 +861,7 @@
         <div class="group list">
           {#each visiblePausedHabits as habit (habit.id)}
             <div class="row paused-row" role="button" tabindex="0" onclick={() => openEdit(habit)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(habit); } }}>
-              <span class="paused-glyph" style="color: {habit.metadata?.color || 'var(--text-2)'}">
+              <span class="paused-glyph" style={habit.metadata?.color ? `color: color-mix(in oklab, ${habit.metadata.color} 60%, var(--text))` : 'color: var(--text-2)'}>
                 {#if habit.metadata?.emoji}{habit.metadata.emoji}{:else if habit.metadata?.icon}<Icon icon={habit.metadata.icon} />{/if}
               </span>
               <div class="row-label">
@@ -1305,8 +1305,8 @@
     font-size: 22px;
   }
 
-  .swipe-btn.hide { background: #8e8c88; }
-  .swipe-btn.more { background: #6b6966; }
+  .swipe-btn.hide { background: #6b6966; }
+  .swipe-btn.more { background: #57554f; }
 
   /* Paused */
   .paused-row {
@@ -1318,7 +1318,7 @@
     display: grid;
     place-items: center;
     font-size: 20px;
-    opacity: 0.6;
+    opacity: 0.75;
   }
 
   .paused-title {

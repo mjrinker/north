@@ -3,6 +3,7 @@
   import { user } from '../../../../../stores/auth';
   import { gql } from '$lib/api';
   import { goto } from '$app/navigation';
+  import { habitColorVars } from '$lib/color';
   import Icon from '@iconify/svelte';
 
 export const ssr = false;
@@ -97,7 +98,7 @@ export const ssr = false;
   {:else}
     <div class="group">
       {#each allHabits as habit (habit.id)}
-        <label class="row habit-row" style="--habit: {habit.metadata?.color || 'var(--accent)'}">
+        <label class="row habit-row" style={habitColorVars(habit.metadata?.color)}>
           <span class="glyph" aria-hidden="true">
             {#if habit.metadata?.emoji}{habit.metadata.emoji}{:else if habit.metadata?.icon}<Icon icon={habit.metadata.icon} />{:else}{habit.title.slice(0, 1)}{/if}
           </span>
@@ -140,7 +141,7 @@ export const ssr = false;
     place-items: center;
     border-radius: 50%;
     background: color-mix(in srgb, var(--habit) 14%, transparent);
-    color: var(--habit);
+    color: var(--habit-ink);
     font-size: 16px;
     font-weight: 600;
   }

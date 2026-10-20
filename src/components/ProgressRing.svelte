@@ -187,7 +187,7 @@
 		transition: stroke-dashoffset 0.2s var(--ease);
 	}
 	.ring-prog.green {
-		stroke: var(--habit, var(--accent));
+		stroke: var(--habit-ink, var(--accent));
 	}
 	.ring-prog.gold {
 		stroke: var(--success);

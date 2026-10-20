@@ -5,6 +5,7 @@
   import { computeHabitStats, computeGlobalStats, getLastNDays, buildHeatmapData, rangeDays, bucketDaily, type StatsRange, type RateBucket } from '../../services/analytics';
   import Heatmap from '../../components/Heatmap.svelte';
   import Icon from '@iconify/svelte';
+  import { habitColorVars } from '../../lib/color';
 
   let allHabits = $state<Habit[]>([]);
   let allEntries = $state<HabitEntry[]>([]);
@@ -164,7 +165,7 @@
     <div class="group">
       {#each habitStatsList as stats (stats.habit.id)}
         {@const h = stats.habit}
-        <div class="row habit" style="--habit: {h.metadata?.color || 'var(--accent)'}">
+        <div class="row habit" style={habitColorVars(h.metadata?.color)}>
           <span class="glyph" aria-hidden="true">
             {#if h.metadata?.emoji}{h.metadata.emoji}{:else if h.metadata?.icon}<Icon icon={h.metadata.icon} />{:else}{h.title.slice(0, 1)}{/if}
           </span>
@@ -331,7 +332,7 @@
     place-items: center;
     border-radius: 50%;
     background: color-mix(in srgb, var(--habit) 14%, transparent);
-    color: var(--habit);
+    color: var(--habit-ink);
     font-size: 17px;
     font-weight: 600;
   }
@@ -372,7 +373,7 @@
     display: block;
     height: 100%;
     border-radius: 2px;
-    background: var(--habit);
+    background: var(--habit-ink);
   }
 
   .empty .btn {

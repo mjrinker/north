@@ -3,6 +3,7 @@
   import { pluralizeUnit } from '$lib/units';
   import { formatDurationLabel } from '$lib/duration';
   import { progressPercentage } from '$lib/thresholds';
+  import { habitColorVars } from '$lib/color';
   import Icon from '@iconify/svelte';
 
   // `sh.todayEntry` is the partner's entry for the date the parent page is viewing.
@@ -33,7 +34,7 @@
   }
 </script>
 
-<div class="row partner-row" style="--habit: {habit.metadata?.color || 'var(--accent)'}">
+<div class="row partner-row" style={habitColorVars(habit.metadata?.color)}>
   <div class="glyph" aria-hidden="true">
     <svg class="ring" viewBox="0 0 40 40">
       <circle class="ring-track" cx="20" cy="20" r="17" />
@@ -78,7 +79,7 @@
     height: 40px;
     display: grid;
     place-items: center;
-    color: var(--habit);
+    color: var(--habit-ink);
   }
 
   .ring {
@@ -93,7 +94,7 @@
   }
 
   .ring-track { stroke: color-mix(in srgb, var(--habit) 16%, transparent); }
-  .ring-fill { stroke: var(--habit); stroke-linecap: round; }
+  .ring-fill { stroke: var(--habit-ink); stroke-linecap: round; }
 
   .glyph-inner {
     font-size: 18px;
@@ -141,11 +142,11 @@
     place-items: center;
     border-radius: 50%;
     background: var(--habit);
-    color: #fff;
+    color: var(--habit-on);
     font-size: 18px;
   }
 
-  .check.break { background: var(--danger); }
+  .check.break { background: var(--danger); color: #fff; }
 
   .not-done {
     font-size: var(--text-sm);

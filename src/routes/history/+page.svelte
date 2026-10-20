@@ -12,6 +12,7 @@ import { sortHabitsForMode, loadSortMode } from '../../lib/habitUtils';
   import HabitBackfillModal from '../../components/HabitBackfillModal.svelte';
   import Icon from '@iconify/svelte';
   import Modal from '../../components/Modal.svelte';
+  import { habitColorVars } from '../../lib/color';
   import { showCreateHabit } from '../../stores/createHabit';
   import { onDestroy, tick } from 'svelte';
 
@@ -359,7 +360,7 @@ import { sortHabitsForMode, loadSortMode } from '../../lib/habitUtils';
             </tr>
           {/if}
           {#each visibleHabits as habit (habit.id)}
-            <tr style="--habit: {habit.metadata?.color || 'var(--accent)'}">
+            <tr style={habitColorVars(habit.metadata?.color)}>
               {#each dateColumns as date}
                 {@const entry = getDayEntry(habit.id, date)}
                 <td class="day-cell {cellClass(entry)}" class:today={isToday(date)}>
@@ -626,7 +627,7 @@ import { sortHabitsForMode, loadSortMode } from '../../lib/habitUtils';
     position: absolute;
     inset: 0;
     margin: auto;
-    color: #fff;
+    color: var(--habit-on);
     font-size: 15px;
     pointer-events: none;
   }
@@ -634,6 +635,10 @@ import { sortHabitsForMode, loadSortMode } from '../../lib/habitUtils';
   .dot.on.break {
     background: var(--danger);
     border-color: var(--danger);
+  }
+
+  .dot.on.break :global(svg) {
+    color: #fff;
   }
 
   .dot input {

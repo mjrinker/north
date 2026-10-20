@@ -6,6 +6,7 @@
   import { getLocalDateString } from '../lib/dates';
   import { isStandardMet as metStandard, isTargetMet as metTarget, progressPercentage } from '../lib/thresholds';
   import { formatDurationLabel } from '../lib/duration';
+  import { habitColorVars } from '../lib/color';
   import { timerStates, setTimerState, clearTimerState, defaultTimer, type TimerState, type AllTimers } from '../lib/timerStore';
   import { recordAutoCompletedDep } from '../lib/autoDeps';
   import { autoCompleteDependencies, uncheckDependencies } from '../lib/dependencyEngine';
@@ -333,7 +334,7 @@
 </script>
 
 <div class="habit-row" role="button" tabindex="0"
-  style="--habit: {habit.metadata?.color || 'var(--accent)'};"
+  style={habitColorVars(habit.metadata?.color)}
   use:useLongPressStart
   onclick={() => { if (!longPressFired) onEdit?.(); }}
   onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit?.(); } }}>
@@ -480,7 +481,7 @@
     height: 40px;
     display: grid;
     place-items: center;
-    color: var(--habit);
+    color: var(--habit-ink);
   }
 
   .ring {
@@ -499,7 +500,7 @@
   }
 
   .ring-fill {
-    stroke: var(--habit);
+    stroke: var(--habit-ink);
     stroke-linecap: round;
     transition: stroke-dashoffset 0.4s var(--ease);
   }
@@ -628,7 +629,7 @@
     border: 2px solid var(--separator-strong);
     display: grid;
     place-items: center;
-    color: #fff;
+    color: var(--habit-on);
     font-size: 19px;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, transform 0.1s var(--ease);
@@ -653,6 +654,7 @@
   .check.on.break {
     background: var(--danger);
     border-color: var(--danger);
+    color: #fff;
   }
 
   /* Quantity stepper */
@@ -705,7 +707,7 @@
     outline: none;
   }
 
-  .met { color: var(--habit) !important; }
+  .met { color: var(--habit-ink) !important; }
   .target { color: var(--success) !important; }
   .over { color: var(--danger) !important; }
 
@@ -771,7 +773,7 @@
 
   .round.primary {
     background: var(--habit);
-    color: #fff;
+    color: var(--habit-on);
   }
 
   .round.done {
@@ -780,7 +782,7 @@
   }
 
   .round.subtle {
-    color: var(--text-3);
+    color: var(--text-2);
     font-size: 18px;
   }
 </style>
